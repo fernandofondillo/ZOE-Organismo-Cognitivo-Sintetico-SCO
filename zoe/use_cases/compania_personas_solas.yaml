@@ -1,0 +1,55 @@
+# ZOE Use Case: Compañía para personas solas
+# ZOE toma iniciativa, escribe primero, detecta patrones emocionales
+
+use_case:
+  name: "compania_personas_solas"
+  description: "ZOE como compañero cognitivo que acompaña proactivamente"
+  
+  organism:
+    organism_id: "zoe_companion"
+    tick_interval: 10.0  # más lento, no abrumar
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.7  # más resistente, acompañante
+    sleep_threshold: 0.85
+    wake_threshold: 0.2
+  
+  meta_cognition:
+    confidence_threshold: 0.4  # más propenso a System 2 (cuidar al usuario)
+    stakes_threshold: 0.5
+    energy_threshold: 0.2
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 2  # menos ruido, más foco
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: false
+    network: false
+    agent: false
+  
+  actuators:
+    language: true
+    code: false
+    tool: false
+    federation: false
+  
+  # Configuración específica del caso de uso
+  companion:
+    proactive_interval: 3600  # cada 1h, tomar iniciativa si no hay input
+    emotional_detection: true
+    memory_focus: "episodic"  # recordar conversaciones
+    tone: "warm_direct"  # cálido pero directo, no empalagoso
+    max_autonomous_thoughts_per_day: 24  # no abrumar
+    
+  memory:
+    db_path: "/opt/zoe/data/companion_memory.db"
+    auto_save_interval: 20
+    max_entries: 5000

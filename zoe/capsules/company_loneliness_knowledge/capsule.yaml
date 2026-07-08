@@ -1,0 +1,39 @@
+name: company_loneliness_knowledge
+version: 1.0.0
+description: "Knowledge base sobre soledad, duelo y bienestar emocional en compañía"
+domain: psychology.loneliness.grief
+trust_level: verified
+provenance: "Soledad no Deseada (Ministerio de Igualdad España 2023) + Word Health Organization Loneliness 2023 + Bowlby Attachment Theory"
+last_updated: 2026-05-30
+
+depends_on:
+  - basic_psychology
+  - communication_skills
+
+compatible_use_cases:
+  - compania_personas_solas
+  - cuidado_personas_mayores
+
+load_cost: 0.12
+default_confidence: 0.85
+
+components:
+  semantic_memory: true
+  procedural_skills: false
+  causal_models: true
+  emotional_patterns: true
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - distinguish_loneliness_types
+  - identify_grief_stage
+  - detect_loneliness_risk_factors
+  - apply_attachment_aware_communication
+
+restrictions:
+  - no_pathologize_loneliness
+  - no_minimize_grief
+  - refer_to_professional_when_pathology_suspected

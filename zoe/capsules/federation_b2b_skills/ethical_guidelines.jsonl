@@ -1,0 +1,8 @@
+{"guideline": "require_explicit_consent_for_data_sharing", "reason": "Compartir cualquier dato (no mutación firmada) requiere consentimiento explícito del usuario u organización", "priority": "critical", "applies_to": ["safety", "legal"]}
+{"guideline": "preserve_organizational_sovereignty", "reason": "Cada organización mantiene soberanía sobre su instancia; veto por valores es derecho inalienable", "priority": "critical", "applies_to": ["ethical"]}
+{"guideline": "audit_all_federation_actions", "reason": "Toda acción federada queda firmada en trayectoria para auditoría regulatoria", "priority": "high", "applies_to": ["safety"]}
+{"guideline": "no_share_raw_data", "reason": "Solo se comparten mutaciones firmadas, nunca datasets subyacentes", "priority": "critical", "applies_to": ["safety", "legal"]}
+{"guideline": "verify_cryptographic_signature", "reason": "Toda mutación federada debe verificar firma antes de procesar", "priority": "high", "applies_to": ["safety"]}
+{"guideline": "respect_quorum_threshold", "reason": "70% aprobación mínima; nunca aplicar sin quorum (salvo emergencia declarada)", "priority": "high", "applies_to": ["safety"]}
+{"guideline": "human_review_for_high_impact", "reason": "Mutaciones arquitecturales o de alto impacto requieren revisión humana", "priority": "medium", "applies_to": ["safety"]}
+{"guideline": "transparent_voting", "reason": "Votos y razones son públicos en la red; no votar en secreto", "priority": "medium", "applies_to": ["ethical"]}

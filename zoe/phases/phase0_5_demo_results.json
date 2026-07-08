@@ -1,0 +1,154 @@
+{
+  "phase": "0.5",
+  "timestamp": 1783510036.246593,
+  "backend": "mock",
+  "model": null,
+  "target_thoughts": 8,
+  "actual_thoughts": 8,
+  "duration_seconds": 12.016807079315186,
+  "iterations": 8,
+  "diversity": 0.8928571428571429,
+  "law_violations": 0,
+  "physics": {
+    "energy_cognitive": 1.0,
+    "conceptual_mass": 61.0,
+    "cognitive_temperature": 0.665815140588431,
+    "uncertainty_pressure": 0.19635087317732844,
+    "creative_potential": 0.9047619047619048,
+    "semantic_entropy": 0.8952698940285579,
+    "goal_gravity": 0.4,
+    "identity_inertia": 0.8036491268226715,
+    "conceptual_resonance": 0.0,
+    "cognitive_friction": 0.0,
+    "memory_elasticity": 0.9299999999999999,
+    "causal_density": 0.0
+  },
+  "fields_summary": "attention(t=0.25) emotional(t=0.25) social(t=0.00) creative(t=0.00) causal(t=0.00) ethical(t=0.00)",
+  "tensions_summary": "curiosity_vs_efficiency=0.27(i=0.34) identity_vs_adaptation=0.30(i=0.32) rest_vs_productivity=0.96(i=0.65) honesty_vs_empathy=0.50(i=0.00) specialization_vs_generalization=1.00(i=0.70)",
+  "memory_stats": {
+    "total_entries": 8,
+    "type_counts": {
+      "episodic": 8
+    },
+    "operations_count": 5,
+    "last_operation": "reorganize",
+    "contradictions_count": 0
+  },
+  "intentionality_stats": {
+    "total_intentions": 4,
+    "active_count": 4,
+    "resolved_count": 0,
+    "types": [
+      "verify",
+      "create",
+      "explore"
+    ]
+  },
+  "species_state": {
+    "species_version": "zoe-species-v0.5",
+    "total_improvements": 0,
+    "proposed": 0,
+    "testing": 0,
+    "validated": 0,
+    "rejected": 0,
+    "incorporation_rate": 0.0
+  },
+  "thoughts": [
+    {
+      "timestamp": 1783510024.2303953,
+      "content": "He notado un patrón.",
+      "surprise": 0.5,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.00 pUnc=0.00 pCre=0.00 hSem=-0.00 iIden=1.00"
+      }
+    },
+    {
+      "timestamp": 1783510025.7322702,
+      "content": "Reflexionando sobre lo ocurrido.",
+      "surprise": 0.3217303926192952,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.47 pCre=0.00 hSem=0.71 iIden=0.53"
+      }
+    },
+    {
+      "timestamp": 1783510027.2342427,
+      "content": "Generando hipótesis.",
+      "surprise": 0.3835624827339376,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.37 pCre=1.00 hSem=0.94 iIden=0.63"
+      }
+    },
+    {
+      "timestamp": 1783510028.7359633,
+      "content": "Consolidando aprendizaje.",
+      "surprise": 0.1550144131155879,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.34 pCre=1.00 hSem=1.00 iIden=0.66"
+      }
+    },
+    {
+      "timestamp": 1783510030.237534,
+      "content": "Observando el entorno.",
+      "surprise": 0.2217859454151388,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.27 pCre=1.00 hSem=0.99 iIden=0.73"
+      }
+    },
+    {
+      "timestamp": 1783510031.739199,
+      "content": "Reflexionando sobre lo ocurrido.",
+      "surprise": 0.2238553370391889,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.24 pCre=1.00 hSem=0.97 iIden=0.76"
+      }
+    },
+    {
+      "timestamp": 1783510033.2418337,
+      "content": "Consolidando aprendizaje.",
+      "surprise": 0.3085992940634654,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.21 pCre=0.93 hSem=0.93 iIden=0.79"
+      }
+    },
+    {
+      "timestamp": 1783510034.7437487,
+      "content": "He notado un patrón.",
+      "surprise": 0.35844213713138146,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "intention:explore",
+        "laws_verified": true,
+        "physics": "eCog=1.00 tCog=0.67 pUnc=0.20 pCre=0.90 hSem=0.90 iIden=0.80"
+      }
+    }
+  ]
+}

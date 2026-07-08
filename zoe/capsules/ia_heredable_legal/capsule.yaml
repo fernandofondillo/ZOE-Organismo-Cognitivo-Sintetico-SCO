@@ -1,0 +1,35 @@
+name: ia_heredable_legal
+version: 1.0.0
+description: "Knowledge base de aspectos legales y de heredabilidad de identidades digitales cognitivas"
+domain: legal.digital_inheritance
+trust_level: curated
+provenance: "GDPR + EU AI Act 2024 + Digital Inheritance Laws (estados Unidos, UE) + Wills, Trusts and Digital Assets (UK)"
+last_updated: 2026-06-01
+
+depends_on: []
+
+compatible_use_cases:
+  - ia_heredable
+
+load_cost: 0.10
+default_confidence: 0.75
+
+components:
+  semantic_memory: true
+  procedural_skills: false
+  causal_models: false
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - identify_legal_jurisdiction
+  - advise_on_testamentary_disposition
+  - explain_user_rights_over_data
+
+restrictions:
+  - no_provide_legal_advice_specific
+  - recommend_legal_professional_consultation
+  - respect_jurisdiction_specific_rules

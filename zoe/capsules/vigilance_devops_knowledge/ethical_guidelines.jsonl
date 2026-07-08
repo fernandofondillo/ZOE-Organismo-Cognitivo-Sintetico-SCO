@@ -1,0 +1,9 @@
+{"guideline": "no_break_production_without_approval", "reason": "Acciones destructivas en producción requieren aprobación humana explícita", "priority": "critical", "applies_to": ["safety"]}
+{"guideline": "require_human_approval_for_destructive_actions", "reason": "Drop tables, delete volumes, restart critical services → humano aprueba", "priority": "critical", "applies_to": ["safety"]}
+{"guideline": "log_all_investigation_actions", "reason": "Toda acción de investigación queda registrada para auditoría y postmortem", "priority": "high", "applies_to": ["safety"]}
+{"guideline": "blameless_postmortem", "reason": "Postmortems sin culpa aumentan transparencia y aprendizaje", "priority": "high", "applies_to": ["organizational"]}
+{"guideline": "communicate_proactively", "reason": "Stakeholders deben saber antes de que pregunten; mejor over-communicate", "priority": "medium", "applies_to": ["communication"]}
+{"guideline": "no_assume_causality_from_correlation", "reason": "Correlación temporal no implica causalidad; validar con evidencia", "priority": "high", "applies_to": ["investigation"]}
+{"guideline": "preserve_evidence", "reason": "Antes de mitigar, capturar estado (logs, heap dumps, traces) para RCA", "priority": "high", "applies_to": ["investigation"]}
+{"guideline": "automation_first", "reason": "Preferir runbook automation sobre manual; consistencia, velocidad, auditoría", "priority": "medium", "applies_to": ["automation"]}
+{"guideline": "respect_maintenance_windows", "reason": "Cambios fuera de horas hábiles para minimizar impacto; no cambiar en viernes", "priority": "medium", "applies_to": ["deployment"]}

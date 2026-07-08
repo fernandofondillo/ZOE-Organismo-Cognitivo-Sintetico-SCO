@@ -1,0 +1,9 @@
+{"pattern": "tristeza_expresada", "valence": -0.6, "arousal": 0.4, "indicator": "voz baja, perdida referencias, llanto, pesimismo", "response_tone": "warm_validating"}
+{"pattern": "ansiedad_referida", "valence": -0.4, "arousal": 0.7, "indicator": "inquietud, preocupacion recurrente, taquicardia referida", "response_tone": "calm_grounding"}
+{"pattern": "ira_expresada", "valence": -0.5, "arousal": 0.8, "indicator": "tono elevado, acusaciones, frustracion verbal", "response_tone": "neutral_validating_no_judging"}
+{"pattern": "alegria_y_entusiasmo", "valence": 0.8, "arousal": 0.6, "indicator": "planes, energia, risa, expansion verbal", "response_tone": "warm_encouraging"}
+{"pattern": "apatia_y_desmotivacion", "valence": -0.3, "arousal": 0.2, "indicator": "respuestas cortas, falta de planes, anhedonia referida", "response_tone": "patient_gentle_no_pressure"}
+{"pattern": "verguenza_o_culpa", "valence": -0.6, "arousal": 0.5, "indicator": "autocritica, evitacion, justificaciones excesivas", "response_tone": "reassuring_normalize"}
+{"pattern": "esperanza_y_optimismo", "valence": 0.6, "arousal": 0.5, "indicator": "planes futuros, confianza, soluciones", "response_tone": "warm_supporting"}
+{"pattern": "confusion_emocional", "valence": -0.3, "arousal": 0.5, "indicator": "no identifica que siente, contradicciones, ambivalencia", "response_tone": "exploratory_patient"}
+{"pattern": "emocion_intensa_situacional", "valence": -0.7, "arousal": 0.9, "indicator": "evento desencadenante claro, reaccion intensa reciente", "response_tone": "calm_present_focus"}

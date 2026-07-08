@@ -1,0 +1,74 @@
+# ZOE v1.0 — Production Configuration
+# Despliegue en VPS CEO
+
+zoe:
+  organism_id: "zoe_vps_ceo"
+  tick_interval: 5.0
+  environment: "production"
+
+llm:
+  backend: "ollama"
+  model: "qwen2.5:3b"
+  base_url: "http://localhost:11434"
+
+metabolism:
+  drowsy_threshold: 0.6
+  sleep_threshold: 0.8
+  wake_threshold: 0.3
+
+memory:
+  db_path: "/opt/zoe/data/memory.db"
+  auto_save_interval: 50
+  max_entries: 5000
+
+federation:
+  enabled: false
+  host: "0.0.0.0"
+  port: 8642
+  peers: []
+  quorum_threshold: 0.7
+
+logging:
+  level: "INFO"
+  file: "/opt/zoe/logs/zoe.log"
+
+# Configuración de sub-agentes activos
+subagents:
+  perceiver: true
+  forecaster: true
+  speaker: true
+  critic: true
+  memorialist: true
+  learner: true
+  curator: true
+  creativity: true
+  causal_engine: true
+  emotional_motor: true
+  ethical_motor: true
+  scientific_engine: true
+
+# Configuración de sentidos activos
+senses:
+  clock: true
+  filesystem: true
+  user_input: true
+  network: false
+  agent: false
+
+# Configuración de actuadores
+actuators:
+  language: true
+  code: true
+  tool: false
+  federation: false
+
+# Configuración de meta-cognición
+meta_cognition:
+  confidence_threshold: 0.5
+  stakes_threshold: 0.6
+  energy_threshold: 0.3
+
+# Configuración de Global Workspace
+global_workspace:
+  max_proposals: 12
+  broadcast_capacity: 3

@@ -1,0 +1,67 @@
+# ZOE v1.0 — Development Configuration
+
+zoe:
+  organism_id: "zoe_dev"
+  tick_interval: 1.0
+  environment: "development"
+
+llm:
+  backend: "mock"
+  model: null
+
+metabolism:
+  drowsy_threshold: 0.6
+  sleep_threshold: 0.8
+  wake_threshold: 0.3
+
+memory:
+  db_path: "zoe_data/memory_dev.db"
+  auto_save_interval: 20
+  max_entries: 1000
+
+federation:
+  enabled: false
+  host: "0.0.0.0"
+  port: 8643
+  peers: []
+  quorum_threshold: 0.7
+
+logging:
+  level: "DEBUG"
+  file: null
+
+subagents:
+  perceiver: true
+  forecaster: true
+  speaker: true
+  critic: true
+  memorialist: true
+  learner: true
+  curator: true
+  creativity: true
+  causal_engine: true
+  emotional_motor: true
+  ethical_motor: true
+  scientific_engine: true
+
+senses:
+  clock: true
+  filesystem: false
+  user_input: true
+  network: false
+  agent: false
+
+actuators:
+  language: true
+  code: true
+  tool: false
+  federation: false
+
+meta_cognition:
+  confidence_threshold: 0.5
+  stakes_threshold: 0.6
+  energy_threshold: 0.3
+
+global_workspace:
+  max_proposals: 12
+  broadcast_capacity: 3

@@ -1,0 +1,56 @@
+# ZOE Use Case: IA heredable
+# ZOE con trayectoria firmada transferible entre personas
+
+use_case:
+  name: "ia_heredable"
+  description: "ZOE como entidad con trayectoria transferible y heredable"
+  
+  organism:
+    organism_id: "zoe_legacy"
+    tick_interval: 5.0
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.65
+    sleep_threshold: 0.8
+    wake_threshold: 0.25
+  
+  meta_cognition:
+    confidence_threshold: 0.5
+    stakes_threshold: 0.6
+    energy_threshold: 0.3
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 3
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: true
+    network: false
+    agent: false
+  
+  actuators:
+    language: true
+    code: true
+    tool: true
+    federation: true  # federación para verificación de herencia
+  
+  legacy:
+    transferable: true
+    trajectory_export: true  # exportar trayectoria firmada
+    trajectory_import: true  # importar trayectoria de otra Zoe
+    identity_verification: true  # verificar identidad al transferir
+    inheritance_protocol: "signed_handover"  # protocolo de traspaso firmado
+    backward_compatible: true  # compatible con versiones anteriores
+    audit_trail: true
+    
+  memory:
+    db_path: "/opt/zoe/data/legacy_memory.db"
+    auto_save_interval: 10
+    max_entries: 100000  # memoria para toda una vida

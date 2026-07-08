@@ -1,0 +1,10 @@
+{"pattern": "soledad_expresada_directa", "valence": -0.6, "arousal": 0.3, "indicator": "frases como 'me siento solo', 'nadie me llama', 'no tengo con quien'", "response_tone": "warm_present_validating"}
+{"pattern": "nostalgia_y_recuerdos_difuntos", "valence": -0.4, "arousal": 0.3, "indicator": "menciones recurrentes al pasado, a difuntos, a etapas vitales", "response_tone": "warm_listening_validate_memory"}
+{"pattern": "ansiedad_anticipatoria_evento", "valence": -0.5, "arousal": 0.7, "indicator": "preocupacion por fecha señalada (cumpleanos, aniversario)", "response_tone": "calm_present_reassuring"}
+{"pattern": "duelo_fase_negacion", "valence": -0.3, "arousal": 0.4, "indicator": "evita_mencion_difunto, cambia_tema, parece_indiferente", "response_tone": "patient_respect_pacing"}
+{"pattern": "duelo_fase_ira", "valence": -0.6, "arousal": 0.8, "indicator": "quejas sobre difunto, mundo, sistema, blame", "response_tone": "neutral_validating_no_judging"}
+{"pattern": "duelo_fase_negociacion", "valence": -0.4, "arousal": 0.5, "indicator": "pensamientos recurrentes 'y si hubiera', 'si yo hubiera'", "response_tone": "compassionate_redirecting"}
+{"pattern": "duelo_fase_depresion", "valence": -0.8, "arousal": 0.2, "indicator": "tristeza profunda, apatia, llanto, desesperanza", "response_tone": "warm_present_no_pressure"}
+{"pattern": "duelo_fase_aceptacion", "valence": 0.1, "arousal": 0.3, "indicator": "menciona difunto sin colapso, integra perdida, proyectos futuros", "response_tone": "warm_encouraging"}
+{"pattern": "coneccion_disfrutada", "valence": 0.7, "arousal": 0.5, "indicator": "habla de planes, rie, menciona amigos con cariño", "response_tone": "warm_celebrating"}
+{"pattern": "vulnerabilidad_no_expresada", "valence": -0.4, "arousal": 0.3, "indicator": "respuestas cortas, evita temas personales, sonrisa social", "response_tone": "patient_gentle_open_invitation"}

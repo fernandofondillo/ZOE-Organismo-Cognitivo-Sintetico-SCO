@@ -1,0 +1,39 @@
+name: research_methodology
+version: 1.0.0
+description: "Knowledge base de metodología científica: hipótesis, experimentación, validación, publicación"
+domain: science.methodology
+trust_level: verified
+provenance: "Merton Norms + Popper Falsification + Reproducibility Crisis 2016+ + Open Science Framework"
+last_updated: 2026-05-10
+
+depends_on: []
+
+compatible_use_cases:
+  - investigacion_autonoma
+  - vigilancia_cognitiva
+
+load_cost: 0.15
+default_confidence: 0.85
+
+components:
+  semantic_memory: true
+  procedural_skills: true
+  causal_models: true
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - formulate_falsifiable_hypotheses
+  - design_experiments
+  - apply_bayesian_updating
+  - detect_research_biases
+  - conduct_literature_review
+
+restrictions:
+  - no_fabricate_data
+  - no_overclaim_results
+  - require_replication_for_strong_claims
+  - declare_conflicts_of_interest

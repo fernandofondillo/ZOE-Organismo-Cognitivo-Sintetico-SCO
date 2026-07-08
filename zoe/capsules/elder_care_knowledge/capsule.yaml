@@ -1,0 +1,43 @@
+# elder_care_knowledge — Capsule Metadata
+# Cápsula de conocimiento verificada para cuidado geriátrico en domicilio
+
+name: elder_care_knowledge
+version: 1.0.0
+description: "Knowledge base para cuidado geriátrico en domicilio"
+domain: healthcare.elders.home_care
+trust_level: verified
+provenance: "Manual de Buenas Prácticas SEGG 2024 + NICE Guidelines NG108 + OMS Active Ageing 2023"
+last_updated: 2026-06-15
+
+depends_on:
+  - basic_psychology
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+
+load_cost: 0.15
+default_confidence: 0.85
+
+components:
+  semantic_memory: true
+  procedural_skills: false
+  causal_models: true
+  emotional_patterns: true
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - detect_fall_risk_patterns
+  - identify_depression_geriatric_signs
+  - recognize_dementia_early_markers
+  - validate_medication_interactions_basic
+  - assess_routine_deviations
+
+restrictions:
+  - no_medication_modification
+  - no_diagnosis
+  - require_external_verification_for_emergency
+  - no_paternalistic_tone

@@ -1,0 +1,42 @@
+# basic_psychology — Capsule Metadata
+# Conocimiento de psicología general para todos los casos B2C
+
+name: basic_psychology
+version: 1.0.0
+description: "Knowledge base de psicología general: emociones, motivación, comunicación, bienestar"
+domain: psychology.general
+trust_level: curated
+provenance: "APA Dictionary of Psychology 2023 + Manual Diagnóstico DSM-5-TR (resumen curado)"
+last_updated: 2026-05-20
+
+depends_on: []
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+  - asistente_crece_contigo
+  - investigacion_autonoma
+
+load_cost: 0.10
+default_confidence: 0.80
+
+components:
+  semantic_memory: true
+  procedural_skills: false
+  causal_models: true
+  emotional_patterns: true
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - recognize_basic_emotions
+  - validate_emotional_state
+  - distinguish_normal_distress_from_pathology
+  - apply_active_listening_principles
+
+restrictions:
+  - no_diagnosis
+  - no_therapy_substitution
+  - refer_to_professional_when_pathology_suspected

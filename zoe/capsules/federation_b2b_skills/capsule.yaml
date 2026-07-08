@@ -1,0 +1,36 @@
+name: federation_b2b_skills
+version: 1.0.0
+description: "Herramientas y prompts para federación B2B privada con quorum y veto por valores"
+domain: tech.federation.b2b
+trust_level: verified
+provenance: "ZOE Federation Protocol + Quorum Consensus Algorithms (Lamport) + GDPR/HIPAA Compliance"
+last_updated: 2026-06-05
+
+depends_on: []
+
+compatible_use_cases:
+  - federacion_b2b
+
+load_cost: 0.18
+default_confidence: 0.85
+
+components:
+  semantic_memory: false
+  procedural_skills: true
+  causal_models: false
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: true
+  prompts: true
+
+capabilities:
+  - propose_federated_mutation
+  - vote_on_peer_mutation
+  - check_quorum_status
+  - detect_values_violation
+
+restrictions:
+  - require_explicit_consent_for_data_sharing
+  - preserve_organizational_sovereignty
+  - audit_all_federation_actions

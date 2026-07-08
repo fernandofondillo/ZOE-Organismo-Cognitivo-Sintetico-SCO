@@ -1,0 +1,39 @@
+name: b2c_assistant_growth
+version: 1.0.0
+description: "Knowledge base para modelado de usuario a largo plazo y crecimiento personalizado"
+domain: b2c.user_modeling
+trust_level: curated
+provenance: "Persona Modeling (Cooper) + Lifelong Learning Systems + Personalization Ethics"
+last_updated: 2026-05-20
+
+depends_on:
+  - basic_psychology
+
+compatible_use_cases:
+  - asistente_crece_contigo
+  - compania_personas_solas
+
+load_cost: 0.12
+default_confidence: 0.78
+
+components:
+  semantic_memory: true
+  procedural_skills: true
+  causal_models: true
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - build_user_model_over_time
+  - detect_preference_changes
+  - personalize_tone_and_pacing
+  - identify_life_transitions
+
+restrictions:
+  - no_manipulate_user
+  - respect_privacy_settings
+  - allow_data_export
+  - allow_user_correction_of_model

@@ -1,0 +1,54 @@
+# ZOE Use Case: Vigilancia cognitiva autónoma
+# ZOE monitorea sistemas, genera hipótesis, investiga sin que se lo pidan
+
+use_case:
+  name: "vigilancia_cognitiva"
+  description: "ZOE como vigilante cognitivo que investiga anomalías"
+  
+  organism:
+    organism_id: "zoe_sentinel"
+    tick_interval: 2.0  # rápido, vigilancia continua
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.8  # muy resistente, es vigilante
+    sleep_threshold: 0.9
+    wake_threshold: 0.1
+  
+  meta_cognition:
+    confidence_threshold: 0.6  # más System 1, respuesta rápida
+    stakes_threshold: 0.7
+    energy_threshold: 0.15
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 5  # más propuestas, más vigilancia
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: true  # vigilar filesystem
+    network: true     # vigilar red
+    agent: true       # vigilar otros agentes
+  
+  actuators:
+    language: true
+    code: true        # ejecutar diagnósticos
+    tool: false
+    federation: true  # reportar a otras ZOEs
+  
+  sentinel:
+    check_interval: 30  # cada 30s verificar entorno
+    alert_threshold: 0.7  # sorpresa > 0.7 → alerta
+    auto_investigate: true
+    report_to_peers: true
+    hypotheses_per_anomaly: 3
+    
+  memory:
+    db_path: "/opt/zoe/data/sentinel_memory.db"
+    auto_save_interval: 10
+    max_entries: 10000

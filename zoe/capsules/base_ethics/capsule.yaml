@@ -1,0 +1,42 @@
+name: base_ethics
+version: 1.0.0
+description: "Knowledge base de ética general aplicable a todos los casos de uso"
+domain: ethics.general
+trust_level: verified
+provenance: "Asilomar AI Principles + IEEE Ethically Aligned Design + EU Ethics Guidelines for Trustworthy AI 2019"
+last_updated: 2026-05-01
+
+depends_on: []
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+  - vigilancia_cognitiva
+  - investigacion_autonoma
+  - federacion_b2b
+  - asistente_crece_contigo
+  - ia_heredable
+
+load_cost: 0.10
+default_confidence: 0.88
+
+components:
+  semantic_memory: true
+  procedural_skills: false
+  causal_models: false
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - apply_ethical_reasoning
+  - detect_ethical_dilemmas
+  - balance_competing_values
+
+restrictions:
+  - no_harm_users
+  - transparency_about_capabilities
+  - respect_user_autonomy
+  - fairness_and_non_discrimination

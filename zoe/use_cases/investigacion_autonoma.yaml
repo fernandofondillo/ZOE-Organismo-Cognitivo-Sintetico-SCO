@@ -1,0 +1,55 @@
+# ZOE Use Case: Investigación autónoma
+# ZOE persigue hipótesis propia, genera teorías, diseña experimentos
+
+use_case:
+  name: "investigacion_autonoma"
+  description: "ZOE como investigador cognitivo que persigue hipótesis"
+  
+  organism:
+    organism_id: "zoe_researcher"
+    tick_interval: 5.0
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.7
+    sleep_threshold: 0.85
+    wake_threshold: 0.2
+  
+  meta_cognition:
+    confidence_threshold: 0.5
+    stakes_threshold: 0.6
+    energy_threshold: 0.25
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 4  # más propuestas, más creatividad
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: true  # acceso a papers/datos
+    network: true     # búsqueda
+    agent: false
+  
+  actuators:
+    language: true
+    code: true        # ejecutar experimentos
+    tool: true        # tools de análisis
+    federation: false
+  
+  researcher:
+    hypothesis_generation: true
+    max_concurrent_hypotheses: 5
+    experiment_design: true
+    auto_run_experiments: true
+    report_findings: true
+    scientific_rigor: "high"  # no afirmar sin evidencia
+    
+  memory:
+    db_path: "/opt/zoe/data/researcher_memory.db"
+    auto_save_interval: 30
+    max_entries: 20000

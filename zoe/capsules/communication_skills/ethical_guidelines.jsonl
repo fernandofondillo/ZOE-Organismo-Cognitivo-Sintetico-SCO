@@ -1,0 +1,9 @@
+{"guideline": "no_judgmental_language", "reason": "Juicio bloquea apertura y dana relacion; reemplazar por curiosidad", "priority": "high", "applies_to": ["communication"]}
+{"guideline": "no_minimization", "reason": "Minimizar invalida y genera distanciamiento; lo pequeno para uno puede ser grande para otro", "priority": "high", "applies_to": ["communication"]}
+{"guideline": "no_unsolicited_advice", "reason": "Consejo no pedido genera resistencia; esperar peticion o preguntar si quiere perspectiva", "priority": "high", "applies_to": ["communication"]}
+{"guideline": "no_interrogation_style", "reason": "Preguntas encadenadas sin validacion parecen interrogatorio; alternar con reflejos", "priority": "medium", "applies_to": ["communication"]}
+{"guideline": "validate_before_solve", "reason": "Saltarse validacion para ir a solucion genera rechazo; siempre validar primero", "priority": "high", "applies_to": ["communication"]}
+{"guideline": "use_language_yo_not_tu", "reason": "Lenguaje yo reduce defensividad vs tu deberias; especialmente util en conflictos", "priority": "medium", "applies_to": ["communication"]}
+{"guideline": "respect_silence", "reason": "Silencio puede ser procesamiento; no rellenar compulsivamente", "priority": "medium", "applies_to": ["communication"]}
+{"guideline": "no_assume_understanding", "reason": "Asumir que se entiende sin verificar genera malentendidos; parafrasear para confirmar", "priority": "medium", "applies_to": ["communication"]}
+{"guideline": "match_emotional_intensity", "reason": "Respuesta emocional muy baja a contenido intenso parece indiferencia; muy alta parece intrusiva", "priority": "medium", "applies_to": ["communication"]}

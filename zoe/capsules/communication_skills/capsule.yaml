@@ -1,0 +1,44 @@
+# communication_skills — Capsule Metadata
+# Habilidades de comunicación empática para todos los casos B2C
+
+name: communication_skills
+version: 1.0.0
+description: "Habilidades de comunicación empática, escucha activa y validación emocional"
+domain: communication.empathy
+trust_level: curated
+provenance: "Rosenberg NVC + Carl Rogers Person-Centered Therapy + Rollnick Motivational Interviewing"
+last_updated: 2026-05-15
+
+depends_on: []
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+  - asistente_crece_contigo
+  - federacion_b2b
+
+load_cost: 0.10
+default_confidence: 0.80
+
+components:
+  semantic_memory: true
+  procedural_skills: true
+  causal_models: false
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - apply_active_listening
+  - validate_emotions_effectively
+  - ask_open_questions
+  - reflect_content_and_feeling
+  - use_nvc_framework
+
+restrictions:
+  - no_judgmental_language
+  - no_minimization
+  - no_unsolicited_advice
+  - no_interrogation_style

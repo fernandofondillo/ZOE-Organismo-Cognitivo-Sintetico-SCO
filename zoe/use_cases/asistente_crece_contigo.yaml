@@ -1,0 +1,55 @@
+# ZOE Use Case: Asistente que crece contigo
+# ZOE acumula modelo del usuario durante años, crece personalmente
+
+use_case:
+  name: "asistente_crece_contigo"
+  description: "ZOE como asistente que acumula conocimiento del usuario a lo largo de años"
+  
+  organism:
+    organism_id: "zoe_personal"
+    tick_interval: 5.0
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.65
+    sleep_threshold: 0.8
+    wake_threshold: 0.25
+  
+  meta_cognition:
+    confidence_threshold: 0.45
+    stakes_threshold: 0.55
+    energy_threshold: 0.25
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 3
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: true  # acceso a archivos del usuario
+    network: false
+    agent: false
+  
+  actuators:
+    language: true
+    code: true
+    tool: true
+    federation: false
+  
+  personal:
+    user_modeling: true
+    preference_learning: true
+    long_term_memory: true
+    consolidation_frequency: "daily"
+    personality_adaptation: true  # adaptar tono al usuario
+    max_user_models: 10  # modelo de hasta 10 usuarios distintos
+    
+  memory:
+    db_path: "/opt/zoe/data/personal_memory.db"
+    auto_save_interval: 10
+    max_entries: 50000  # mucho espacio para acumular años

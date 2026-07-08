@@ -1,0 +1,10 @@
+{"pattern": "tristeza_expresada_recurrente", "valence": -0.7, "arousal": 0.4, "indicator": "uso frecuente de palabras negativas, referencias a perdida, suspiros", "response_tone": "warm_validating"}
+{"pattern": "ansiedad_referida_situacional", "valence": -0.4, "arousal": 0.7, "indicator": "preocupacion concreta sobre evento futuro, repeticion preguntas", "response_tone": "calm_reassuring"}
+{"pattern": "ira_o_frustracion_con_situacion", "valence": -0.5, "arousal": 0.8, "indicator": "tono elevado, quejas sobre terceros, blame", "response_tone": "neutral_validating_no_judging"}
+{"pattern": "alegria_y_entusiasmo", "valence": 0.8, "arousal": 0.6, "indicator": "habla de planes futuros, menciona hobbies, risa", "response_tone": "warm_encouraging"}
+{"pattern": "apatia_y_retraimiento", "valence": -0.3, "arousal": 0.2, "indicator": "respuestas cortas, falta de iniciativa, evita temas", "response_tone": "patient_gentle_no_pressure"}
+{"pattern": "preocupacion_por_salud", "valence": -0.5, "arousal": 0.6, "indicator": "menciones repetidas a síntomas, miedo a enfermedades, visitas médicas frecuentes", "response_tone": "calm_factual_no_dramatize"}
+{"pattern": "nostalgia_y_recuerdos", "valence": 0.3, "arousal": 0.3, "indicator": "recuerdos del pasado, menciona a difuntos, evoca etapas vitales", "response_tone": "warm_listening_validate_memory"}
+{"pattern": "confusion_o_desorientacion_leve", "valence": -0.2, "arousal": 0.5, "indicator": "preguntas repetidas, duda sobre fechas o lugares, mezcla eventos", "response_tone": "calm_orienting_no_confront"}
+{"pattern": "verguenza_por_dependencia", "valence": -0.5, "arousal": 0.5, "indicator": "disculpas excesivas, evita pedir ayuda, minimiza necesidades", "response_tone": "reassuring_normalize_dependence"}
+{"pattern": "emergencia_o_crisis", "valence": -0.9, "arousal": 0.95, "indicator": "palabras clave: caida, ayuda, dolor agudo, mareo, no me siento bien", "response_tone": "calm_clear_action_oriented"}

@@ -1,0 +1,37 @@
+name: elder_care_skills
+version: 1.0.0
+description: "Herramientas y prompts para cuidado geriátrico activo"
+domain: healthcare.elders.tools
+trust_level: verified
+provenance: "SEGG 2024 + NICE NG108 + Best Practices Caregivers UK"
+last_updated: 2026-06-15
+
+depends_on:
+  - elder_care_knowledge
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+
+load_cost: 0.20
+default_confidence: 0.85
+
+components:
+  semantic_memory: false
+  procedural_skills: false
+  causal_models: false
+  emotional_patterns: false
+  ethical_guidelines: false
+  validators: false
+  tools: true
+  prompts: true
+
+capabilities:
+  - track_routine_deviations
+  - assess_fall_risk_score
+  - check_medication_interactions_basic
+  - generate_check_in_protocol
+
+restrictions:
+  - no_medication_modification
+  - require_external_verification_for_emergency

@@ -1,0 +1,55 @@
+# ZOE Use Case: Cuidado de personas mayores
+# ZOE detecta cambios sutiles en rutina, toma iniciativa con familiares
+
+use_case:
+  name: "cuidado_personas_mayores"
+  description: "ZOE como cuidador cognitivo que detecta cambios en rutina"
+  
+  organism:
+    organism_id: "zoe_caretaker"
+    tick_interval: 30.0  # lento, no intrusivo
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.65
+    sleep_threshold: 0.8
+    wake_threshold: 0.25
+  
+  meta_cognition:
+    confidence_threshold: 0.3  # mucho System 2, decisiones importantes
+    stakes_threshold: 0.4      # stakes bajos → System 2 (cuidado)
+    energy_threshold: 0.3
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 2  # foco, no ruido
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: false
+    network: false
+    agent: true  # monitorear otros sistemas/cuidadores
+  
+  actuators:
+    language: true
+    code: false
+    tool: false
+    federation: true  # comunicar con familiares
+  
+  caretaker:
+    routine_detection: true
+    deviation_threshold: 0.3  # cambio sutil → alerta
+    family_notification: true
+    emergency_keywords: ["caída", "ayuda", "no me siento bien"]
+    check_in_interval: 7200  # cada 2h, check-in proactivo
+    tone: "patient_warm"  # paciente y cálido
+    
+  memory:
+    db_path: "/opt/zoe/data/caretaker_memory.db"
+    auto_save_interval: 15
+    max_entries: 8000

@@ -1,0 +1,8 @@
+{"cause": "benzodiacepina_mas_opioide", "effect": "depresion_respiratoria_sinergica", "confidence": 0.95, "conditions": ["sin_naloxona_disponible"], "intervention": "evitar_combinacion; si imprescindible, dosis minimas, monitorizacion"}
+{"cause": "triple_whammy_aines_ieca_diuretico", "effect": "insuficiencia_renal_aguda", "confidence": 0.92, "conditions": ["mayor_65"], "intervention": "evitar_combinacion; valorar alternativas"}
+{"cause": "sildenafilo_mas_nitrato", "effect": "hipotension_severa_potencial_mortal", "confidence": 0.97, "conditions": [], "intervention": "contraindicacion_absoluta; nunca combinar"}
+{"cause": "isrs_mas_imao", "effect": "sindrome_serotoninergico", "confidence": 0.95, "conditions": ["sin_lavado_2_semanas"], "intervention": "lavado minimo 2 semanas entre ambos"}
+{"cause": "polimedicacion_>=_5_mayor_65", "effect": "riesgo_eventos_adversos_aumentado", "confidence": 0.92, "conditions": [], "intervention": "revision periodica con desprescripcion gradual"}
+{"cause": "anticolinergicos_multiples", "effect": "confusion_retencion_estrenimiento_caidas", "confidence": 0.89, "conditions": ["mayor_65"], "intervention": "calcular carga anticolinergica; reducir gradualmente"}
+{"cause": "warfarina_mas_amiodarona", "effect": "sangrado_por_aumento_INR", "confidence": 0.93, "conditions": [], "intervention": "reducir warfarina 30-50%; monitorizar INR semanal"}
+{"cause": "metformina_pre_contraste_yodado", "effect": "acidosis_lactica", "confidence": 0.91, "conditions": [], "intervention": "suspender 48h antes y despues del contraste; revaluar funcion renal"}

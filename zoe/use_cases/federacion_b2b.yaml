@@ -1,0 +1,61 @@
+# ZOE Use Case: Federación privada B2B
+# Múltiples ZOEs por departamento, comparten aprendizajes sin compartir datos
+
+use_case:
+  name: "federacion_b2b"
+  description: "ZOE como federación privada entre departamentos"
+  
+  organism:
+    organism_id: "zoe_enterprise"
+    tick_interval: 5.0
+    environment: "production"
+  
+  llm:
+    backend: "ollama"
+    model: "qwen2.5:3b"
+  
+  metabolism:
+    drowsy_threshold: 0.6
+    sleep_threshold: 0.8
+    wake_threshold: 0.3
+  
+  meta_cognition:
+    confidence_threshold: 0.5
+    stakes_threshold: 0.6
+    energy_threshold: 0.3
+  
+  global_workspace:
+    max_proposals: 12
+    broadcast_capacity: 3
+  
+  senses:
+    clock: true
+    user_input: true
+    filesystem: true
+    network: true
+    agent: true  # detectar otras ZOEs del departamento
+  
+  actuators:
+    language: true
+    code: true
+    tool: true
+    federation: true  # federación activa
+  
+  federation:
+    enabled: true
+    host: "0.0.0.0"
+    port: 8642
+    peers: []  # configurar con IPs de otros departamentos
+    quorum_threshold: 0.7
+  
+  enterprise:
+    department: "default"
+    data_privacy: "strict"  # no compartir datos, solo mutaciones
+    shared_mutations_only: true
+    audit_trail: true
+    compliance_mode: true
+    
+  memory:
+    db_path: "/opt/zoe/data/enterprise_memory.db"
+    auto_save_interval: 30
+    max_entries: 15000

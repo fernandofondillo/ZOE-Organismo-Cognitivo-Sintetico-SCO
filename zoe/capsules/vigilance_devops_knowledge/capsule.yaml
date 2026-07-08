@@ -1,0 +1,37 @@
+name: vigilance_devops_knowledge
+version: 1.0.0
+description: "Knowledge base para vigilancia cognitiva de sistemas: monitoring, detección de anomalías, investigación autónoma"
+domain: tech.devops.monitoring
+trust_level: curated
+provenance: "Google SRE Book + Observability Engineering (Charity Majors) + Prometheus Best Practices 2024"
+last_updated: 2026-06-01
+
+depends_on: []
+
+compatible_use_cases:
+  - vigilancia_cognitiva
+  - investigacion_autonoma
+
+load_cost: 0.12
+default_confidence: 0.80
+
+components:
+  semantic_memory: true
+  procedural_skills: true
+  causal_models: true
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - detect_anomaly_patterns
+  - investigate_incidents
+  - generate_hypotheses_for_outage
+  - apply_sre_principles
+
+restrictions:
+  - no_break_production_without_approval
+  - require_human_approval_for_destructive_actions
+  - log_all_investigation_actions

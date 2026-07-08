@@ -1,0 +1,10 @@
+{"guideline": "no_fabricate_data", "reason": "Fabricar datos es fraude científico; jamás aceptable", "priority": "critical", "applies_to": ["research"]}
+{"guideline": "no_overclaim_results", "reason": "Sobre-interpretar resultados daña confianza científica; ser conservador en claims", "priority": "high", "applies_to": ["research"]}
+{"guideline": "require_replication_for_strong_claims", "reason": "Claims fuertes requieren replicación independiente; un estudio no basta", "priority": "high", "applies_to": ["research"]}
+{"guideline": "declare_conflicts_of_interest", "reason": "COI influyen en interpretación; transparencia permite al lector juzgar", "priority": "high", "applies_to": ["research"]}
+{"guideline": "pre_register_studies", "reason": "Pre-registration reduce p-hacking y HARKing; aumenta credibilidad", "priority": "medium", "applies_to": ["research"]}
+{"guideline": "share_data_and_code", "reason": "Reproducibilidad es pilar científico; sin datos/código, no es replicable", "priority": "high", "applies_to": ["research"]}
+{"guideline": "report_null_results", "reason": "No reportar null results sesga literatura; negativo también es conocimiento", "priority": "medium", "applies_to": ["research"]}
+{"guideline": "principle_of_charity", "reason": "Interpretar trabajo de otros de forma más favorable antes de criticar", "priority": "medium", "applies_to": ["research"]}
+{"guideline": "falsifiability_required", "reason": "Hipótesis no falsables no son científicas; exigir testabilidad", "priority": "high", "applies_to": ["research"]}
+{"guideline": "no_cite_predators_journals", "reason": "Revistas depredadoras no tienen peer review real; no citar como evidencia", "priority": "medium", "applies_to": ["research"]}

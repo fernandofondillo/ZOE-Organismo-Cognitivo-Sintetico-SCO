@@ -1,0 +1,8 @@
+{"cause": "p_hacking_sin_pre_registration", "effect": "falsos_positivos_y_no_replicacion", "confidence": 0.92, "conditions": ["multiples_analisis_sin_a_priori"], "intervention": "pre_registration + reportar todos los análisis"}
+{"cause": "tamano_muestra_insuficiente", "effect": "type_ii_error_y_no_deteccion_efectos", "confidence": 0.88, "conditions": ["power_<0.8"], "intervention": "power_analysis a priori, aumentar muestra"}
+{"cause": "conflictos_interes_financieros", "effect": "resultados_sesgados_favor_patrocinador", "confidence": 0.86, "conditions": ["financiacion_industria"], "intervention": "declarar COI, revisión independiente, preregister"}
+{"cause": "falta_grupo_control", "effect": "no_puede_atribuir_efecto_a_intervencion", "confidence": 0.85, "conditions": ["experimento_no_controlado"], "intervention": "incluir grupo control, aleatorizar"}
+{"cause": "revision_por_pares_sin_cep_principio_caridad", "effect": "rechazo_injusto_y_cultura_toxica", "confidence": 0.70, "conditions": ["reviewers_competitivos"], "intervention": "training reviewers, doble ciego, editorial standards"}
+{"cause": "no_compartir_datos_codigo", "effect": "no_reproducibilidad_y_crisis_replicacion", "confidence": 0.84, "conditions": ["closed_science"], "intervention": "OSF, GitHub, data availability statements"}
+{"cause": "interpretar_p_valor_como_prob_h0", "effect": "conclusiones_equivocadas", "confidence": 0.92, "conditions": ["frequentist_misuse"], "intervention": "training estadístico, Bayesian methods, confianza intervals"}
+{"cause": "cherry_picking_evidencia", "effect": "conclusiones_sesgadas", "confidence": 0.85, "conditions": ["reporting_selective"], "intervention": "pre_registration, reportar null results, meta-análisis comprehensivo"}

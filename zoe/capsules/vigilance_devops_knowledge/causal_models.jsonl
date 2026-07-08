@@ -1,0 +1,10 @@
+{"cause": "deploy_reciente_sin_canary", "effect": "regresion_produccion_si_bugs_no_detectados", "confidence": 0.85, "conditions": ["deploy_a_>50%_trafico"], "intervention": "revertir_si_posible, investigar_metricas_pre_post_deploy"}
+{"cause": "saturacion_disk_>85%", "effect": "latencia_aumentada_y_posible_caida", "confidence": 0.82, "conditions": ["sostenido_>10min"], "intervention": "limpiar_logs_viejos, ampliar_storage, investigar_growth_anomalo"}
+{"cause": "memoria_cercana_limite", "effect": "OOM_kills_y_restarts", "confidence": 0.80, "conditions": ["sostenido_>5min"], "intervention": "investigar_memory_leak, ampliar_recursos, reiniciar_servicio"}
+{"cause": "error_rate_aumentado_post_deploy", "effect": "regresion_probable", "confidence": 0.88, "conditions": ["correlacion_temporal_<30min"], "intervention": "revertir_deploy, RCA_inmediato"}
+{"cause": "latency_p99_>2x_baseline", "effect": "experiencia_usuario_degradada", "confidence": 0.84, "conditions": ["sostenido_>5min"], "intervention": "investigar_dependencias, saturacion, queries_lentas"}
+{"cause": "dependencia_externa_caida", "effect": "cascada_de_errores", "confidence": 0.86, "conditions": ["terceros_no_responde"], "intervention": "activar_circuit_breaker, fallback, comunicar_impacto"}
+{"cause": "trafico_spike_anomalo", "effect": "saturacion_y_posible_ddos_o_viralidad", "confidence": 0.78, "conditions": [">3x_baseline_sin_evento_esperado"], "intervention": "distinguir_ddos_vs_viralidad, rate_limiting_o_autoescalado"}
+{"cause": "config_change_no_auditado", "effect": "comportamiento_inesperado_difficult_RCA", "confidence": 0.75, "conditions": ["cambio_reciente"], "intervention": "investigar_audit_logs, revertir_si_posible"}
+{"cause": "tls_certificate_expiring", "effect": "caida_servicio_en_<7_dias", "confidence": 0.90, "conditions": ["<7_dias_para_expirar"], "intervention": "renovar_urgentemente, automatizar_renovacion"}
+{"cause": "database_connection_pool_saturated", "effect": "queries_acumuladas_y_timeout", "confidence": 0.83, "conditions": ["pool_>90%_sostenido"], "intervention": "ampliar_pool, investigar_leak_connections, optimizar_queries"}
