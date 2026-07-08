@@ -929,4 +929,6 @@ Apache 2.0
 
 ---
 
-*ZOE v1.0 — Synthetic Cognitive Organism. Rama `zoe-v1-sco`.*
+*ZOE V1.2 — Synthetic Cognitive Organism (SCO). Proyecto independiente.*
+*Repositorio: `fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO`*
+*775 tests · 12 cápsulas · 7 casos de uso · 5 fases completas + Fase 6 (Epistemic + Marketplace)*
