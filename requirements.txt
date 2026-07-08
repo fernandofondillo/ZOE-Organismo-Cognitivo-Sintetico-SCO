@@ -1,23 +1,24 @@
-# ZOE v1.0 — Requirements
-# Core
+# ZOE V1.2 — Synthetic Cognitive Organism (SCO)
+# Requirements
+# https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO
+
+# Core async
 aiohttp>=3.9.0
-asyncio>=3.4.3
 
 # Tests
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
 
-# LLM peripherals (opcional según backend)
-# Para OllamaPeripheral: no requiere extras (usa aiohttp)
-# Para OpenAICompatiblePeripheral: no requiere extras (usa aiohttp)
-# Para ZAIPeripheral: requiere z-ai CLI en PATH
+# YAML config (use cases, capsule metadata)
+PyYAML>=6.0
 
-# Memory (Fase 3)
-# networkx>=3.2
-# sentence-transformers>=2.2.0
+# LLM peripherals (optional, choose your backend):
+# - OllamaPeripheral: requires Ollama running locally (https://ollama.ai)
+# - OpenAICompatiblePeripheral: requires API key
+# - ZAIPeripheral: requires z-ai CLI in PATH
+# - MockPeripheral: no extras needed (for tests/development)
 
-# Active Inference (Fase 2)
-# pymdp>=0.0.5
-
-# Crypto (Fase 1)
-# cryptography>=42.0.0
+# Optional advanced features (uncomment to enable):
+# Memory embeddings: sentence-transformers>=2.2.0
+# Active Inference: pymdp>=0.0.5
+# Crypto: cryptography>=42.0.0
