@@ -199,13 +199,156 @@ python -m zoe.web_dashboard --backend ollama --model qwen2.5:3b
 EOF
 chmod +x "$ZOE_HOME/ZOE-Dashboard-Ollama.command"
 
-echo -e "${GREEN}✅ 6 scripts creados:${NC}"
-echo "   • ZOE-Chat.command           → Chat Mock (sin LLM)"
-echo "   • ZOE-Chat-Ollama.command    → Chat con Ollama"
-echo "   • ZOE-Chat-OpenAI.command    → Chat con OpenAI GPT-4o"
-echo "   • ZOE-Dashboard.command      → Dashboard Mock"
+# 9.7 — ZOE-Chat-Anthropic.command (NUEVO - Claude)
+cat > "$ZOE_HOME/ZOE-Chat-Anthropic.command" << 'EOF'
+#!/bin/bash
+ZOE_HOME="$(dirname "$0")"; cd "$ZOE_HOME/zoe"; source "$ZOE_HOME/venv/bin/activate"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE — Chat CLI (Anthropic Claude)                       ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+# Cargar API key desde .env
+if [ -f "$ZOE_HOME/data/.env" ]; then
+    export $(grep -v '^#' "$ZOE_HOME/data/.env" | xargs)
+fi
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+    echo "⚠️  No se encontró ANTHROPIC_API_KEY en $ZOE_HOME/data/.env"
+    echo "   Pega tu API key de Anthropic:"
+    read -s API_KEY
+    export ANTHROPIC_API_KEY="$API_KEY"
+    echo -n "   ¿Guardar? (s/N): "; read SAVE
+    if [[ "$SAVE" =~ ^[sS]$ ]]; then
+        echo "ANTHROPIC_API_KEY=$API_KEY" >> "$ZOE_HOME/data/.env"
+        chmod 600 "$ZOE_HOME/data/.env"
+        echo "   ✅ Guardada"
+    fi
+fi
+echo ""
+python -m zoe.cli_chat --backend anthropic --model claude-sonnet-4-20250514 --db-path "$ZOE_HOME/data/zoe_memory.db"
+EOF
+chmod +x "$ZOE_HOME/ZOE-Chat-Anthropic.command"
+
+# 9.8 — ZOE-Dashboard-Anthropic.command (NUEVO - Claude)
+cat > "$ZOE_HOME/ZOE-Dashboard-Anthropic.command" << 'EOF'
+#!/bin/bash
+ZOE_HOME="$(dirname "$0")"; cd "$ZOE_HOME/zoe"; source "$ZOE_HOME/venv/bin/activate"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE — Web Dashboard (Anthropic Claude)                  ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+if [ -f "$ZOE_HOME/data/.env" ]; then
+    export $(grep -v '^#' "$ZOE_HOME/data/.env" | xargs)
+fi
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+    echo "⚠️  No se encontró ANTHROPIC_API_KEY. Pégala:"
+    read -s API_KEY
+    export ANTHROPIC_API_KEY="$API_KEY"
+fi
+echo "Abre: http://localhost:8642"
+python -m zoe.web_dashboard --backend anthropic --model claude-sonnet-4-20250514
+EOF
+chmod +x "$ZOE_HOME/ZOE-Dashboard-Anthropic.command"
+
+# 9.9 — ZOE-Chat-Custom.command (NUEVO - DeepSeek, Kimi, MiniMax, etc.)
+cat > "$ZOE_HOME/ZOE-Chat-Custom.command" << 'EOF'
+#!/bin/bash
+ZOE_HOME="$(dirname "$0")"; cd "$ZOE_HOME/zoe"; source "$ZOE_HOME/venv/bin/activate"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE — Chat CLI (API personalizada)                      ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+echo "Proveedores compatibles (OpenAI-compatible):"
+echo "  1. DeepSeek (https://api.deepseek.com/v1)"
+echo "  2. Kimi/Moonshot (https://api.moonshot.cn/v1)"
+echo "  3. MiniMax (https://api.minimax.chat/v1)"
+echo "  4. Groq (https://api.groq.com/openai/v1)"
+echo "  5. OpenAI (https://api.openai.com/v1)"
+echo "  6. Otro (personalizado)"
+echo ""
+echo -n "Selecciona [1-6]: "; read PROVIDER
+
+case $PROVIDER in
+    1) BASE_URL="https://api.deepseek.com/v1"; MODEL="deepseek-chat"; ENV_VAR="DEEPSEEK_API_KEY" ;;
+    2) BASE_URL="https://api.moonshot.cn/v1"; MODEL="moonshot-v1-8k"; ENV_VAR="MOONSHOT_API_KEY" ;;
+    3) BASE_URL="https://api.minimax.chat/v1"; MODEL="abab6.5-chat"; ENV_VAR="MINIMAX_API_KEY" ;;
+    4) BASE_URL="https://api.groq.com/openai/v1"; MODEL="llama-3.3-70b-versatile"; ENV_VAR="GROQ_API_KEY" ;;
+    5) BASE_URL="https://api.openai.com/v1"; MODEL="gpt-4o"; ENV_VAR="OPENAI_API_KEY" ;;
+    6) echo -n "URL base: "; read BASE_URL; echo -n "Modelo: "; read MODEL; ENV_VAR="CUSTOM_API_KEY" ;;
+    *) echo "Inválido"; exit 1 ;;
+esac
+
+echo ""
+echo "Proveedor: $BASE_URL"
+echo "Modelo: $MODEL"
+echo ""
+
+# Cargar .env
+if [ -f "$ZOE_HOME/data/.env" ]; then
+    export $(grep -v '^#' "$ZOE_HOME/data/.env" | xargs)
+fi
+
+API_KEY="${!ENV_VAR}"
+if [ -z "$API_KEY" ]; then
+    echo "Pega tu API key para $ENV_VAR:"
+    read -s API_KEY
+    echo -n "¿Guardar en .env? (s/N): "; read SAVE
+    if [[ "$SAVE" =~ ^[sS]$ ]]; then
+        echo "$ENV_VAR=$API_KEY" >> "$ZOE_HOME/data/.env"
+        chmod 600 "$ZOE_HOME/data/.env"
+        echo "✅ Guardada"
+    fi
+fi
+
+echo ""
+python -m zoe.cli_chat --backend openai_compatible --model "$MODEL" --api-key "$API_KEY" --base-url "$BASE_URL" --db-path "$ZOE_HOME/data/zoe_memory.db"
+EOF
+chmod +x "$ZOE_HOME/ZOE-Chat-Custom.command"
+
+# 9.10 — ZOE-Dashboard-Custom.command (NUEVO)
+cat > "$ZOE_HOME/ZOE-Dashboard-Custom.command" << 'EOF'
+#!/bin/bash
+ZOE_HOME="$(dirname "$0")"; cd "$ZOE_HOME/zoe"; source "$ZOE_HOME/venv/bin/activate"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE — Web Dashboard (API personalizada)                 ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+echo "Proveedores compatibles:"
+echo "  1. DeepSeek  2. Kimi/Moonshot  3. MiniMax  4. Groq  5. OpenAI  6. Otro"
+echo -n "Selecciona [1-6]: "; read PROVIDER
+case $PROVIDER in
+    1) BASE_URL="https://api.deepseek.com/v1"; MODEL="deepseek-chat"; ENV_VAR="DEEPSEEK_API_KEY" ;;
+    2) BASE_URL="https://api.moonshot.cn/v1"; MODEL="moonshot-v1-8k"; ENV_VAR="MOONSHOT_API_KEY" ;;
+    3) BASE_URL="https://api.minimax.chat/v1"; MODEL="abab6.5-chat"; ENV_VAR="MINIMAX_API_KEY" ;;
+    4) BASE_URL="https://api.groq.com/openai/v1"; MODEL="llama-3.3-70b-versatile"; ENV_VAR="GROQ_API_KEY" ;;
+    5) BASE_URL="https://api.openai.com/v1"; MODEL="gpt-4o"; ENV_VAR="OPENAI_API_KEY" ;;
+    6) echo -n "URL base: "; read BASE_URL; echo -n "Modelo: "; read MODEL; ENV_VAR="CUSTOM_API_KEY" ;;
+    *) echo "Inválido"; exit 1 ;;
+esac
+if [ -f "$ZOE_HOME/data/.env" ]; then
+    export $(grep -v '^#' "$ZOE_HOME/data/.env" | xargs)
+fi
+API_KEY="${!ENV_VAR}"
+if [ -z "$API_KEY" ]; then
+    echo "Pega tu API key para $ENV_VAR:"; read -s API_KEY
+    echo -n "¿Guardar? (s/N): "; read SAVE
+    if [[ "$SAVE" =~ ^[sS]$ ]]; then
+        echo "$ENV_VAR=$API_KEY" >> "$ZOE_HOME/data/.env"; chmod 600 "$ZOE_HOME/data/.env"
+    fi
+fi
+echo "Abre: http://localhost:8642"
+python -m zoe.web_dashboard --backend openai_compatible --model "$MODEL" --api-key "$API_KEY" --base-url "$BASE_URL"
+EOF
+chmod +x "$ZOE_HOME/ZOE-Dashboard-Custom.command"
+
+echo -e "${GREEN}✅ 10 scripts creados:${NC}"
+echo "   • ZOE-Chat.command             → Chat Mock (sin LLM)"
+echo "   • ZOE-Chat-Ollama.command      → Chat con Ollama"
+echo "   • ZOE-Chat-OpenAI.command      → Chat con OpenAI GPT-4o"
+echo "   • ZOE-Chat-Anthropic.command   → Chat con Claude"
+echo "   • ZOE-Chat-Custom.command      → Chat con DeepSeek/Kimi/MiniMax/Groq/Otro"
+echo "   • ZOE-Dashboard.command        → Dashboard Mock"
 echo "   • ZOE-Dashboard-Ollama.command → Dashboard con Ollama"
 echo "   • ZOE-Dashboard-OpenAI.command → Dashboard con OpenAI GPT-4o"
+echo "   • ZOE-Dashboard-Anthropic.command → Dashboard con Claude"
+echo "   • ZOE-Dashboard-Custom.command → Dashboard con API personalizada"
 echo ""
 
 # --- 10. Verificar instalación ---
@@ -226,13 +369,21 @@ echo "  SIN LLM (gratis, offline):"
 echo "    • ZOE-Chat.command              → Chat básico"
 echo "    • ZOE-Dashboard.command         → Dashboard web"
 echo ""
-echo "  CON OLLAMA (gratis, local, requiere Ollama en el Mac):"
+echo "  CON OLLAMA (gratis, local):"
 echo "    • ZOE-Chat-Ollama.command       → Chat con IA local"
 echo "    • ZOE-Dashboard-Ollama.command  → Dashboard con IA local"
 echo ""
-echo "  CON OPENAI API (requiere API key, calidad máxima):"
+echo "  CON OPENAI API (calidad máxima):"
 echo "    • ZOE-Chat-OpenAI.command       → Chat con GPT-4o"
 echo "    • ZOE-Dashboard-OpenAI.command  → Dashboard con GPT-4o"
+echo ""
+echo "  CON ANTHROPIC CLAUDE (calidad máxima):"
+echo "    • ZOE-Chat-Anthropic.command    → Chat con Claude"
+echo "    • ZOE-Dashboard-Anthropic.command → Dashboard con Claude"
+echo ""
+echo "  CON API PERSONALIZADA (DeepSeek, Kimi, MiniMax, Groq, etc.):"
+echo "    • ZOE-Chat-Custom.command       → Chat (elige proveedor)"
+echo "    • ZOE-Dashboard-Custom.command  → Dashboard (elige proveedor)"
 echo ""
 echo "💾 Datos en: $ZOE_HOME/data/"
 echo "🔐 API key en: $ZOE_HOME/data/.env (si configuraste una)"

@@ -1,14 +1,16 @@
 """
-ZOE v1.0 — LLM Peripheral
+ZOE V1.2 — LLM Peripheral
 
 Abstracción de LLM periférico con múltiples backends.
 ZOE es agnóstica al LLM. Cualquiera sirve como "sentido de lenguaje".
 
 Backends:
-- OllamaPeripheral: Ollama local (default para producción)
-- OpenAICompatiblePeripheral: cualquier API OpenAI-compatible
-- ZAIPeripheral: z-ai CLI (para desarrollo en este entorno)
 - MockPeripheral: respuestas determinísticas para tests
+- OllamaPeripheral: Ollama local (recomendado para privacidad)
+- OpenAICompatiblePeripheral: cualquier API OpenAI-compatible
+  (OpenAI GPT-4o, DeepSeek, MiniMax, Kimi/Moonshot, Groq, etc.)
+- AnthropicPeripheral: Claude (Anthropic API nativa)
+- ZAIPeripheral: z-ai CLI (para desarrollo)
 """
 
 from __future__ import annotations
@@ -350,6 +352,151 @@ class OpenAICompatiblePeripheral(LLMPeripheral):
                         continue
 
 
+class AnthropicPeripheral(LLMPeripheral):
+    """
+    LLM periférico vía Anthropic API (Claude).
+
+    Claude usa un formato de API propio (diferente al OpenAI):
+    - Header: x-api-key en vez de Authorization: Bearer
+    - Header: anthropic-version
+    - Request: system como campo separado, no como message
+    - Response: content[].text en vez de choices[].message.content
+
+    Modelos disponibles:
+    - claude-sonnet-4-20250514
+    - claude-opus-4-20250514
+    - claude-3-5-haiku-20241022
+    """
+
+    def __init__(
+        self,
+        model: str = "claude-sonnet-4-20250514",
+        api_key: Optional[str] = None,
+        base_url: str = "https://api.anthropic.com",
+        api_version: str = "2023-06-01",
+    ):
+        self.model = model
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        self.base_url = base_url.rstrip("/")
+        self.api_version = api_version
+
+        if not self.api_key:
+            logger.warning("AnthropicPeripheral: sin API key")
+
+    @property
+    def name(self) -> str:
+        return "anthropic"
+
+    @property
+    def supports_streaming(self) -> bool:
+        return True
+
+    async def generate(
+        self,
+        prompt: str,
+        system: Optional[str] = None,
+        max_tokens: int = 300,
+        temperature: float = 0.7,
+    ) -> str:
+        import aiohttp
+
+        if not self.api_key:
+            raise RuntimeError("Anthropic API key no configurada")
+
+        payload = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if system:
+            payload["system"] = system
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": self.api_version,
+            "Content-Type": "application/json",
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.base_url}/v1/messages",
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=120),
+            ) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(f"Anthropic error {resp.status}: {await resp.text()}")
+                data = await resp.json()
+                # Response format: {"content": [{"type": "text", "text": "..."}]}
+                content_blocks = data.get("content", [])
+                text_parts = []
+                for block in content_blocks:
+                    if block.get("type") == "text":
+                        text_parts.append(block.get("text", ""))
+                return "".join(text_parts).strip()
+
+    async def generate_streaming(
+        self,
+        prompt: str,
+        system: Optional[str] = None,
+        max_tokens: int = 300,
+        temperature: float = 0.7,
+    ) -> AsyncIterator[str]:
+        """Streaming real con Anthropic SSE."""
+        import aiohttp
+
+        if not self.api_key:
+            raise RuntimeError("Anthropic API key no configurada")
+
+        payload = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": True,
+        }
+        if system:
+            payload["system"] = system
+
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": self.api_version,
+            "Content-Type": "application/json",
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.base_url}/v1/messages",
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=120),
+            ) as resp:
+                if resp.status != 200:
+                    raise RuntimeError(f"Anthropic error {resp.status}: {await resp.text()}")
+                async for line in resp.content:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith(b"event:"):
+                        continue
+                    if line.startswith(b"data: "):
+                        line = line[6:]
+                    if line == b"[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(line)
+                        # Anthropic SSE events: content_block_delta
+                        if chunk.get("type") == "content_block_delta":
+                            delta = chunk.get("delta", {})
+                            if delta.get("type") == "text_delta":
+                                token = delta.get("text", "")
+                                if token:
+                                    yield token
+                    except json.JSONDecodeError:
+                        continue
+
+
 class ZAIPeripheral(LLMPeripheral):
     """
     LLM periférico vía z-ai CLI.
@@ -486,6 +633,12 @@ def create_llm_peripheral(config: Dict[str, Any]) -> LLMPeripheral:
             model=config.get("model", "gpt-4o-mini"),
             api_key=config.get("api_key"),
             base_url=config.get("base_url", "https://api.openai.com/v1"),
+        )
+    elif backend == "anthropic":
+        return AnthropicPeripheral(
+            model=config.get("model", "claude-sonnet-4-20250514"),
+            api_key=config.get("api_key"),
+            base_url=config.get("base_url", "https://api.anthropic.com"),
         )
     elif backend == "zai":
         return ZAIPeripheral(model=config.get("model", "glm-4.6"))

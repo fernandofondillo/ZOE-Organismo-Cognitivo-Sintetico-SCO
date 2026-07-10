@@ -255,6 +255,26 @@ zoe-chat --backend openai_compatible --model deepseek-chat \
 **Ventajas**: calidad superior, multilingüe, sin instalación local.
 **Desventajas**: coste por llamada (~0.01-0.05€ por respuesta), latencia de red, privacidad (los inputs viajan al proveedor).
 
+### Backend Anthropic (Claude API nativa)
+
+Claude usa una API propia (diferente al formato OpenAI). ZOE la soporta nativamente con streaming SSE.
+
+```bash
+# 1. Obtener API key en https://console.anthropic.com
+# 2. Configurar
+export ANTHROPIC_API_KEY="sk-ant-tu-key-aqui"
+
+# 3. Usar ZOE con Claude
+zoe-chat --backend anthropic --model claude-sonnet-4-20250514
+zoe-dashboard --backend anthropic --model claude-sonnet-4-20250514
+
+# Otros modelos
+zoe-chat --backend anthropic --model claude-opus-4-20250514
+zoe-chat --backend anthropic --model claude-3-5-haiku-20241022
+```
+
+**Qué esperar**: respuestas de altísima calidad, especialmente en razonamiento ético y análisis causal. Streaming real vía SSE.
+
 ### Backend ZAI (z-ai CLI)
 
 Para desarrollo en entornos con z-ai CLI disponible.
@@ -263,6 +283,50 @@ Para desarrollo en entornos con z-ai CLI disponible.
 zoe-chat --backend zai
 zoe-chat --backend zai --model glm-4.6
 ```
+
+### APIs compatibles con OpenAI (DeepSeek, Kimi, MiniMax, Groq, etc.)
+
+ZOE soporta **cualquier API compatible con el formato OpenAI** usando `--base-url` y `--api-key`:
+
+```bash
+# DeepSeek
+zoe-chat --backend openai_compatible --model deepseek-chat \
+    --api-key "tu-deepseek-key" \
+    --base-url https://api.deepseek.com/v1
+
+# Kimi / Moonshot
+zoe-chat --backend openai_compatible --model moonshot-v1-8k \
+    --api-key "tu-moonshot-key" \
+    --base-url https://api.moonshot.cn/v1
+
+# MiniMax
+zoe-chat --backend openai_compatible --model abab6.5-chat \
+    --api-key "tu-minimax-key" \
+    --base-url https://api.minimax.chat/v1
+
+# Groq (ultra-rápido)
+zoe-chat --backend openai_compatible --model llama-3.3-70b-versatile \
+    --api-key "tu-groq-key" \
+    --base-url https://api.groq.com/openai/v1
+
+# Cualquier otro proveedor OpenAI-compatible
+zoe-chat --backend openai_compatible --model mi-modelo \
+    --api-key "tu-key" \
+    --base-url https://api.tu-proveedor.com/v1
+```
+
+**Tabla de proveedores compatibles**:
+
+| Proveedor | URL base | Modelo recomendado | ENV var para API key |
+|---|---|---|---|
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o` | `OPENAI_API_KEY` |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` | `DEEPSEEK_API_KEY` |
+| Kimi/Moonshot | `https://api.moonshot.cn/v1` | `moonshot-v1-8k` | `MOONSHOT_API_KEY` |
+| MiniMax | `https://api.minimax.chat/v1` | `abab6.5-chat` | `MINIMAX_API_KEY` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` | `GROQ_API_KEY` |
+| Anthropic | API nativa (no OpenAI-compat) | `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY` |
+
+> **Nota**: Anthropic usa un backend separado (`--backend anthropic`) porque su API tiene un formato propio. Todos los demás proveedores usan `--backend openai_compatible` con su `--base-url` correspondiente.
 
 ### Cambiar LLM en caliente desde el Dashboard
 

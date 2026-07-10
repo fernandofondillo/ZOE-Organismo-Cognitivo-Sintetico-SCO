@@ -49,11 +49,15 @@ class ZoeChat:
         model: str = None,
         use_case: str = None,
         db_path: str = None,
+        api_key: str = None,
+        base_url: str = None,
     ):
         self.backend = backend
         self.model = model
         self.use_case = use_case
         self.db_path = db_path or "zoe_data/chat_memory.db"
+        self.api_key = api_key
+        self.base_url = base_url
         self.loop = None
         self.llm = None
         self.memory = None
@@ -118,6 +122,10 @@ class ZoeChat:
         llm_config = {"backend": self.backend}
         if self.model:
             llm_config["model"] = self.model
+        if self.api_key:
+            llm_config["api_key"] = self.api_key
+        if self.base_url:
+            llm_config["base_url"] = self.base_url
         self.llm = create_llm_peripheral(llm_config)
 
         if self.backend == "mock":
@@ -675,9 +683,9 @@ class ZoeChat:
             print(f"\n💾 Memoria guardada: {saved} entries")
 
 
-async def run_chat(backend: str, model: str, use_case: str, db_path: str):
+async def run_chat(backend: str, model: str, use_case: str, db_path: str, api_key: str = None, base_url: str = None):
     """Ejecuta el chat CLI interactivo."""
-    chat = ZoeChat(backend=backend, model=model, use_case=use_case, db_path=db_path)
+    chat = ZoeChat(backend=backend, model=model, use_case=use_case, db_path=db_path, api_key=api_key, base_url=base_url)
 
     print("=" * 60)
     print("  ZOE v1.0 — Chat CLI")
@@ -840,13 +848,15 @@ def main():
     parser = argparse.ArgumentParser(description="ZOE v1.0 — Chat CLI")
     parser.add_argument(
         "--backend",
-        choices=["mock", "zai", "ollama", "openai_compatible"],
+        choices=["mock", "zai", "ollama", "openai_compatible", "anthropic"],
         default="mock",
         help="Backend LLM (default: mock)",
     )
     parser.add_argument("--model", help="Modelo específico del backend")
     parser.add_argument("--use-case", help="Caso de uso YAML a cargar")
     parser.add_argument("--db-path", default="zoe_data/chat_memory.db", help="Ruta de memoria")
+    parser.add_argument("--api-key", help="API key para backends cloud (OpenAI, Anthropic, DeepSeek, etc.)")
+    parser.add_argument("--base-url", help="URL base para APIs compatibles (DeepSeek, MiniMax, Kimi, etc.)")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -857,6 +867,8 @@ def main():
             model=args.model,
             use_case=args.use_case,
             db_path=args.db_path,
+            api_key=args.api_key,
+            base_url=args.base_url,
         ))
     except KeyboardInterrupt:
         print("\nAdiós.")

@@ -51,12 +51,16 @@ class DashboardServer:
         use_case: str = None,
         port: int = 8642,
         db_path: str = None,
+        api_key: str = None,
+        base_url: str = None,
     ):
         self.backend = backend
         self.model = model
         self.use_case = use_case
         self.port = port
         self.db_path = db_path or "zoe_data/dashboard_memory.db"
+        self.api_key = api_key
+        self.base_url = base_url
 
         self.chat = None
         self.ws_clients: Set = set()
@@ -74,6 +78,8 @@ class DashboardServer:
             model=self.model,
             use_case=self.use_case,
             db_path=self.db_path,
+            api_key=self.api_key,
+            base_url=self.base_url,
         )
         await self.chat.initialize()
         logger.info(f"ZOE initialized for dashboard: {self.chat.vault.identity_hash[:16]}...")
@@ -2086,6 +2092,8 @@ async def run_dashboard(
     use_case: str = None,
     port: int = 8642,
     db_path: str = None,
+    api_key: str = None,
+    base_url: str = None,
 ):
     """Ejecuta el dashboard web."""
     server = DashboardServer(
@@ -2094,6 +2102,8 @@ async def run_dashboard(
         use_case=use_case,
         port=port,
         db_path=db_path,
+        api_key=api_key,
+        base_url=base_url,
     )
 
     await server.initialize()
@@ -2124,11 +2134,13 @@ async def run_dashboard(
 
 def main():
     parser = argparse.ArgumentParser(description="ZOE v1.0 — Web Dashboard")
-    parser.add_argument("--backend", choices=["mock", "zai", "ollama", "openai_compatible"], default="mock")
+    parser.add_argument("--backend", choices=["mock", "zai", "ollama", "openai_compatible", "anthropic"], default="mock")
     parser.add_argument("--model", help="Modelo específico")
     parser.add_argument("--use-case", help="Caso de uso YAML")
     parser.add_argument("--port", type=int, default=8642)
     parser.add_argument("--db-path", default="zoe_data/dashboard_memory.db")
+    parser.add_argument("--api-key", help="API key para backends cloud")
+    parser.add_argument("--base-url", help="URL base para APIs compatibles")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -2140,6 +2152,8 @@ def main():
             use_case=args.use_case,
             port=args.port,
             db_path=args.db_path,
+            api_key=args.api_key,
+            base_url=args.base_url,
         ))
     except KeyboardInterrupt:
         print("\nAdiós.")
