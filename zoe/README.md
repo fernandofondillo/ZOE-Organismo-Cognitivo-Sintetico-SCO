@@ -1157,12 +1157,17 @@ PENDRIVE/
     ├── venv/                   # Entorno virtual Python (~200MB)
     ├── data/                   # Memoria de ZOE (crece con el uso)
     │   └── zoe_memory.db       # SQLite con toda la memoria persistente
-    ├── ZOE-Chat.command        # 🚀 Doble clic para chat (Mock)
-    ├── ZOE-Chat-Ollama.command # 🚀 Doble clic para chat (Ollama)
-    └── ZOE-Dashboard.command   # 🚀 Doble clic para dashboard web
+    ├── ZOE-Chat.command              # 🚀 Doble clic → Chat Mock (sin LLM)
+    ├── ZOE-Chat-Ollama.command       # 🚀 Doble clic → Chat con Ollama
+    ├── ZOE-Chat-OpenAI.command       # 🚀 Doble clic → Chat con OpenAI GPT-4o
+    ├── ZOE-Dashboard.command         # 🚀 Doble clic → Dashboard Mock
+    ├── ZOE-Dashboard-Ollama.command  # 🚀 Doble clic → Dashboard con Ollama
+    └── ZOE-Dashboard-OpenAI.command  # 🚀 Doble clic → Dashboard con OpenAI GPT-4o
 ```
 
 **Espacio total**: ~500MB inicial, crece con el uso (memoria, datos).
+
+La API key de OpenAI (si la usas) se guarda en `ZOE/data/.env` dentro del pendrive, **nunca en el Mac**.
 
 ### Instalación paso a paso (para no técnicos)
 
@@ -1229,13 +1234,16 @@ ZOE está instalado en tu pendrive: /Volumes/TU_PENDRIVE/ZOE
 
 **Opción A — Doble clic (más fácil)**:
 
-Abre el pendrive en Finder. Verás 3 iconos con extensión `.command`:
+Abre el pendrive en Finder. Verás 6 iconos con extensión `.command`:
 
 | Icono | Qué hace |
 |---|---|
-| `ZOE-Chat.command` | Abre ZOE Chat en Terminal (sin LLM, modo Mock) |
-| `ZOE-Chat-Ollama.command` | Abre ZOE Chat con Ollama (requiere Ollama instalado en el Mac) |
-| `ZOE-Dashboard.command` | Abre el Dashboard web en http://localhost:8642 |
+| `ZOE-Chat.command` | Chat básico en Terminal (sin LLM, modo Mock) |
+| `ZOE-Chat-Ollama.command` | Chat con Ollama (IA local, requiere Ollama en el Mac) |
+| `ZOE-Chat-OpenAI.command` | Chat con OpenAI GPT-4o (requiere API key) |
+| `ZOE-Dashboard.command` | Dashboard web en http://localhost:8642 (Mock) |
+| `ZOE-Dashboard-Ollama.command` | Dashboard web con Ollama |
+| `ZOE-Dashboard-OpenAI.command` | Dashboard web con OpenAI GPT-4o |
 
 Haz **doble clic** en cualquiera. Se abrirá Terminal y ZOE empezará.
 
@@ -1295,7 +1303,7 @@ Una vez iniciado, verás:
 
 > **Importante**: Si desconectas el pendrive sin cerrar ZOE, la memoria puede corruptarse. Siempre `/quit` antes de desconectar.
 
-### Cómo usar ZOE con Ollama en el pendrive
+### Cómo usar ZOE con Ollama en el pendrive (gratis, local)
 
 Si tienes [Ollama](https://ollama.ai) instalado en tu Mac:
 
@@ -1304,15 +1312,71 @@ Si tienes [Ollama](https://ollama.ai) instalado en tu Mac:
 ollama pull qwen2.5:3b
 ```
 
-2. Haz doble clic en `ZOE-Chat-Ollama.command` en el pendrive
+2. Haz doble clic en `ZOE-Chat-Ollama.command` o `ZOE-Dashboard-Ollama.command` en el pendrive
 
 3. ZOE usará el modelo de Ollama del Mac, pero toda la memoria y datos se guardan en el pendrive
 
-**Ventajas de esta configuración**:
-- El modelo LLM vive en el Mac (no ocupa espacio en el pendrive)
-- La memoria, identidad y trayectoria de ZOE viven en el pendrive
-- Puedes llevar tu ZOE a cualquier Mac con Ollama instalado
-- La identidad de ZOE es portátil: misma ZOE en cualquier Mac
+**Ventajas**: gratis, offline, privado. **Desventajas**: calidad limitada por el modelo local.
+
+### Cómo usar ZOE con OpenAI API en el pendrive (calidad máxima)
+
+Si tienes una API key de OpenAI (la consigues en https://platform.openai.com/api-keys):
+
+#### Opción A — Configurar durante la instalación
+
+El instalador pregunta: "¿Configurar API key de OpenAI ahora?". Si respondes "s", pegas tu key (sk-...) y se guarda automáticamente en `ZOE/data/.env` dentro del pendrive. Nunca se guarda en el Mac.
+
+#### Opción B — Configurar manualmente después
+
+Si no la configuraste durante la instalación, puedes hacerlo después:
+
+```bash
+# Crear archivo .env en el pendrive
+echo "OPENAI_API_KEY=sk-tu-api-key-aqui" > /Volumes/TU_PENDRIVE/ZOE/data/.env
+chmod 600 /Volumes/TU_PENDRIVE/ZOE/data/.env
+```
+
+#### Opción C — Introducir cada vez (sin guardar)
+
+Si no quieres guardar la API key en ningún archivo, simplemente haz doble clic en `ZOE-Chat-OpenAI.command` o `ZOE-Dashboard-OpenAI.command`. El script te pedirá la API key cada vez y la guardará en memoria solo durante esa sesión.
+
+#### Usar ZOE con OpenAI
+
+1. Haz doble clic en `ZOE-Chat-OpenAI.command` → Chat con GPT-4o
+2. O haz doble clic en `ZOE-Dashboard-OpenAI.command` → Dashboard web con GPT-4o
+
+ZOE cargará la API key desde `data/.env` automáticamente. Si no existe, te la pedirá al iniciar.
+
+**Qué esperar con OpenAI GPT-4o**:
+- Respuestas de alta calidad con matiz cultural y lingüístico
+- "Hola" → respuesta inmediata L0 (<1s, no usa API)
+- Pregunta factual → 2-4s (L1)
+- Análisis causal profundo → 15-30s (L3, usando GPT-4o)
+- Coste: ~0.01-0.05€ por respuesta L3
+- La memoria, identidad y trayectoria de ZOE se guardan en el pendrive
+
+**Ventajas**: máxima calidad, multilingüe. **Desventajas**: coste por uso, requiere internet.
+
+### Comparativa de los 3 modos del pendrive
+
+| Modo | LLM | Coste | Privacidad | Calidad | Offline |
+|---|---|---|---|---|---|
+| Mock | Ninguno | Gratis | Total | Básica (plantillas) | Sí |
+| Ollama | qwen2.5:3b (local) | Gratis | Total | Decente | Sí |
+| OpenAI | GPT-4o (API) | ~0.01-0.05€/respuesta | Datos viajan a OpenAI | Excelente | No |
+
+> **Tip**: Puedes cambiar de modo en cualquier momento. La memoria, identidad y trayectoria de ZOE se mantienen sin importar qué backend uses. Un día usas Ollama, otro día OpenAI, y ZOE recuerda todo.
+
+### Cambiar de LLM en caliente desde el Dashboard
+
+Si usas el Dashboard (cualquier `.command` de Dashboard), puedes cambiar de LLM sin reiniciar:
+
+1. Abre el Dashboard en http://localhost:8642
+2. En el panel izquierdo, busca el selector de LLM (dropdown)
+3. Cambia de Mock a Ollama o viceversa
+4. ZOE cambia de LLM instantáneamente, manteniendo toda la conversación y memoria
+
+> Nota: para cambiar a OpenAI desde el dashboard, necesitas que la variable `OPENAI_API_KEY` esté en el entorno. Si iniciaste con `ZOE-Dashboard-OpenAI.command`, ya estará disponible.
 
 ### Cómo actualizar ZOE en el pendrive
 
