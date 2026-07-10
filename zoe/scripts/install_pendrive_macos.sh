@@ -338,17 +338,82 @@ python -m zoe.web_dashboard --backend openai_compatible --model "$MODEL" --api-k
 EOF
 chmod +x "$ZOE_HOME/ZOE-Dashboard-Custom.command"
 
-echo -e "${GREEN}✅ 10 scripts creados:${NC}"
-echo "   • ZOE-Chat.command             → Chat Mock (sin LLM)"
-echo "   • ZOE-Chat-Ollama.command      → Chat con Ollama"
-echo "   • ZOE-Chat-OpenAI.command      → Chat con OpenAI GPT-4o"
-echo "   • ZOE-Chat-Anthropic.command   → Chat con Claude"
-echo "   • ZOE-Chat-Custom.command      → Chat con DeepSeek/Kimi/MiniMax/Groq/Otro"
-echo "   • ZOE-Dashboard.command        → Dashboard Mock"
-echo "   • ZOE-Dashboard-Ollama.command → Dashboard con Ollama"
-echo "   • ZOE-Dashboard-OpenAI.command → Dashboard con OpenAI GPT-4o"
-echo "   • ZOE-Dashboard-Anthropic.command → Dashboard con Claude"
-echo "   • ZOE-Dashboard-Custom.command → Dashboard con API personalizada"
+# 9.11 — ZOE-Chat-Ollama-Pendrive.command (modelos EN el pendrive)
+mkdir -p "$ZOE_HOME/models"
+cat > "$ZOE_HOME/ZOE-Chat-Ollama-Pendrive.command" << 'EOF'
+#!/bin/bash
+ZOE_HOME="$(dirname "$0")"; cd "$ZOE_HOME/zoe"; source "$ZOE_HOME/venv/bin/activate"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE — Chat CLI (Ollama, modelos en pendrive)            ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+# Modelos guardados en el pendrive, no en el Mac
+export OLLAMA_MODELS="$ZOE_HOME/models"
+# Verificar Ollama
+if ! command -v ollama &> /dev/null; then
+    echo "❌ Ollama no instalado en este Mac."
+    echo "   Instala desde https://ollama.ai (solo ~50MB en el Mac)"
+    echo "   Los modelos se guardan en el pendrive, no en el Mac."
+    read -p "Presiona Enter para salir..."
+    exit 1
+fi
+# Verificar que Ollama está corriendo
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    echo "Iniciando Ollama..."
+    ollama serve &> /dev/null &
+    sleep 3
+fi
+# Verificar modelo descargado
+MODELS=$(ollama list 2>/dev/null | grep qwen)
+if [ -z "$MODELS" ]; then
+    echo "Descargando modelo qwen2.5:3b (~2GB) al pendrive..."
+    echo "Esto solo se hace la primera vez. Paciencia..."
+    ollama pull qwen2.5:3b
+fi
+echo ""
+python -m zoe.cli_chat --backend ollama --model qwen2.5:3b --db-path "$ZOE_HOME/data/zoe_memory.db"
+EOF
+chmod +x "$ZOE_HOME/ZOE-Chat-Ollama-Pendrive.command"
+
+# 9.12 — ZOE-Dashboard-Ollama-Pendrive.command (modelos EN el pendrive)
+cat > "$ZOE_HOME/ZOE-Dashboard-Ollama-Pendrive.command" << 'EOF'
+#!/bin/bash
+ZOE_HOME="$(dirname "$0")"; cd "$ZOE_HOME/zoe"; source "$ZOE_HOME/venv/bin/activate"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE — Dashboard (Ollama, modelos en pendrive)           ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+export OLLAMA_MODELS="$ZOE_HOME/models"
+if ! command -v ollama &> /dev/null; then
+    echo "❌ Ollama no instalado. Instala desde https://ollama.ai"
+    read -p "Enter para salir..."
+    exit 1
+fi
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    ollama serve &> /dev/null &
+    sleep 3
+fi
+MODELS=$(ollama list 2>/dev/null | grep qwen)
+if [ -z "$MODELS" ]; then
+    echo "Descargando qwen2.5:3b (~2GB) al pendrive (primera vez)..."
+    ollama pull qwen2.5:3b
+fi
+echo "Abre: http://localhost:8642"
+python -m zoe.web_dashboard --backend ollama --model qwen2.5:3b
+EOF
+chmod +x "$ZOE_HOME/ZOE-Dashboard-Ollama-Pendrive.command"
+
+echo -e "${GREEN}✅ 12 scripts creados:${NC}"
+echo "   • ZOE-Chat.command                    → Chat Mock (sin LLM)"
+echo "   • ZOE-Chat-Ollama.command             → Chat con Ollama (modelos en Mac)"
+echo "   • ZOE-Chat-Ollama-Pendrive.command    → Chat con Ollama (modelos en pendrive)"
+echo "   • ZOE-Chat-OpenAI.command             → Chat con OpenAI GPT-4o"
+echo "   • ZOE-Chat-Anthropic.command          → Chat con Claude"
+echo "   • ZOE-Chat-Custom.command             → Chat con DeepSeek/Kimi/MiniMax/Groq"
+echo "   • ZOE-Dashboard.command               → Dashboard Mock"
+echo "   • ZOE-Dashboard-Ollama.command        → Dashboard con Ollama (Mac)"
+echo "   • ZOE-Dashboard-Ollama-Pendrive.command → Dashboard Ollama (pendrive)"
+echo "   • ZOE-Dashboard-OpenAI.command        → Dashboard con OpenAI"
+echo "   • ZOE-Dashboard-Anthropic.command     → Dashboard con Claude"
+echo "   • ZOE-Dashboard-Custom.command        → Dashboard API personalizada"
 echo ""
 
 # --- 10. Verificar instalación ---
@@ -369,9 +434,13 @@ echo "  SIN LLM (gratis, offline):"
 echo "    • ZOE-Chat.command              → Chat básico"
 echo "    • ZOE-Dashboard.command         → Dashboard web"
 echo ""
-echo "  CON OLLAMA (gratis, local):"
+echo "  CON OLLAMA (modelos en Mac, gratis, local):"
 echo "    • ZOE-Chat-Ollama.command       → Chat con IA local"
 echo "    • ZOE-Dashboard-Ollama.command  → Dashboard con IA local"
+echo ""
+echo "  CON OLLAMA (modelos en PENDRIVE, 0 bytes en Mac):"
+echo "    • ZOE-Chat-Ollama-Pendrive.command    → Chat (modelos en pendrive)"
+echo "    • ZOE-Dashboard-Ollama-Pendrive.command → Dashboard (modelos en pendrive)"
 echo ""
 echo "  CON OPENAI API (calidad máxima):"
 echo "    • ZOE-Chat-OpenAI.command       → Chat con GPT-4o"

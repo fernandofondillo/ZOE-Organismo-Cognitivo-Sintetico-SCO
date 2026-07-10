@@ -278,6 +278,20 @@ class ZoeChat:
             quarantine=self.knowledge_quarantine,
             validator=self.epistemic_validator,
         )
+        # Fase 6C: Tutor Mentor Digital
+        from .core.mentor import MentorAgent, MentorConfig
+        from pathlib import Path as _Path
+        mentor_config_path = _Path(self.db_path).parent / "mentor_config.json"
+        self.mentor = MentorAgent()
+        self.mentor.set_config_path(mentor_config_path)
+        self.mentor.load_config()
+
+        # Cargar cápsula basal SIEMPRE (conocimiento fundamental de ZOE)
+        try:
+            self.capsule_manager.load("zoe_basal_knowledge")
+        except Exception as e:
+            logger.warning(f"Could not load basal capsule: {e}")
+
         # Cargar cápsulas compatibles con el caso de uso
         if self.use_case:
             try:

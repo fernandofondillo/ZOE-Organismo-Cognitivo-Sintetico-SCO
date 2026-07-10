@@ -135,6 +135,11 @@ class DashboardServer:
         app.router.add_get("/api/marketplace/use_cases", self._handle_marketplace_use_cases)
         app.router.add_post("/api/marketplace/upload_use_case", self._handle_marketplace_upload_use_case)
 
+        # Fase 6C: Mentor digital endpoints
+        app.router.add_get("/api/mentor", self._handle_mentor_get)
+        app.router.add_post("/api/mentor", self._handle_mentor_update)
+        app.router.add_get("/api/mentor/stats", self._handle_mentor_stats)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1038,6 +1043,36 @@ class DashboardServer:
             "content_hash": message if ok else None,
             "error": None if ok else message,
         })
+
+    # ============================================================
+    # Fase 6C: Mentor digital handlers
+    # ============================================================
+
+    async def _handle_mentor_get(self, request) -> Any:
+        """GET /api/mentor — obtiene configuración del mentor."""
+        from aiohttp import web
+        if not hasattr(self.chat, 'mentor'):
+            return web.json_response({"error": "mentor not initialized"}, status=500)
+        return web.json_response(self.chat.mentor.get_config())
+
+    async def _handle_mentor_update(self, request) -> Any:
+        """POST /api/mentor — actualiza configuración del mentor."""
+        from aiohttp import web
+        if not hasattr(self.chat, 'mentor'):
+            return web.json_response({"error": "mentor not initialized"}, status=500)
+        data = await request.json()
+        config = self.chat.mentor.update_config(data)
+        return web.json_response({
+            "success": True,
+            "config": config.to_dict(),
+        })
+
+    async def _handle_mentor_stats(self, request) -> Any:
+        """GET /api/mentor/stats — estadísticas del mentor."""
+        from aiohttp import web
+        if not hasattr(self.chat, 'mentor'):
+            return web.json_response({"error": "mentor not initialized"}, status=500)
+        return web.json_response(self.chat.mentor.get_stats())
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""
