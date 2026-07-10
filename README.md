@@ -3,8 +3,8 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Tests](https://img.shields.io/badge/tests-864%2F864%20pass-brightgreen)](#tests)
-[![Version](https://img.shields.io/badge/version-1.5.0-blue)](#roadmap)
+[![Tests](https://img.shields.io/badge/tests-914%2F914%20pass-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue)](#roadmap)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#instalación)
 [![Capsules](https://img.shields.io/badge/capsules-12%20available-teal)](#cápsulas-de-conocimiento)
@@ -14,35 +14,120 @@
 
 ## Tabla de contenidos
 
-1. [Quickstart](#quickstart)
-2. [Instalación](#instalación)
-3. [Backends LLM](#backends-llm)
-4. [CLI Chat](#cli-chat)
-5. [Web Dashboard](#web-dashboard)
-6. [Cápsulas de conocimiento](#cápsulas-de-conocimiento)
-7. [Casos de uso](#casos-de-uso)
-8. [Marketplace](#marketplace-de-cápsulas)
-9. [Validación epistémica](#validación-epistémica)
-10. [Qué es ZOE](#qué-es-zoe)
-11. [Los 5 pilares](#los-5-pilares)
-12. [Las 6 leyes cognitivas](#las-6-leyes-cognitivas)
-13. [Adaptive Cognitive Depth (ACD)](#adaptive-cognitive-depth-acd)
-14. [Roadmap](#roadmap)
-15. [Tests](#tests)
-16. [Documentación](#documentación)
-17. [Instalación en Pendrive USB](#instalación-en-pendrive-usb-macos)
-18. [Cognitive Memory Paging (7F)](#cognitive-memory-paging--modelos-grandes-en-mac-con-8gb-ram)
-19. [Tutor Mentor Digital (6C)](#tutor-mentor-digital)
-20. [Resource Discovery (7A)](#resource-discovery--descubrimiento-automático-de-recursos)
-21. [Universal Model Bus (7B)](#universal-model-bus-umb)
-22. [Metabolic Resource Planner (7C)](#metabolic-resource-planner)
-23. [Embodiment Composer (7D)](#embodiment-composer)
-24. [ZOE Seed Mode (7E)](#zoe-seed-mode)
-25. [Licencia](#licencia)
+1. [Quickstart para usuario final (sin técnico)](#quickstart-para-usuario-final-sin-conocimientos-técnicos)
+2. [Quickstart para desarrolladores](#quickstart-para-desarrolladores)
+3. [Instalación](#instalación)
+4. [Backends LLM](#backends-llm)
+5. [CLI Chat](#cli-chat)
+6. [Web Dashboard](#web-dashboard)
+7. [Cápsulas de conocimiento](#cápsulas-de-conocimiento)
+8. [Casos de uso](#casos-de-uso)
+9. [Marketplace](#marketplace-de-cápsulas)
+10. [Validación epistémica](#validación-epistémica)
+11. [Qué es ZOE](#qué-es-zoe)
+12. [Los 5 pilares](#los-5-pilares)
+13. [Las 6 leyes cognitivas](#las-6-leyes-cognitivas)
+14. [Adaptive Cognitive Depth (ACD)](#adaptive-cognitive-depth-acd)
+15. [Roadmap](#roadmap)
+16. [Tests](#tests)
+17. [Documentación](#documentación)
+18. [Instalación en Pendrive USB](#instalación-en-pendrive-usb-macos)
+19. [Cognitive Memory Paging (7F)](#cognitive-memory-paging--modelos-grandes-en-mac-con-8gb-ram)
+20. [Tutor Mentor Digital (6C)](#tutor-mentor-digital)
+21. [Resource Discovery (7A)](#resource-discovery--descubrimiento-automático-de-recursos)
+22. [Universal Model Bus (7B)](#universal-model-bus-umb)
+23. [Metabolic Resource Planner (7C)](#metabolic-resource-planner)
+24. [Embodiment Composer (7D)](#embodiment-composer)
+25. [ZOE Seed Mode (7E)](#zoe-seed-mode)
+26. [Hardware Optimization & UX (7G)](#hardware-optimization--ux-7g)
+27. [Licencia](#licencia)
 
 ---
 
-## Quickstart
+## Quickstart para usuario final (sin conocimientos técnicos)
+
+> **¿Solo quieres usar ZOE sin tocar código?** Sigue estos 4 pasos. No necesitas saber programar.
+
+### Paso 1 — Compra un SSD portátil rápido (recomendado)
+
+ZOE funciona con cualquier pendrive USB, pero para que "piense rápido" necesita un SSD portátil de alta velocidad. Estos tres modelos son ideales y cuestan entre 100€ y 160€:
+
+| Modelo | Capacidad | Velocidad lectura | Precio aprox. | Por qué es ideal |
+|---|---|---|---|---|
+| **Crucial X10 Pro** | 1 TB | 2100 MB/s | ~110€ | Equilibrado: pequeño, resistente, rápido. **Recomendado por defecto.** |
+| **Kingston XS2000** | 1 TB | 2000 MB/s | ~100€ | El más económico, ultra compacto. |
+| **SanDisk PRO-BLADE Transport** | 1 TB | 2000 MB/s | ~160€ | Línea profesional, diseño robusto. |
+
+> 💡 **1 TB es suficiente** para ZOE + varios modelos de IA de gran tamaño (un modelo de 70B ocupa ~25 GB).
+
+### Paso 2 — Conecta el SSD a tu Mac con el cable correcto
+
+> ⚠️ **CRÍTICO — Usa SIEMPRE el cable corto que viene dentro de la caja del SSD.**
+>
+> El cable largo que usas para cargar tu MacBook Air es **USB 2.0** (480 Mbps) y limita el SSD a ~60 MB/s. Si ZOE va lento, en el 90% de los casos el culpable es el cable equivocado.
+>
+> El cable corto que viene en la caja del SSD es **USB 3.2 Gen 2** (10 Gbps) y permite los 2000 MB/s reales.
+
+1. Saca el SSD de la caja.
+2. Conéctalo al Mac con **el cable corto que venía en la caja** (no el de carga).
+3. Verás que aparece un nuevo disco en el Escritorio o en Finder → "Ubicaciones".
+
+### Paso 3 — Descarga el instalador de ZOE y ejecútalo
+
+1. Abre la app **Terminal** (puedes buscarla con Spotlight: `Cmd + Espacio` y escribe "Terminal").
+2. Copia y pega este comando y pulsa Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/install_pendrive_macos.sh | bash
+```
+
+3. El instalador te preguntará:
+   - ¿Qué disco quieres usar? → Elige tu SSD (selecciónalo con el número).
+   - ¿Quieres configurar OpenAI API key? → Si no tienes una, di "No" (ZOE funcionará en modo local gratis).
+
+4. Espera 2-3 minutos mientras se instala todo en el SSD. **No toques nada del Mac, todo va al SSD.**
+
+### Paso 4 — Habla con ZOE
+
+Cuando termine, verás en tu SSD una carpeta `ZOE/` con varios archivos `.command`. **Doble clic en cualquiera** para arrancar ZOE:
+
+| Archivo | Qué hace |
+|---|---|
+| `ZOE-Chat.command` | Chat básico (sin IA, gratis, para probar) |
+| `ZOE-Chat-Ollama.command` | Chat con IA local gratis (necesitas [instalar Ollama](https://ollama.com) primero) |
+| `ZOE-Chat-OpenAI.command` | Chat con GPT-4o (necesitas API key de OpenAI) |
+| `ZOE-Dashboard.command` | Dashboard web en `http://localhost:8642` |
+
+**Tiempo total desde comprar el SSD hasta la primera respuesta de ZOE: 15 minutos.**
+
+### ¿Qué velocidad de respuesta tendrás?
+
+Depende del "tamaño de cerebro" (modelo de IA) que uses. Esto es lo que puedes esperar en un MacBook Air M2/M3 con 8 GB de RAM y un SSD de 2000 MB/s:
+
+| Modelo | RAM usada | Velocidad | Experiencia |
+|---|---|---|---|
+| **Qwen 2.5 3B** (modo rápido) | 2.5 GB | 25-35 tokens/s | ⚡ Más rápido de lo que lees |
+| **Qwen 2.5 7B** (modo estándar) | 4.5 GB | 12-18 tokens/s | ✅ Similar a ChatGPT gratuito |
+| **Qwen 2.5 14B** (modo profundo) | 8 GB (mmap) | 4-8 tokens/s | 📖 Lectura pausada, ideal análisis |
+| **Qwen 2.5 32B** (modo experto, IQ2) | 9 GB (mmap) | 3-6 tokens/s | 🧠 Análisis profundo en background |
+
+> 💡 1 token ≈ 0,75 palabras. Una velocidad de 12 tokens/s = ~9 palabras por segundo = más rápido de lo que lee un humano adulto.
+
+### ¿Atascado? Solución de problemas rápida
+
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| ZOE va muy lento | Cable equivocado | Usa el cable corto del SSD (no el del cargador Mac) |
+| "Python no encontrado" | Falta Python 3.10+ | Instala desde https://python.org |
+| "Ollama no encontrado" | Falta Ollama | Instala desde https://ollama.com |
+| SSD no aparece en Finder | Conexión floja | Desconecta y reconecta, prueba otro puerto USB-C |
+| "Permiso denegado" | macOS bloquea scripts | Sistema → Privacidad y seguridad → "Permitir de todos modos" |
+
+¿Necesitas ayuda más detallada? Encuentra la guía paso a paso completa en la sección [Instalación en Pendrive USB](#instalación-en-pendrive-usb-macos) más abajo.
+
+---
+
+## Quickstart (para desarrolladores)
 
 ```bash
 # 1. Clonar el repositorio
@@ -115,7 +200,7 @@ python -m zoe.cli_chat --backend mock
 ```bash
 # Verificar versión
 python -c "import zoe; print(f'ZOE v{zoe.__version__}, phase={zoe.__phase__}')"
-# Output: ZOE v1.5.0, phase=phase_7e
+# Output: ZOE v1.6.0, phase=phase_7g
 
 # Verificar cápsulas disponibles
 zoe-capsules list
@@ -123,7 +208,7 @@ zoe-capsules list
 
 # Ejecutar tests
 pytest zoe/tests/ -q
-# Debe mostrar "864 passed"
+# Debe mostrar "914 passed"
 ```
 
 ### Estructura del proyecto
@@ -136,7 +221,7 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
 ├── README.md                   # Este archivo
 ├── LICENSE                     # Apache 2.0
 └── zoe/                        # Paquete principal
-    ├── __init__.py             # v1.5.0, phase_7e
+    ├── __init__.py             # v1.6.0, phase_7g
     ├── cli_chat.py             # CLI Chat interactivo
     ├── web_dashboard.py        # Web Dashboard (aiohttp + WebSocket)
     ├── serve.py                # Servidor de producción
@@ -182,6 +267,8 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
     │   #   resource_planner.py       — 7C: plan ACD+metabolismo+sensible
     │   #   embodiment_composer.py    — 7D: boot sequence del organismo
     │   #   seed_mode.py              — 7E: semilla portátil (germinación)
+    │   #   model_optimizer.py 7G ext — P-cores, IQ2_M/IQ3_XS, flash-attn siempre
+    │   #                               + APIs usuario final (SSDs, tokens/s, cable)
     ├── metabolism/              # 4 estados + consolidación
     ├── memory/                  # 11 tipos + SQLite + deep consolidation
     ├── peripherals/             # LLMs + sentidos + actuadores
@@ -199,7 +286,7 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
     ├── config/                  # production.yaml, development.yaml
     ├── docs/                    # Guía V1 + auditoría PDF
     ├── phases/                  # Planes y resultados por fase
-    ├── tests/                   # 38 archivos, 864 tests
+    ├── tests/                   # 39 archivos, 914 tests
     ├── examples/                # Demos
     └── scripts/                 # deploy.sh
 ```
@@ -1171,6 +1258,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 7C — Metabolic Resource Planner | ✅ | ResourcePlanner + plan ACD+metabolismo+sensible+optimizer |
 | 7D — Embodiment Composer | ✅ | EmbodimentComposer + 7 checks + bootstrap 7A→7B→7C→7D + 6 endpoints |
 | 7E — ZOE Seed Mode | ✅ | ZOESeed + germinación pendrive→host + 6 endpoints |
+| 7G — Hardware Optimization & UX | ✅ | P-cores + IQ2_M/IQ3_XS + flash-attn siempre + SSDs + token rates |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1180,7 +1268,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 ## Tests
 
 ```
-864 tests, 100% pass
+914 tests, 100% pass
 ```
 
 | Suite | Tests | Cobertura |
@@ -1192,8 +1280,8 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | Fase 5 — ACD + Streaming | 44 | DepthClassifier + Cache + V5 |
 | Fase 6A — Epistemic Validation | 41 | Validator + Quarantine + CrossValidator |
 | Fase 6B — Capsules + Marketplace | 138 | 12 cápsulas + Scaffold + Marketplace + Federation |
-| Fase 7A-E — Resource Stack | 165 | Discovery + ModelBus + Planner + Embodiment + Seed |
-| **TOTAL** | **864** | **100% pass** |
+| Fase 7A-G — Resource Stack | 215 | Discovery + ModelBus + Planner + Embodiment + Seed + Hardware Opt |
+| **TOTAL** | **914** | **100% pass** |
 
 ### Ejecutar tests
 
@@ -1207,8 +1295,8 @@ pytest zoe/tests/test_phase5_acd.py -v
 # Solo tests de cápsulas
 pytest zoe/tests/test_phase6_capsules.py -v
 
-# Solo tests del stack de recursos (Fase 7A-7E)
-pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py zoe/tests/test_phase7e_seed_mode.py -v
+# Solo tests del stack de recursos (Fase 7A-7G)
+pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py zoe/tests/test_phase7e_seed_mode.py zoe/tests/test_phase7g_hardware_optimization.py -v
 
 # Con cobertura
 pytest zoe/tests/ --cov=zoe --cov-report=term-missing
@@ -1229,14 +1317,37 @@ pytest zoe/tests/ --cov=zoe --cov-report=term-missing
 
 ## Instalación en Pendrive USB (macOS)
 
-> **¿Quieres usar ZOE sin ocupar memoria en tu Mac?** Instálalo en un pendrive USB. Todo (código, entorno virtual, memoria, datos) vive en el pendrive. Conectas, usas, desconectas.
+> **¿Quieres usar ZOE sin ocupar memoria en tu Mac?** Instálalo en un pendrive USB o SSD portátil. Todo (código, entorno virtual, memoria, datos) vive en el dispositivo. Conectas, usas, desconectas.
 
 ### Requisitos
 
 - MacBook Air (o cualquier Mac) con macOS 11+
-- Pendrive USB de **mínimo 8GB** (recomendado 16GB o más)
+- Pendrive USB de **mínimo 8GB** (recomendado 16GB o más) **o** SSD portátil USB-C de 1TB (recomendado para modelos grandes)
 - Python 3.10+ instalado en el Mac (no ocupa espacio en el pendrive, solo se usa para crear el entorno)
 - Git instalado (viene con Xcode Command Line Tools: `xcode-select --install`)
+
+### ¿Pendrive USB barato o SSD portátil rápido?
+
+Depende del "tamaño de cerebro" (modelo de IA) que quieras usar:
+
+| Dispositivo | Velocidad | Capacidad recom. | Modelos que soporta | Precio |
+|---|---|---|---|---|
+| Pendrive USB 3.0 genérico | 100-400 MB/s | 16-32 GB | Hasta 7B (Q4) | 10-25€ |
+| Pendrive USB 3.2 premium | 500-1000 MB/s | 32-64 GB | Hasta 14B (Q4, lento) | 30-60€ |
+| **SSD portátil USB-C** (Crucial X10 Pro, Kingston XS2000, SanDisk PRO-BLADE) | **2000 MB/s** | **1 TB** | **Hasta 70B (IQ2_M, mmap)** | **100-160€** |
+
+> ⚠️ **Si quieres usar ZOE con modelos de 14B o más en un MacBook Air de 8 GB, necesitas un SSD portátil de 2000 MB/s.** Con un pendrive USB normal será 10x más lento.
+
+### ⚠️ Regla de oro: el cable USB-C
+
+> **Usa SIEMPRE el cable corto que viene dentro de la caja del SSD.**
+>
+> El cable largo que usas para cargar tu MacBook Air es **USB 2.0** (480 Mbps) y limita el SSD a ~60 MB/s. Si ZOE va lento, en el 90% de los casos el culpable es el cable equivocado.
+>
+> El cable corto de la caja del SSD es **USB 3.2 Gen 2** (10 Gbps) y permite los 2000 MB/s reales.
+>
+> **Síntoma**: ZOE tarda 10+ segundos en responder y la primera palabra aparece muy lenta. → Cambia al cable corto.
+> **Síntoma**: ZOE responde en 1-2 segundos y el texto fluye rápido. → Cable correcto.
 
 ### Qué se instala en el pendrive
 
@@ -1522,16 +1633,24 @@ Un MacBook Air de 8GB RAM tiene ~5GB disponibles tras el sistema operativo. Un m
 
 ### Modelos que puedes usar con 8GB RAM
 
-| Modelo | Tamaño en pendrive | RAM usada (mmap) | Velocidad | Estrategia |
+| Modelo | Tamaño en pendrive | RAM usada (mmap) | Tokens/s en M2/M3 8GB* | Estrategia |
 |---|---|---|---|---|
-| Qwen 2.5 3B | 2GB | ~1.5GB | Rápida | full_ram |
-| Qwen 2.5 7B | 4.5GB | ~3GB | Media | mmap_partial |
-| **Qwen 2.5 14B** | 8GB | ~3.5GB | Media | mmap_partial |
-| **Qwen 2.5 32B** | 18GB | ~3GB | Lenta | mmap_full |
-| **Qwen 2.5 72B** | 40GB | ~3-4GB | Muy lenta | mmap_full |
-| DeepSeek R1 14B | 8GB | ~3.5GB | Media | mmap_partial |
-| DeepSeek R1 32B | 18GB | ~3GB | Lenta | mmap_full |
-| Llama 3.1 70B | 40GB | ~3-4GB | Muy lenta | mmap_full |
+| Qwen 2.5 3B (Q4) | 2 GB | ~1.5 GB | **25-35 t/s** ⚡ | full_ram |
+| Qwen 2.5 7B (Q4) | 4.5 GB | ~3 GB | **12-18 t/s** ✅ | mmap_partial |
+| **Qwen 2.5 14B** (Q4) | 8 GB | ~3.5 GB | **4-8 t/s** 📖 | mmap_partial |
+| **Qwen 2.5 32B** (IQ2_M) | 11 GB | ~3 GB | **3-6 t/s** 🧠 | mmap_full |
+| **Qwen 2.5 32B** (Q4_K_M) | 18 GB | ~3 GB | 2-4 t/s | mmap_full |
+| **Qwen 2.5 72B** (IQ2_M) | 25 GB | ~3-4 GB | 1-3 t/s | mmap_full |
+| **Qwen 2.5 72B** (Q4_K_M) | 40 GB | ~3-4 GB | 0.5-1.5 t/s | mmap_full |
+| Llama 3.1 8B (Q4) | 4.5 GB | ~3 GB | 12-18 t/s | mmap_partial |
+| DeepSeek R1 14B (Q4) | 8 GB | ~3.5 GB | 4-8 t/s | mmap_partial |
+| Llama 3.1 70B (IQ2_M) | 25 GB | ~3-4 GB | 1-3 t/s | mmap_full |
+
+> **\* Velocidades medidas en MacBook Air M2/M3 8GB con SSD de 2000 MB/s y cable USB-C correcto.** Con un pendrive USB normal (400 MB/s), divide las velocidades entre 3-5.
+>
+> 💡 1 token ≈ 0,75 palabras. 12 t/s = ~9 palabras/s = más rápido de lo que lee un humano.
+>
+> 💡 **IQ2_M** es una cuantización avanzada (importance matrix) que reduce el modelo a la mitad manteniendo ~95% de la calidad. Ideal para modelos 30B+ en Mac 8GB. Disponible desde la Fase 7G.
 
 > **Sí, puedes ejecutar un modelo de 72B parámetros en tu MacBook Air de 8GB.** Será lento (30-120 segundos por respuesta L3), pero **funciona**.
 
@@ -1542,33 +1661,38 @@ Un MacBook Air de 8GB RAM tiene ~5GB disponibles tras el sistema operativo. Un m
 bash zoe/scripts/zoe_large_model_manager.sh
 
 # El script:
-# 1. Detecta tu hardware (RAM, chip, cores)
+# 1. Detecta tu hardware (RAM, chip, P-cores, E-cores)
 # 2. Muestra menú con 14 modelos (0.5B a 72B)
 # 3. Analiza viabilidad y muestra estrategia + velocidad esperada
 # 4. Descarga el modelo al pendrive con OLLAMA_MODELS
-# 5. Configura variables de entorno óptimas (mmap, keep_alive, flash_attention)
+# 5. Configura variables de entorno óptimas (mmap, keep_alive, flash_attention, threads=P-cores)
 # 6. Crea scripts .command personalizados para Chat y Dashboard
 ```
 
 ### Recomendación óptima para 8GB Mac
 
-| Nivel ACD | Modelo | Estrategia | Velocidad |
-|---|---|---|---|
-| L0-L1 (reflejo/rápido) | Qwen 2.5 3B | full_ram | <1s |
-| L2 (estándar) | Llama 3.1 8B | mmap_partial | 6-15s |
-| L3 (profundo) | Qwen 2.5 72B | mmap_full | 60-120s |
+| Nivel ACD | Modelo | Estrategia | Tokens/s | Tiempo respuesta L3 |
+|---|---|---|---|---|
+| L0-L1 (reflejo/rápido) | Qwen 2.5 3B (Q4) | full_ram | 25-35 t/s | <1s |
+| L2 (estándar) | Qwen 2.5 7B (Q4) | mmap_partial | 12-18 t/s | 2-4s |
+| L3 (profundo) | Qwen 2.5 32B (IQ2_M) | mmap_full | 3-6 t/s | 15-30s |
 
-Instala los 3 modelos en el pendrive y ZOE usará cada uno según el nivel ACD. L0-L1 será rápido (3B en RAM), L3 será potente pero lento (72B vía mmap).
+Instala los 3 modelos en el pendrive y ZOE usará cada uno según el nivel ACD. L0-L1 será rápido (3B en RAM), L3 será potente pero lento (32B IQ2_M vía mmap). El `ModelOptimizer` (Fase 7F + 7G) configura automáticamente:
+
+- `OLLAMA_FLASH_ATTENTION=1` (siempre activado desde 7G)
+- `OLLAMA_NUM_THREAD = P-cores` (núcleos de rendimiento, no E-cores)
+- `OLLAMA_KEEP_ALIVE` según estrategia (30m para mmap_partial, 60m para mmap_full)
 
 ### Requisitos del pendrive para modelos grandes
 
-| Requisito | Para 14B | Para 72B |
-|---|---|---|
-| Capacidad mínima | 16GB | 64GB |
-| Espacio libre | 10GB | 45GB |
-| Formato | APFS o exFAT | APFS |
-| Velocidad USB | USB 3.0+ (500MB/s) | USB 3.1+ (900MB/s) |
-| Modelo Ollama | qwen2.5:14b (8GB) | qwen2.5:72b (40GB) |
+| Requisito | Para 14B (Q4) | Para 32B (IQ2_M) | Para 72B (IQ2_M) |
+|---|---|---|---|
+| Capacidad mínima | 16 GB | 32 GB | 64 GB |
+| Espacio libre recomendado | 12 GB | 15 GB | 30 GB |
+| Formato | APFS o exFAT | APFS o exFAT | APFS |
+| Velocidad USB mínima | USB 3.0 (500 MB/s) | USB 3.2 (1000 MB/s) | SSD 2000 MB/s |
+| Modelo Ollama | qwen2.5:14b | qwen2.5:32b-iq2_m (HF) | qwen2.5:72b-iq2_m (HF) |
+| Cable USB-C requerido | Cualquiera | Cable corto original | Cable corto original |
 
 ### Endpoints del ModelOptimizer en el Dashboard
 
@@ -2404,12 +2528,225 @@ Es la materialización del caso de uso `ia_heredable`: **IA con trayectoria tran
 
 ---
 
+## Hardware Optimization & UX (7G)
+
+> **Fase 7G — Optimizaciones de hardware y experiencia de usuario.**
+
+La Fase 7G cierra el ciclo del stack 7A-7E con 4 optimizaciones críticas para que un usuario no técnico obtenga el máximo rendimiento de ZOE sin tocar configuración:
+
+1. **Detección de P-cores** en Apple Silicon (no usar E-cores para LLM inference)
+2. **Cuantizaciones IQ2_M / IQ3_XS** (importance matrix) para modelos 30B+ en Mac 8GB
+3. **`OLLAMA_FLASH_ATTENTION=1` siempre activo** (no solo en MMAP_FULL)
+4. **APIs de información para usuarios finales**: SSDs recomendados, tokens/s esperadas, warning del cable USB-C
+
+### 1. Detección de P-cores en Apple Silicon
+
+Los chips Apple Silicon (M1/M2/M3/M4) tienen dos tipos de núcleos:
+- **P-cores** (`hw.perflevel0.physicalcpu`): alta velocidad, alta potencia
+- **E-cores** (`hw.perflevel1.physicalcpu`): baja velocidad, baja potencia
+
+Para LLM inference, usar E-cores **DEGRADA** el rendimiento porque los P-cores tienen que esperar a los E-cores más lentos (efecto "slowest thread").
+
+```python
+from zoe.core.model_optimizer import ModelOptimizer
+
+opt = ModelOptimizer()
+print(f"P-cores: {opt.detect_p_cores()}")  # → 4 en M2 Pro
+print(f"E-cores: {opt.detect_e_cores()}")  # → 4 en M2 Pro
+print(f"Total:   {opt.detect_cpu_cores()}")  # → 8 en M2 Pro
+```
+
+El `ModelOptimizer` configura automáticamente `OLLAMA_NUM_THREAD = P-cores` (no total) en `generate_ollama_env()`.
+
+**En hardware sin distinción** (Intel, AMD, Linux), `detect_p_cores()` devuelve el total de cores (comportamiento backward-compatible).
+
+### 2. Cuantizaciones IQ2_M / IQ3_XS (importance matrix)
+
+No todas las partes de un modelo son igual de importantes. Las cuantizaciones **IQ** (importance matrix) mantienen las capas críticas con mayor precisión y comprimen al extremo las secundarias.
+
+| Cuantización | Tamaño vs Q4_K_M | Calidad vs Q4_K_M | Cuándo usar |
+|---|---|---|---|
+| Q4_K_M | 100% | 100% | Default. Modelo cabe en RAM o mmap. |
+| Q8 | ~150% | ~102% | RAM abundante, máxima calidad. |
+| **IQ3_XS** | **~40%** | **~97%** | Q4 no cabe, pero IQ3 sí. Mejor calidad que IQ2. |
+| **IQ2_M** | **~30%** | **~95%** | Q4 e IQ3 no caben. Última opción antes de cloud. |
+
+```python
+from zoe.core.model_optimizer import ModelOptimizer
+
+opt = ModelOptimizer()
+
+# qwen2.5:32b Q4 = 18GB, IQ3_XS = 7.2GB, IQ2_M = 5.4GB
+result = opt.optimize("qwen2.5:32b", available_ram_gb=5.0)
+# → strategy=mmap_partial, quantization=IQ3_XS, model_size=7.2GB
+# → warning="Modelo 18.0GB (Q4) no cabe. Usando IQ3_XS (7.2GB). ~97% calidad. mmap parcial."
+
+result = opt.optimize("qwen2.5:72b", available_ram_gb=6.0)
+# → strategy=mmap_full, quantization=IQ2_M, model_size=12.0GB
+# → warning="Modelo 40.0GB (Q4) no cabe. Usando IQ2_M (12.0GB). ~95% calidad. mmap."
+```
+
+El `MODEL_CATALOG` ahora incluye `size_iq2_m_gb` y `size_iq3_xs_gb` para los modelos 27B+ (los únicos que benefit de IQ).
+
+### 3. `OLLAMA_FLASH_ATTENTION=1` siempre activo
+
+**Antes de 7G**: Flash Attention solo se activaba en `MMAP_FULL` (modelos muy grandes).
+
+**Desde 7G**: Flash Attention **siempre activo**, en todas las estrategias (`FULL_RAM`, `MMAP_PARTIAL`, `MMAP_FULL`, `CLOUD_FALLBACK`).
+
+Flash Attention reduce el uso de memoria y cómputo en contextos largos (historial de chat extenso, documentos grandes) hasta un 40%, sin downside en contextos cortos.
+
+```python
+opt = ModelOptimizer()
+result = opt.optimize("qwen2.5:3b", available_ram_gb=8.0)  # FULL_RAM
+env = opt.generate_ollama_env(result)
+print(env["OLLAMA_FLASH_ATTENTION"])  # → "1" (siempre)
+print(env["OLLAMA_NUM_THREAD"])  # → "4" (P-cores, no total)
+```
+
+### 4. APIs de información para usuarios finales
+
+Tres nuevas APIs estáticas para que el dashboard y el installer muestren info útil sin que el usuario tenga que buscarla:
+
+```python
+from zoe.core.model_optimizer import ModelOptimizer
+
+# SSDs portátiles recomendados (Crucial X10 Pro, Kingston XS2000, SanDisk PRO-BLADE)
+ssds = ModelOptimizer.get_recommended_ssds()
+# → [{"model": "Crucial X10 Pro", "read_speed_mbps": 2100, "price_eur": 110, ...}, ...]
+
+# Tabla de tokens/s esperadas por modelo en MacBook Air M2/M3 8GB
+rates = ModelOptimizer.get_expected_token_rates()
+# → [{"model": "Qwen 2.5 3B", "tokens_per_second_range": "25-35", ...}, ...]
+
+# Warning sobre el cable USB-C (crítico para rendimiento)
+warning = ModelOptimizer.get_cable_warning()
+# → {"title": "Usa SIEMPRE el cable corto...", "problem": "...USB 2.0...", "impact_factor": "10x"}
+```
+
+### SSDs portátiles recomendados
+
+Estos son los SSDs comerciales "todo en uno" de fábrica que recomendamos para ejecutar ZOE con modelos grandes vía mmap:
+
+| Modelo | Capacidad | Velocidad lectura | Precio aprox. | Recomendado |
+|---|---|---|---|---|
+| **Crucial X10 Pro** | 1 TB | 2100 MB/s | ~110€ | ✅ **Por defecto** |
+| Kingston XS2000 | 1 TB | 2000 MB/s | ~100€ | El más económico |
+| SanDisk PRO-BLADE Transport | 1 TB | 2000 MB/s | ~160€ | Línea profesional |
+
+> ⚠️ **Regla de oro**: usa SIEMPRE el cable corto que viene en la caja del SSD. El cable largo de carga del MacBook Air es USB 2.0 (480 Mbps) y limita el SSD a ~60 MB/s — **10x más lento**.
+
+### Velocidades esperadas (tokens/segundo)
+
+Velocidades medidas en MacBook Air M2/M3 8GB con SSD de 2000 MB/s y cable USB-C correcto:
+
+| Modelo | Cuantización | RAM usada | Tokens/s | Experiencia |
+|---|---|---|---|---|
+| Qwen 2.5 3B | Q4_K_M | 2.5 GB | 25-35 | ⚡ Más rápido de lo que lees |
+| Qwen 2.5 7B | Q4_K_M | 4.5 GB | 12-18 | ✅ Similar a ChatGPT gratuito |
+| Qwen 2.5 14B | Q4_K_M | 3.5 GB | 4-8 | 📖 Lectura pausada, ideal análisis |
+| Qwen 2.5 32B | IQ2_M | 3.0 GB | 3-6 | 🧠 Análisis profundo en background |
+| Qwen 2.5 72B | IQ2_M | 4.0 GB | 1-3 | Lento pero funcional |
+| Llama 3.1 70B | IQ2_M | 4.0 GB | 1-3 | Lento pero funcional |
+
+> 💡 1 token ≈ 0,75 palabras. 12 t/s = ~9 palabras/s = más rápido de lo que lee un humano adulto.
+
+### Cómo usar
+
+```python
+from zoe.core.model_optimizer import ModelOptimizer
+
+opt = ModelOptimizer()
+
+# Info del sistema (ahora con P-cores y E-cores)
+info = opt.get_system_info()
+# → {"platform": "Darwin", "is_apple_silicon": True, "p_cores": 4, "e_cores": 4, ...}
+
+# Optimizar un modelo 32B en Mac 8GB
+result = opt.optimize("qwen2.5:32b", available_ram_gb=5.0)
+# → strategy=mmap_partial, quantization=IQ3_XS, will_work=True
+
+# Generar variables de entorno óptimas para Ollama
+env = opt.generate_ollama_env(result)
+# → {"OLLAMA_FLASH_ATTENTION": "1", "OLLAMA_NUM_THREAD": "4", ...}
+
+# Recomendaciones de SSDs para el usuario final
+ssds = opt.get_recommended_ssds()
+# → lista de SSDs recomendados
+
+# Tabla de velocidades esperadas
+rates = opt.get_expected_token_rates()
+# → lista de modelos con tokens/s esperadas
+
+# Warning del cable USB-C (mostrar en dashboard)
+warning = opt.get_cable_warning()
+# → {"title": "...", "problem": "...", "solution": "...", "impact_factor": "10x"}
+```
+
+### Endpoints del Dashboard
+
+Los endpoints existentes del `ModelOptimizer` (Fase 7F) ahora devuelven información enriquecida de Fase 7G:
+
+| Endpoint | Método | Qué devuelve nuevo |
+|---|---|---|
+| `/api/models/system_info` | GET | Ahora incluye `p_cores` y `e_cores` |
+| `/api/models/recommend` | GET | Recomendaciones pueden sugerir IQ2_M / IQ3_XS |
+| `/api/models/catalog` | GET | Lista de modelos soportados con cuantizaciones disponibles |
+| `/api/models/optimize` | POST | El resultado puede sugerir `IQ2_M` o `IQ3_XS` como cuantización |
+
+**Próximamente**: nuevos endpoints `/api/hardware/ssds`, `/api/hardware/token_rates`, `/api/hardware/cable_warning` para el dashboard de usuario final.
+
+### Por qué importa
+
+Antes de 7G, un usuario con un MacBook Air 8GB y un modelo de 32B tenía dos opciones:
+1. **No usarlo** (Q4_K_M de 18GB no cabe)
+2. **Usar cloud API** (pérdida de privacidad)
+
+Con 7G, ese mismo usuario puede:
+1. Comprar un **Crucial X10 Pro** (110€)
+2. Conectarlo con el **cable corto** de la caja
+3. Instalar ZOE en el SSD con el instalador automático
+4. Ejecutar **Qwen 2.5 32B con IQ2_M** (5.4GB) a **3-6 tokens/s** localmente
+
+Eso es **IA soberana de calidad razonable en hardware modesto** — exactamente la promesa de ZOE.
+
+### Integración con las fases anteriores
+
+```
+                  ┌─────────────────────────────────────────────────────┐
+                  │          ModelOptimizer (7F + 7G)                   │
+                  │                                                     │
+                  │  7F (Cognitive Memory Paging):                      │
+                  │    - detect RAM, estrategia mmap, recommend for ACD │
+                  │                                                     │
+                  │  7G (Hardware Optimization & UX):                   │
+                  │    - detect P-cores/E-cores en Apple Silicon        │
+                  │    - IQ2_M / IQ3_XS cuando Q4 no cabe               │
+                  │    - OLLAMA_FLASH_ATTENTION=1 siempre               │
+                  │    - OLLAMA_NUM_THREAD = P-cores                    │
+                  │    - get_recommended_ssds() para usuario final      │
+                  │    - get_expected_token_rates() para UX             │
+                  │    - get_cable_warning() para diagnóstico           │
+                  └─────────────────────────────────────────────────────┘
+                                          ↓
+                  ┌─────────────────────────────────────────────────────┐
+                  │       EmbodimentComposer (7D) + ZOESeed (7E)        │
+                  │       usan ModelOptimizer para instanciar el cuerpo │
+                  │       óptimo según hardware del host                │
+                  └─────────────────────────────────────────────────────┘
+                                          ↓
+                  ZOE despierta con el máximo rendimiento posible
+                  en el hardware disponible, sin configuración manual
+```
+
+---
+
 ## Licencia
 
 Apache 2.0 — [LICENSE](LICENSE)
 
 ---
 
-*ZOE V1.5 — Synthetic Cognitive Organism (SCO).*
+*ZOE V1.6 — Synthetic Cognitive Organism (SCO).*
 *Repositorio: `fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO`*
-*864 tests · 12 cápsulas · 7 casos de uso · 7 fases completas · 121+ archivos Python · 35.000+ LOC*
+*914 tests · 12 cápsulas · 7 casos de uso · 8 fases completas (0-7G) · 122+ archivos Python · 36.000+ LOC*

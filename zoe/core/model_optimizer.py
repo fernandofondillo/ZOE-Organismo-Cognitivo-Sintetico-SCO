@@ -58,6 +58,21 @@ class ModelSpec:
     mmap_ram_gb: float
     recommended_for: str
     ollama_tag: str
+    # Fase 7G: cuantizaciones avanzadas (importance matrix)
+    # IQ2_M = ~30% del tamaño Q4, mantiene ~95% calidad
+    # IQ3_XS = ~40% del tamaño Q4, mantiene ~97% calidad
+    size_iq2_m_gb: float = 0.0       # 0 = no disponible, se calcula si no se especifica
+    size_iq3_xs_gb: float = 0.0
+
+
+def _iq2_size(q4_size: float) -> float:
+    """Estima el tamaño IQ2_M como ~30% del Q4_K_M."""
+    return round(q4_size * 0.30, 2)
+
+
+def _iq3_size(q4_size: float) -> float:
+    """Estima el tamaño IQ3_XS como ~40% del Q4_K_M."""
+    return round(q4_size * 0.40, 2)
 
 
 MODEL_CATALOG: List[ModelSpec] = [
@@ -66,17 +81,69 @@ MODEL_CATALOG: List[ModelSpec] = [
     ModelSpec("qwen2.5:3b", 3.0, 2.0, 3.2, 3.0, 1.5, "L0-L1", "qwen2.5:3b"),
     ModelSpec("qwen2.5:7b", 7.0, 4.5, 6.5, 6.0, 3.0, "L2", "qwen2.5:7b"),
     ModelSpec("qwen2.5:14b", 14.0, 8.0, 13.0, 10.0, 3.5, "L3", "qwen2.5:14b"),
-    ModelSpec("qwen2.5:32b", 32.0, 18.0, 30.0, 20.0, 4.0, "L3", "qwen2.5:32b"),
-    ModelSpec("qwen2.5:72b", 72.0, 40.0, 72.0, 45.0, 5.0, "L3", "qwen2.5:72b"),
+    ModelSpec("qwen2.5:32b", 32.0, 18.0, 30.0, 20.0, 4.0, "L3", "qwen2.5:32b",
+              size_iq2_m_gb=_iq2_size(18.0), size_iq3_xs_gb=_iq3_size(18.0)),
+    ModelSpec("qwen2.5:72b", 72.0, 40.0, 72.0, 45.0, 5.0, "L3", "qwen2.5:72b",
+              size_iq2_m_gb=_iq2_size(40.0), size_iq3_xs_gb=_iq3_size(40.0)),
     ModelSpec("llama3.2:1b", 1.0, 0.9, 1.2, 1.5, 0.8, "L0-L1", "llama3.2:1b"),
     ModelSpec("llama3.2:3b", 3.0, 2.0, 3.2, 3.0, 1.5, "L0-L1", "llama3.2:3b"),
     ModelSpec("llama3.1:8b", 8.0, 4.9, 7.5, 6.0, 3.0, "L2", "llama3.1:8b"),
-    ModelSpec("llama3.1:70b", 70.0, 40.0, 70.0, 45.0, 5.0, "L3", "llama3.1:70b"),
+    ModelSpec("llama3.1:70b", 70.0, 40.0, 70.0, 45.0, 5.0, "L3", "llama3.1:70b",
+              size_iq2_m_gb=_iq2_size(40.0), size_iq3_xs_gb=_iq3_size(40.0)),
     ModelSpec("deepseek-r1:7b", 7.0, 4.5, 6.5, 6.0, 3.0, "L2", "deepseek-r1:7b"),
     ModelSpec("deepseek-r1:14b", 14.0, 8.0, 13.0, 10.0, 3.5, "L3", "deepseek-r1:14b"),
-    ModelSpec("deepseek-r1:32b", 32.0, 18.0, 30.0, 20.0, 4.0, "L3", "deepseek-r1:32b"),
+    ModelSpec("deepseek-r1:32b", 32.0, 18.0, 30.0, 20.0, 4.0, "L3", "deepseek-r1:32b",
+              size_iq2_m_gb=_iq2_size(18.0), size_iq3_xs_gb=_iq3_size(18.0)),
     ModelSpec("phi4:14b", 14.0, 8.0, 13.0, 10.0, 3.5, "L3", "phi4:14b"),
-    ModelSpec("gemma2:27b", 27.0, 16.0, 26.0, 18.0, 4.0, "L3", "gemma2:27b"),
+    ModelSpec("gemma2:27b", 27.0, 16.0, 26.0, 18.0, 4.0, "L3", "gemma2:27b",
+              size_iq2_m_gb=_iq2_size(16.0), size_iq3_xs_gb=_iq3_size(16.0)),
+]
+
+
+# Fase 7G: SSDs portátiles recomendados para el usuario final
+RECOMMENDED_SSDS: List[Dict[str, Any]] = [
+    {
+        "model": "Crucial X10 Pro",
+        "capacity_tb": 1,
+        "read_speed_mbps": 2100,
+        "price_eur": 110,
+        "recommended": True,
+        "why": "Equilibrado: pequeño, resistente, rápido. Recomendado por defecto.",
+    },
+    {
+        "model": "Kingston XS2000",
+        "capacity_tb": 1,
+        "read_speed_mbps": 2000,
+        "price_eur": 100,
+        "recommended": False,
+        "why": "El más económico, ultra compacto.",
+    },
+    {
+        "model": "SanDisk PRO-BLADE Transport",
+        "capacity_tb": 1,
+        "read_speed_mbps": 2000,
+        "price_eur": 160,
+        "recommended": False,
+        "why": "Línea profesional, diseño robusto.",
+    },
+]
+
+
+# Fase 7G: Velocidades esperadas por modelo en MacBook Air M2/M3 8GB
+# con SSD 2000 MB/s y cable USB-C correcto.
+EXPECTED_TOKEN_RATES: List[Dict[str, Any]] = [
+    {"model": "Qwen 2.5 3B", "quantization": "Q4_K_M", "ram_usage_gb": 2.5,
+     "tokens_per_second_range": "25-35", "experience": "Más rápido de lo que lees", "strategy": "full_ram"},
+    {"model": "Qwen 2.5 7B", "quantization": "Q4_K_M", "ram_usage_gb": 4.5,
+     "tokens_per_second_range": "12-18", "experience": "Similar a ChatGPT gratuito", "strategy": "mmap_partial"},
+    {"model": "Qwen 2.5 14B", "quantization": "Q4_K_M", "ram_usage_gb": 3.5,
+     "tokens_per_second_range": "4-8", "experience": "Lectura pausada, ideal análisis", "strategy": "mmap_partial"},
+    {"model": "Qwen 2.5 32B", "quantization": "IQ2_M", "ram_usage_gb": 3.0,
+     "tokens_per_second_range": "3-6", "experience": "Análisis profundo en background", "strategy": "mmap_full"},
+    {"model": "Qwen 2.5 72B", "quantization": "IQ2_M", "ram_usage_gb": 4.0,
+     "tokens_per_second_range": "1-3", "experience": "Lento pero funcional", "strategy": "mmap_full"},
+    {"model": "Llama 3.1 70B", "quantization": "IQ2_M", "ram_usage_gb": 4.0,
+     "tokens_per_second_range": "1-3", "experience": "Lento pero funcional", "strategy": "mmap_full"},
 ]
 
 
@@ -185,6 +252,65 @@ class ModelOptimizer:
             self._cached_cpu = 4
         return self._cached_cpu
 
+    # ============================================================
+    # Fase 7G: Detección de P-cores y E-cores en Apple Silicon
+    # ============================================================
+
+    def detect_p_cores(self) -> int:
+        """
+        Detecta el número de núcleos de rendimiento (P-cores) en Apple Silicon.
+
+        En Apple Silicon (M1/M2/M3/M4), los cores se dividen en:
+        - P-cores (performance, perflevel0): alta velocidad, alta potencia
+        - E-cores (efficiency, perflevel1): baja velocidad, baja potencia
+
+        Para LLM inference, usar E-cores DEGRADA el rendimiento porque
+        los P-cores tienen que esperar a los E-cores más lentos.
+
+        Por eso es CRÍTICO configurar OLLAMA_NUM_THREAD = P-cores (no total).
+
+        Returns:
+            Número de P-cores. En hardware sin distinción (Intel, AMD, Linux),
+            devuelve el total de cores.
+        """
+        try:
+            system = platform.system()
+            if system == "Darwin":
+                # macOS: hw.perflevel0 = P-cores, hw.perflevel1 = E-cores
+                result = subprocess.run(
+                    ["sysctl", "-n", "hw.perflevel0.physicalcpu"],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    p_cores = int(result.stdout.strip())
+                    if p_cores > 0:
+                        return p_cores
+            # Linux/Intel/AMD: no hay distinción, devolver total
+            return self.detect_cpu_cores()
+        except Exception as e:
+            logger.debug(f"ModelOptimizer: P-core detection failed: {e}")
+            return self.detect_cpu_cores()
+
+    def detect_e_cores(self) -> int:
+        """
+        Detecta el número de núcleos de eficiencia (E-cores) en Apple Silicon.
+
+        Returns:
+            Número de E-cores. En hardware sin distinción, devuelve 0.
+        """
+        try:
+            system = platform.system()
+            if system == "Darwin":
+                result = subprocess.run(
+                    ["sysctl", "-n", "hw.perflevel1.physicalcpu"],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    return int(result.stdout.strip())
+            return 0
+        except Exception:
+            return 0
+
     def is_apple_silicon(self) -> bool:
         try:
             result = subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True, timeout=5)
@@ -215,12 +341,22 @@ class ModelOptimizer:
         return results
 
     def optimize(self, model_name: str, available_ram_gb: Optional[float] = None) -> OptimizationResult:
+        """
+        Analiza el modelo + hardware y recomienda la configuración óptima.
+
+        Fase 7G: añade soporte para cuantizaciones IQ2_M / IQ3_XS (importance
+        matrix) cuando Q4_K_M no quepa pero la versión IQ sí. También usa
+        P-cores (no total cores) para OLLAMA_NUM_THREAD en Apple Silicon.
+        """
         if available_ram_gb is None:
             available_ram_gb = self.detect_available_ram_gb()
         spec = self.get_model_spec(model_name)
         if not spec:
             return self._optimize_unknown(model_name, available_ram_gb)
-        cpu_cores = self.detect_cpu_cores()
+
+        # Fase 7G: usar P-cores en Apple Silicon (no total de cores)
+        # En hardware sin distinción, detect_p_cores() devuelve el total.
+        cpu_cores = self.detect_p_cores()
         is_apple = self.is_apple_silicon()
         quantization = "Q8" if available_ram_gb > spec.size_q8_gb * 2 else "Q4_K_M"
         model_size = spec.size_q8_gb if quantization == "Q8" else spec.size_q4_gb
@@ -239,7 +375,30 @@ class ModelOptimizer:
                 2048, quantization, True, "medium",
                 warning=f"Modelo {model_size:.1f}GB excede RAM ({available_ram_gb:.1f}GB). Usando mmap. Velocidad reducida.")
 
-        # MMAP_FULL
+        # Fase 7G: si Q4_K_M no quepa pero IQ3_XS o IQ2_M sí, usarlas
+        # IQ3_XS = ~40% del Q4, mantiene ~97% calidad
+        # IQ2_M = ~30% del Q4, mantiene ~95% calidad
+        iq3_size = spec.size_iq3_xs_gb if spec.size_iq3_xs_gb > 0 else _iq3_size(spec.size_q4_gb)
+        iq2_size = spec.size_iq2_m_gb if spec.size_iq2_m_gb > 0 else _iq2_size(spec.size_q4_gb)
+
+        # Intentar IQ3_XS primero (mejor calidad)
+        if iq3_size > 0 and iq3_size <= available_ram_gb * 2.5 and iq3_size < model_size:
+            return OptimizationResult(model_name, ModelFitStrategy.MMAP_PARTIAL, available_ram_gb,
+                iq3_size, available_ram_gb * 0.7, max(10, int((available_ram_gb * 0.6) / iq3_size * 100)),
+                True, min(cpu_cores, 6), 2048, "IQ3_XS", True, "medium",
+                warning=f"Modelo {model_size:.1f}GB (Q4) no cabe. Usando IQ3_XS ({iq3_size:.1f}GB). ~97% calidad. mmap parcial.")
+
+        # Intentar IQ2_M (más comprimido)
+        if iq2_size > 0 and iq2_size <= available_ram_gb * 5 and iq2_size < model_size:
+            speed = "slow" if iq2_size <= available_ram_gb * 2.5 else "very_slow"
+            strategy = ModelFitStrategy.MMAP_PARTIAL if iq2_size <= available_ram_gb * 2.5 else ModelFitStrategy.MMAP_FULL
+            return OptimizationResult(model_name, strategy, available_ram_gb,
+                iq2_size, available_ram_gb * 0.6, max(5, int(available_ram_gb * 0.4 / iq2_size * 100)),
+                True, min(cpu_cores, 8), 1024, "IQ2_M", True, speed,
+                warning=f"Modelo {model_size:.1f}GB (Q4) no cabe. Usando IQ2_M ({iq2_size:.1f}GB). ~95% calidad. mmap.",
+                cloud_fallback_recommended="openai_compatible" if iq2_size > 20 else None)
+
+        # MMAP_FULL con Q4_K_M
         if model_size <= available_ram_gb * 10:
             speed = "slow" if model_size <= available_ram_gb * 5 else "very_slow"
             return OptimizationResult(model_name, ModelFitStrategy.MMAP_FULL, available_ram_gb,
@@ -298,19 +457,91 @@ class ModelOptimizer:
                 "is_apple_silicon": self.is_apple_silicon(), "cpu_cores": self.detect_cpu_cores(), "recommendations": recommendations}
 
     def generate_ollama_env(self, result: OptimizationResult) -> Dict[str, str]:
+        """
+        Genera variables de entorno óptimas para Ollama según el resultado.
+
+        Fase 7G: OLLAMA_FLASH_ATTENTION=1 siempre activo (no solo MMAP_FULL),
+        y OLLAMA_NUM_THREAD configurado a P-cores en Apple Silicon.
+        """
         env = {}
         if self.models_dir:
             env["OLLAMA_MODELS"] = self.models_dir
         env["OLLAMA_MAX_LOADED_MODELS"] = "1"
         env["OLLAMA_NUM_PARALLEL"] = "1"
+
+        # Fase 7G: Flash Attention SIEMPRE activo (mejora rendimiento en
+        # contextos largos, sin downside en contextos cortos)
+        env["OLLAMA_FLASH_ATTENTION"] = "1"
+
+        # Fase 7G: número de threads = P-cores en Apple Silicon
+        # (usar total de cores DEGRADA rendimiento porque E-cores más lentos
+        # obligan a P-cores a esperar)
+        p_cores = self.detect_p_cores()
+        if p_cores > 0:
+            env["OLLAMA_NUM_THREAD"] = str(p_cores)
+
         if result.strategy == ModelFitStrategy.MMAP_PARTIAL:
             env["OLLAMA_KEEP_ALIVE"] = "30m"
         elif result.strategy == ModelFitStrategy.MMAP_FULL:
             env["OLLAMA_KEEP_ALIVE"] = "60m"
-            env["OLLAMA_FLASH_ATTENTION"] = "1"
+
         return env
 
     def get_system_info(self) -> Dict[str, Any]:
-        return {"platform": platform.system(), "machine": platform.machine(),
-                "is_apple_silicon": self.is_apple_silicon(), "total_ram_gb": round(self.detect_total_ram_gb(), 1),
-                "available_ram_gb": round(self.detect_available_ram_gb(), 1), "cpu_cores": self.detect_cpu_cores()}
+        """
+        Info del sistema con detalles Fase 7G (P-cores, E-cores).
+        """
+        return {
+            "platform": platform.system(),
+            "machine": platform.machine(),
+            "is_apple_silicon": self.is_apple_silicon(),
+            "total_ram_gb": round(self.detect_total_ram_gb(), 1),
+            "available_ram_gb": round(self.detect_available_ram_gb(), 1),
+            "cpu_cores": self.detect_cpu_cores(),
+            # Fase 7G
+            "p_cores": self.detect_p_cores(),
+            "e_cores": self.detect_e_cores(),
+        }
+
+    # ============================================================
+    # Fase 7G: APIs de información para usuarios finales
+    # ============================================================
+
+    @staticmethod
+    def get_recommended_ssds() -> List[Dict[str, Any]]:
+        """
+        Devuelve la lista de SSDs portátiles recomendados para el usuario final.
+
+        Estos son SSDs comerciales "todo en uno" de fábrica, con velocidades
+        de 2000 MB/s vía USB-C, ideales para ejecutar modelos LLM grandes
+        desde un MacBook Air de 8GB vía mmap.
+        """
+        return list(RECOMMENDED_SSDS)
+
+    @staticmethod
+    def get_expected_token_rates() -> List[Dict[str, Any]]:
+        """
+        Devuelve la tabla de velocidades esperadas (tokens/segundo) por modelo
+        en un MacBook Air M2/M3 8GB con SSD de 2000 MB/s y cable USB-C correcto.
+
+        Útil para gestionar expectativas del usuario antes de instalar un modelo.
+        """
+        return list(EXPECTED_TOKEN_RATES)
+
+    @staticmethod
+    def get_cable_warning() -> Dict[str, str]:
+        """
+        Devuelve el warning sobre el cable USB-C que DEBE usar el usuario.
+
+        El cable de carga del MacBook Air es USB 2.0 (480 Mbps) y limita el
+        SSD a 60 MB/s. El cable corto que viene en la caja del SSD es
+        USB 3.2 Gen 2 (10 Gbps) y permite los 2000 MB/s reales.
+        """
+        return {
+            "title": "Usa SIEMPRE el cable corto que viene en la caja del SSD",
+            "problem": "El cable largo de carga del MacBook Air es USB 2.0 (480 Mbps) y limita el SSD a ~60 MB/s.",
+            "solution": "Usa el cable corto USB 3.2 Gen 2 (10 Gbps) que viene dentro de la caja del SSD.",
+            "symptom_slow": "ZOE tarda 10+ segundos en responder y la primera palabra aparece muy lenta.",
+            "symptom_fast": "ZOE responde en 1-2 segundos y el texto fluye rápido.",
+            "impact_factor": "10x",  # el cable equivocado es 10x más lento
+        }

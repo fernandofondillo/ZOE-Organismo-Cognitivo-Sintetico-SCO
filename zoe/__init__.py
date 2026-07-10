@@ -1,5 +1,5 @@
 """
-ZOE V1.5 — Synthetic Cognitive Organism (SCO)
+ZOE V1.6 — Synthetic Cognitive Organism (SCO)
 
 El primer organismo cognitivo digital con identidad criptográfica,
 bucle cognitivo continuo, metabolismo funcional, memoria viva
@@ -17,9 +17,11 @@ Fases del proyecto:
 - Fase 7C: Metabolic Resource Planner (planifica dónde ejecutar).
 - Fase 7D: Embodiment Composer (instancia el cuerpo desde un plan).
 - Fase 7E: ZOE Seed Mode (semilla portátil que germina en cualquier host).
+- Fase 7G: Hardware Optimization & UX (P-cores, IQ2_M/IQ3_XS, flash-attn,
+  SSDs comerciales recomendados, tabla de tokens/s esperadas).
 """
 
-__version__ = "1.5.0"
-__phase__ = "phase_7e"
+__version__ = "1.6.0"
+__phase__ = "phase_7g"
 __author__ = "Fernando Fondillo"
 __license__ = "Apache-2.0"
