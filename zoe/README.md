@@ -1153,6 +1153,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 7F — Cognitive Memory Paging | ✅ | ModelOptimizer + modelos 14B-72B en pendrive con 8GB RAM |
 | 7A — Resource Discovery | ✅ | ResourceDiscoverySense + ResourceGraph + 3 endpoints |
 | 7B — Universal Model Bus | ✅ | ModelBus + selección ACD-aware + fallback + from_resource_graph |
+| 7C — Metabolic Resource Planner | ✅ | ResourcePlanner + plan ACD+metabolismo+sensible+optimizer |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1799,6 +1800,153 @@ curl -X POST http://localhost:8642/api/modelbus/select \
 
 # Respuesta:
 # {"selected": {"name": "anthropic", "priority": 9, "privacy": "cloud", "tags": ["cloud", "quality"]}}
+```
+
+---
+
+## Metabolic Resource Planner
+
+> **El metabolismo decide DÓNDE ejecutar cada tarea cognitiva.** ACD decide cuánto pensar, el metabolismo decide cuándo, el ResourcePlanner decide dónde y con qué modelo.
+
+### Qué hace
+
+El `ResourcePlanner` es la capa de planificación entre ACD y ModelBus. Combina 5 señales:
+
+| Señal | Origen | Ejemplo |
+|---|---|---|
+| Nivel ACD | DepthClassifier | L0_REFLEX, L3_DEEP |
+| Estado metabólico | Metabolism | AWAKE, DROWSY, SLEEPING |
+| Dominio sensible | EpistemicValidator | medical, psychological |
+| RAM disponible | ModelOptimizer | 5.0 GB |
+| Recursos disponibles | ResourceGraph + ModelBus | Ollama 3B local, GPT-4o cloud |
+
+Y devuelve un `ResourcePlan` con:
+- Backend seleccionado (ej. "ollama_3b" o "anthropic")
+- Modelo específico (ej. "qwen2.5:3b" o "claude-sonnet-4-20250514")
+- Estrategia de carga (full_ram / mmap_partial / mmap_full / cloud)
+- Variables de entorno Ollama si aplica
+- Razón de la selección
+
+### Reglas de planificación
+
+| Condición | Plan | Razón |
+|---|---|---|
+| L0/L1 + AWAKE | Local, rápido, gratis | `acd_local_fast` |
+| L2 + AWAKE | Local, balanceado | `acd_local_balanced` |
+| L3 + AWAKE | Máxima calidad (cloud si disponible) | `acd_quality` |
+| Cualquier + SLEEPING | Diferir tarea | `sleeping_defer` |
+| Cualquier + DROWSY | Solo local (no cloud) | `drowsy_local_only` |
+| Dominio sensible | Solo local (no cloud) | `sensitive_local` |
+| Local no viable + cloud disponible | Cloud | `cloud_fallback` |
+| Sin recursos | No ejecutar | `no_resources` |
+
+### Cómo usar
+
+```python
+from zoe.core.resource_planner import ResourcePlanner
+
+planner = ResourcePlanner()
+
+# Plan para L0 (reflejo, rápido)
+plan = planner.plan(
+    acd_level="L0_REFLEX",
+    metabolic_state="awake",
+    model_bus=bus,
+    model_optimizer=opt,
+    available_ram_gb=5.0,
+)
+# plan.backend_name = "ollama_3b"
+# plan.model_name = "qwen2.5:3b"
+# plan.strategy = "full_ram"
+# plan.reason = "acd_local_fast"
+
+# Plan para L3 (profundo, calidad)
+plan = planner.plan(
+    acd_level="L3_DEEP",
+    metabolic_state="awake",
+    model_bus=bus,
+    model_optimizer=opt,
+    available_ram_gb=5.0,
+)
+# plan.backend_name = "anthropic"
+# plan.model_name = "claude-sonnet-4-20250514"
+# plan.strategy = "cloud"
+# plan.reason = "acd_quality"
+
+# Plan para dominio médico (sensible)
+plan = planner.plan(
+    acd_level="L3_DEEP",
+    metabolic_state="awake",
+    sensitive_domain=True,
+    model_bus=bus,
+    available_ram_gb=5.0,
+)
+# plan.backend_name = "ollama_7b"  # local, no cloud
+# plan.reason = "sensitive_local"
+```
+
+### Recomendación de configuración de modelos
+
+```python
+planner = ResourcePlanner()
+result = planner.recommend_model_setup(available_ram_gb=5.0)
+# result = {
+#   "available_ram_gb": 5.0,
+#   "total_ram_gb": 8.0,
+#   "is_apple_silicon": True,
+#   "recommendations": {
+#     "L0": {"model": "qwen2.5:3b", "strategy": "full_ram", "speed": "fast"},
+#     "L2": {"model": "llama3.1:8b", "strategy": "mmap_partial", "speed": "medium"},
+#     "L3": {"model": "qwen2.5:72b", "strategy": "mmap_full", "speed": "very_slow"},
+#   }
+# }
+```
+
+### Endpoints del Dashboard
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/planner/plan` | POST | Genera un plan (envía acd_level, metabolic_state, etc.) |
+| `/api/planner/stats` | GET | Estadísticas (planes generados, distribución de razones) |
+| `/api/planner/recommend` | GET | Recomendaciones de modelos por nivel ACD según tu RAM |
+
+### Ejemplo: plan para L3 DEEP
+
+```bash
+curl -X POST http://localhost:8642/api/planner/plan \
+    -H 'Content-Type: application/json' \
+    -d '{"acd_level": "L3_DEEP", "metabolic_state": "awake"}'
+
+# Respuesta:
+# {
+#   "backend_name": "anthropic",
+#   "model_name": "claude-sonnet-4-20250514",
+#   "strategy": "cloud",
+#   "reason": "acd_quality",
+#   "estimated_latency_ms": 700,
+#   "estimated_cost_eur": 0.02,
+#   "will_work": true
+# }
+```
+
+### Integración con las fases anteriores
+
+```
+Usuario envía mensaje
+    ↓
+ACD clasifica profundidad (L0/L1/L2/L3)
+    ↓
+EpistemicValidator detecta dominio sensible
+    ↓
+ResourcePlanner combina: ACD + metabolismo + dominio + RAM + recursos
+    ↓
+ResourcePlan: backend + modelo + estrategia
+    ↓
+ModelBus ejecuta con el backend seleccionado
+    ↓
+Si falla: ModelBus hace fallback automático
+    ↓
+Respuesta de ZOE
 ```
 
 ---

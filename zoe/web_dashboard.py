@@ -156,6 +156,11 @@ class DashboardServer:
         app.router.add_get("/api/modelbus/stats", self._handle_modelbus_stats)
         app.router.add_post("/api/modelbus/select", self._handle_modelbus_select)
 
+        # Fase 7C: Resource Planner endpoints
+        app.router.add_post("/api/planner/plan", self._handle_planner_plan)
+        app.router.add_get("/api/planner/stats", self._handle_planner_stats)
+        app.router.add_get("/api/planner/recommend", self._handle_planner_recommend)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1206,6 +1211,40 @@ class DashboardServer:
         if selected:
             return web.json_response({"selected": selected.to_dict()})
         return web.json_response({"selected": None, "reason": "no backends available"})
+
+    # ============================================================
+    # Fase 7C: Resource Planner handlers
+    # ============================================================
+
+    async def _handle_planner_plan(self, request) -> Any:
+        """POST /api/planner/plan — genera un plan de ejecución."""
+        from aiohttp import web
+        from zoe.core.resource_planner import ResourcePlanner
+        data = await request.json()
+        planner = ResourcePlanner()
+        plan = planner.plan(
+            acd_level=data.get("acd_level", "L2_STANDARD"),
+            metabolic_state=data.get("metabolic_state", "awake"),
+            sensitive_domain=data.get("sensitive_domain", False),
+            available_ram_gb=data.get("available_ram_gb", 5.0),
+        )
+        return web.json_response(plan.to_dict())
+
+    async def _handle_planner_stats(self, request) -> Any:
+        """GET /api/planner/stats — estadísticas del planner."""
+        from aiohttp import web
+        planner = getattr(self, '_resource_planner', None)
+        if not planner:
+            return web.json_response({"error": "planner not initialized"})
+        return web.json_response(planner.get_stats())
+
+    async def _handle_planner_recommend(self, request) -> Any:
+        """GET /api/planner/recommend — recomendaciones de modelos por nivel ACD."""
+        from aiohttp import web
+        from zoe.core.resource_planner import ResourcePlanner
+        planner = ResourcePlanner()
+        result = planner.recommend_model_setup(available_ram_gb=5.0)
+        return web.json_response(result)
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""
