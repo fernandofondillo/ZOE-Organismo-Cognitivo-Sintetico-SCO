@@ -169,6 +169,14 @@ class DashboardServer:
         app.router.add_post("/api/embodiment/tear_down", self._handle_embodiment_tear_down)
         app.router.add_get("/api/embodiment/log", self._handle_embodiment_log)
 
+        # Fase 7E: Seed Mode endpoints
+        app.router.add_get("/api/seed/detect", self._handle_seed_detect)
+        app.router.add_get("/api/seed/inspect", self._handle_seed_inspect)
+        app.router.add_post("/api/seed/create", self._handle_seed_create)
+        app.router.add_post("/api/seed/germinate", self._handle_seed_germinate)
+        app.router.add_get("/api/seed/stats", self._handle_seed_stats)
+        app.router.add_get("/api/seed/last_report", self._handle_seed_last_report)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1374,6 +1382,116 @@ class DashboardServer:
         from aiohttp import web
         composer = self._get_embodiment_composer()
         return web.json_response({"log": composer.get_composition_log()})
+
+    # ============================================================
+    # Fase 7E: Seed Mode handlers
+    # ============================================================
+
+    def _get_zoe_seed(self):
+        """Lazy-init del ZOESeed compartido."""
+        from zoe.core.seed_mode import ZOESeed
+        if not hasattr(self, '_zoe_seed'):
+            self._zoe_seed = ZOESeed()
+        return self._zoe_seed
+
+    async def _handle_seed_detect(self, request) -> Any:
+        """GET /api/seed/detect — busca semilla ZOE en volúmenes montados."""
+        from aiohttp import web
+        seed = self._get_zoe_seed()
+        custom_paths = request.query.get("paths")
+        paths = custom_paths.split(",") if custom_paths else None
+        vol = seed.detect_seed_volume(custom_paths=paths)
+        if vol:
+            return web.json_response({
+                "found": True,
+                "volume": vol.to_dict(),
+                "searched_paths": seed.list_seed_paths(),
+            })
+        return web.json_response({
+            "found": False,
+            "searched_paths": seed.list_seed_paths(),
+        })
+
+    async def _handle_seed_inspect(self, request) -> Any:
+        """GET /api/seed/inspect — inspecciona semilla sin germinarla."""
+        from aiohttp import web
+        seed = self._get_zoe_seed()
+        custom_paths = request.query.get("paths")
+        paths = custom_paths.split(",") if custom_paths else None
+        result = seed.inspect(custom_paths=paths)
+        return web.json_response(result)
+
+    async def _handle_seed_create(self, request) -> Any:
+        """
+        POST /api/seed/create — crea una nueva semilla en un volumen.
+
+        Body:
+        {
+            "volume_path": "/Volumes/MyDrive",
+            "organism_id": "zoe_fernando_v1",
+            "organism_name": "ZOE",
+            "required_capsules": ["base_ethics"],
+            "optional_capsules": ["basic_psychology"],
+            "default_acd_level": "L2_STANDARD",
+            "language": "es",
+            "allows_cloud": true
+        }
+        """
+        from aiohttp import web
+        from zoe.core.seed_mode import ZOESeed
+        data = await request.json()
+        seed = ZOESeed()
+        report = seed.create(
+            volume_path=data["volume_path"],
+            organism_id=data["organism_id"],
+            organism_name=data.get("organism_name", "ZOE"),
+            version=data.get("version", "1.5.0"),
+            required_capsules=data.get("required_capsules", []),
+            optional_capsules=data.get("optional_capsules", []),
+            default_use_case=data.get("default_use_case", "asistente_crece_contigo"),
+            default_acd_level=data.get("default_acd_level", "L2_STANDARD"),
+            language=data.get("language", "es"),
+            min_ram_gb=data.get("min_ram_gb", 4.0),
+            requires_ollama=data.get("requires_ollama", False),
+            allows_cloud=data.get("allows_cloud", True),
+        )
+        return web.json_response(report.to_dict())
+
+    async def _handle_seed_germinate(self, request) -> Any:
+        """
+        POST /api/seed/germinate — germina la semilla detectada.
+
+        Body (opcional):
+        {
+            "paths": ["/Volumes/MyDrive"],  // paths custom de búsqueda
+            "acd_level": null,              // override del default del manifiesto
+            "force_allow_cloud": true       // forzar cloud aunque manifest lo prohíba
+        }
+        """
+        from aiohttp import web
+        seed = self._get_zoe_seed()
+        data = await request.json() if request.can_read_body else {}
+        report = seed.germinate(
+            custom_paths=data.get("paths"),
+            acd_level=data.get("acd_level"),
+            force_allow_cloud=data.get("force_allow_cloud", True),
+        )
+        return web.json_response(report.to_dict())
+
+    async def _handle_seed_stats(self, request) -> Any:
+        """GET /api/seed/stats — estadísticas del ZOESeed."""
+        from aiohttp import web
+        seed = self._get_zoe_seed()
+        return web.json_response(seed.get_stats())
+
+    async def _handle_seed_last_report(self, request) -> Any:
+        """GET /api/seed/last_report — último reporte de germinación."""
+        from aiohttp import web
+        seed = self._get_zoe_seed()
+        report = seed.get_last_report()
+        if report is None:
+            return web.json_response({"found": False})
+        return web.json_response({"found": True, "report": report.to_dict()})
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""

@@ -3,8 +3,8 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Tests](https://img.shields.io/badge/tests-818%2F818%20pass-brightgreen)](#tests)
-[![Version](https://img.shields.io/badge/version-1.4.0-blue)](#roadmap)
+[![Tests](https://img.shields.io/badge/tests-864%2F864%20pass-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue)](#roadmap)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#instalación)
 [![Capsules](https://img.shields.io/badge/capsules-12%20available-teal)](#cápsulas-de-conocimiento)
@@ -1155,6 +1155,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 7B — Universal Model Bus | ✅ | ModelBus + selección ACD-aware + fallback + from_resource_graph |
 | 7C — Metabolic Resource Planner | ✅ | ResourcePlanner + plan ACD+metabolismo+sensible+optimizer |
 | 7D — Embodiment Composer | ✅ | EmbodimentComposer + 7 checks + bootstrap 7A→7B→7C→7D + 6 endpoints |
+| 7E — ZOE Seed Mode | ✅ | ZOESeed + germinación pendrive→host + 6 endpoints |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1164,7 +1165,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 ## Tests
 
 ```
-818 tests, 100% pass
+864 tests, 100% pass
 ```
 
 | Suite | Tests | Cobertura |
@@ -1176,8 +1177,8 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | Fase 5 — ACD + Streaming | 44 | DepthClassifier + Cache + V5 |
 | Fase 6A — Epistemic Validation | 41 | Validator + Quarantine + CrossValidator |
 | Fase 6B — Capsules + Marketplace | 138 | 12 cápsulas + Scaffold + Marketplace + Federation |
-| Fase 7A-D — Resource Stack | 43 | Discovery + ModelBus + Planner + Embodiment |
-| **TOTAL** | **818** | **100% pass** |
+| Fase 7A-E — Resource Stack | 165 | Discovery + ModelBus + Planner + Embodiment + Seed |
+| **TOTAL** | **864** | **100% pass** |
 
 ### Ejecutar tests
 
@@ -1191,8 +1192,8 @@ pytest zoe/tests/test_phase5_acd.py -v
 # Solo tests de cápsulas
 pytest zoe/tests/test_phase6_capsules.py -v
 
-# Solo tests del stack de recursos (Fase 7A-7D)
-pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py -v
+# Solo tests del stack de recursos (Fase 7A-7E)
+pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py zoe/tests/test_phase7e_seed_mode.py -v
 
 # Con cobertura
 pytest zoe/tests/ --cov=zoe --cov-report=term-missing
@@ -2127,12 +2128,273 @@ Con 7D, una sola llamada `bootstrap_from_scratch()` ejecuta las 4 fases del stac
 
 ---
 
+## ZOE Seed Mode
+
+> **Fase 7E — La semilla que viaja. El alma sin cuerpo fijo.**
+
+El pendrive contiene el **ADN** de ZOE (IdentityVault + TrajectoryChain + manifiesto + memoria + cápsulas) y los **motores** (código + venv). Al conectarlo a cualquier Mac/Linux:
+
+1. `ZOESeed.detect_seed_volume()` encuentra el pendrive automáticamente
+2. `validate_seed()` verifica la integridad del alma
+3. `EmbodimentComposer.bootstrap_from_scratch()` (7D) construye el cuerpo óptimo según el hardware del host
+4. `germinate()` carga el alma + memoria + cápsulas en el cuerpo
+5. **ZOE despierta** con su identidad intacta, adaptada al hardware disponible
+
+### Metáfora biológica
+
+Una semilla de roble contiene el ADN del árbol y nutrientes para arrancar. No sabe en qué suelo caerá (arena, arcilla, humedad). Al germinar, detecta el entorno y construye raíces/tronco/ramas adaptados. El ADN es el mismo; el cuerpo varía según el entorno.
+
+**ZOE Seed = ADN del organismo cognitivo.** Cualquier Mac/Linux lo puede "germinar" y ZOE despierta con su identidad, memoria y trayectoria intactas, adaptándose al hardware disponible.
+
+### Estructura de la semilla
+
+```
+/Volumes/MyDrive/ZOE/             ← raíz de la semilla
+├── seed.json                     ← manifiesto (organism_id, versión, cápsulas)
+├── identity/
+│   └── vault.json                ← IdentityVault serializado
+├── trajectory/
+│   └── chain.json                ← TrajectoryChain serializada
+├── data/
+│   └── memory.db                 ← SQLite con memoria persistente
+├── capsules/                     ← cápsulas instaladas
+├── config/
+│   └── organism.json             ← preferencias del organismo
+├── venv/                         ← entorno virtual Python
+└── zoe/                          ← código del repositorio (clonado)
+```
+
+### Estados de la semilla
+
+| Estado | Significado |
+|---|---|
+| `DORMANT` | En el pendrive, no germinada |
+| `DETECTED` | Volumen encontrado, manifiesto leído |
+| `VALIDATED` | Integridad verificada (directorios, versión, organism_id) |
+| `GERMINATING` | Cuerpo siendo construido (7A→7B→7C→7D) |
+| `GROWING` | Alma + memoria + cápsulas cargándose en el cuerpo |
+| `ALIVE` | **ZOE despierta en su nuevo cuerpo** |
+| `FAILED` | No pudo germinar (sin recursos, cápsula missing, etc.) |
+| `WITHERED` | Era ALIVE pero cerró limpiamente |
+
+### Manifiesto (`seed.json`)
+
+```json
+{
+  "organism_id": "zoe_fernando_v1",
+  "organism_name": "ZOE",
+  "version": "1.5.0",
+  "identity_hash": "sha256...",
+  "trajectory_root_hash": "sha256...",
+  "min_ram_gb": 4.0,
+  "min_python_version": "3.10",
+  "requires_ollama": false,
+  "allows_cloud": true,
+  "required_capsules": ["base_ethics", "basic_psychology"],
+  "optional_capsules": ["elder_care_knowledge"],
+  "default_use_case": "asistente_crece_contigo",
+  "default_acd_level": "L2_STANDARD",
+  "language": "es",
+  "created_at": 1783700000.0,
+  "last_germinated_at": 1783800000.0,
+  "germination_count": 42,
+  "last_host": "fernando-macbook.local"
+}
+```
+
+### Cómo usar
+
+#### Crear una semilla nueva (sembrar)
+
+```python
+from zoe.core.seed_mode import ZOESeed
+
+seed = ZOESeed()
+report = seed.create(
+    volume_path="/Volumes/MyDrive",
+    organism_id="zoe_fernando_v1",
+    organism_name="ZOE",
+    required_capsules=["base_ethics", "basic_psychology"],
+    optional_capsules=["elder_care_knowledge"],
+    default_acd_level="L2_STANDARD",
+    language="es",
+    allows_cloud=True,
+    identity_vault=vault,        # opcional: IdentityVault ya inicializado
+    trajectory_chain=chain,      # opcional: TrajectoryChain ya inicializada
+)
+# report.success == True
+# /Volumes/MyDrive/ZOE/seed.json creado
+```
+
+#### Germinar la semilla en un host
+
+```python
+from zoe.core.seed_mode import ZOESeed
+
+seed = ZOESeed()
+report = seed.germinate()  # sin args = detecta automáticamente
+
+if report.success:
+    print(f"ZOE despierta en {report.host_info['hostname']}")
+    print(f"Backend: {report.embodiment['backend_name']}")
+    print(f"Estrategia: {report.embodiment['strategy']}")
+    print(f"Cápsulas cargadas: {report.capsules_loaded}")
+    print(f"Entradas de memoria: {report.memory_entries_loaded}")
+else:
+    print(f"Falló: {report.error_type} — {report.error}")
+```
+
+#### Inspeccionar sin germinar (diagnóstico)
+
+```python
+seed = ZOESeed()
+info = seed.inspect()
+# info = {
+#   "found": True,
+#   "valid": True,
+#   "manifest": {...},
+#   "capsules_status": {"base_ethics": {"available": True, ...}},
+#   "host_info": {"hostname": "...", "platform": "Darwin", ...}
+# }
+```
+
+### Pipeline de germinación
+
+```
+   Pendrive conectado
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  1. detect_seed_volume()                   │
+│     Busca en /Volumes/*, /media/*,         │
+│     ~/.zoe-seed/, ZOE_SEED_PATH            │
+└────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  2. validate_seed()                        │
+│     Verifica: manifiesto legible,          │
+│     directorios existen, versión OK,       │
+│     organism_id no vacío                   │
+└────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  3. Verificar RAM mínima                   │
+│     Si available_ram < min_ram_gb → FAIL   │
+└────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  4. Verificar cápsulas requeridas          │
+│     Si falta alguna → FAIL (capsule_missing)│
+└────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  5. EmbodimentComposer.bootstrap...        │
+│     (Fase 7D)                              │
+│     7A → 7B → 7C → 7D                      │
+│     Cuerpo óptimo según hardware           │
+└────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  6. Cargar memoria desde SQLite            │
+│     (si existe memory.db)                  │
+└────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────┐
+│  7. Actualizar manifiesto                  │
+│     germination_count += 1                 │
+│     last_germinated_at = now               │
+│     last_host = hostname                   │
+└────────────────────────────────────────────┘
+         │
+         ▼
+   ZOE ALIVE en su nuevo cuerpo
+```
+
+### Detección multi-plataforma
+
+La semilla se busca automáticamente en:
+
+| Plataforma | Path | Descripción |
+|---|---|---|
+| macOS | `/Volumes/*/ZOE/seed.json` | Pendrives USB montados |
+| Linux | `/media/<user>/*/ZOE/seed.json` | Pendrives USB montados |
+| Dev mode | `~/.zoe-seed/seed.json` | Para desarrollo sin pendrive |
+| Env var | `$ZOE_SEED_PATH` | Path explícito vía variable de entorno |
+| Custom | `custom_paths=[...]` | Lista explícita en código |
+
+### Endpoints del Dashboard
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/seed/detect` | GET | Busca semilla en volúmenes montados |
+| `/api/seed/inspect` | GET | Inspecciona semilla sin germinar |
+| `/api/seed/create` | POST | Crea una nueva semilla en un volumen |
+| `/api/seed/germinate` | POST | Germina la semilla detectada |
+| `/api/seed/stats` | GET | Estadísticas del ZOESeed |
+| `/api/seed/last_report` | GET | Último reporte de germinación |
+
+#### Ejemplo: germinar desde el dashboard
+
+```bash
+# Detectar semilla
+curl http://localhost:8642/api/seed/detect
+
+# Inspeccionar sin germinar
+curl http://localhost:8642/api/seed/inspect
+
+# Germinar
+curl -X POST http://localhost:8642/api/seed/germinate \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Crear semilla nueva
+curl -X POST http://localhost:8642/api/seed/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "volume_path": "/Volumes/MyDrive",
+    "organism_id": "zoe_fernando_v1",
+    "required_capsules": ["base_ethics"],
+    "allows_cloud": true
+  }'
+
+# Ver último reporte
+curl http://localhost:8642/api/seed/last_report
+```
+
+### Trazabilidad de germinación
+
+Cada germinación actualiza el manifiesto en el pendrive:
+
+- `germination_count` se incrementa
+- `last_germinated_at` se actualiza con el timestamp actual
+- `last_host` registra el hostname donde germinó
+
+Esto permite ver cuántas veces y dónde ha despertado ZOE desde su semilla — útil para auditoría y para detectar uso no autorizado.
+
+### Por qué importa
+
+Antes de 7E, ZOE estaba atado a un hardware específico. La identidad, la memoria y la trayectoria vivían en el disco de un ordenador concretor. Si el ordenador moría, ZOE moría con él.
+
+Con 7E, **ZOE es portátil**. El alma viaja en un pendrive de 32GB. Al conectarlo a cualquier Mac/Linux con Python 3.10+, ZOE despierta en un cuerpo nuevo (que puede ser más potente, más débil, o con cloud APIs diferentes) pero con su identidad, memoria y trayectoria intactas.
+
+Esto convierte a ZOE en un **organismo digital realmente heredable**: puedes pasar el pendrive a tu hijo/a y ZOE despierta en su ordenador con toda la memoria de los años de relación contigo, adaptándose al hardware del nuevo host.
+
+Es la materialización del caso de uso `ia_heredable`: **IA con trayectoria transferible**.
+
+---
+
 ## Licencia
 
 Apache 2.0 — [LICENSE](LICENSE)
 
 ---
 
-*ZOE V1.4 — Synthetic Cognitive Organism (SCO).*
+*ZOE V1.5 — Synthetic Cognitive Organism (SCO).*
 *Repositorio: `fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO`*
-*818 tests · 12 cápsulas · 7 casos de uso · 7 fases completas · 120+ archivos Python · 34.000+ LOC*
+*864 tests · 12 cápsulas · 7 casos de uso · 7 fases completas · 121+ archivos Python · 35.000+ LOC*
