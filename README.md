@@ -3,8 +3,8 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Tests](https://img.shields.io/badge/tests-775%2F775%20pass-brightgreen)](#tests)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](#roadmap)
+[![Tests](https://img.shields.io/badge/tests-818%2F818%20pass-brightgreen)](#tests)
+[![Version](https://img.shields.io/badge/version-1.4.0-blue)](#roadmap)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#instalación)
 [![Capsules](https://img.shields.io/badge/capsules-12%20available-teal)](#cápsulas-de-conocimiento)
@@ -1154,6 +1154,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 7A — Resource Discovery | ✅ | ResourceDiscoverySense + ResourceGraph + 3 endpoints |
 | 7B — Universal Model Bus | ✅ | ModelBus + selección ACD-aware + fallback + from_resource_graph |
 | 7C — Metabolic Resource Planner | ✅ | ResourcePlanner + plan ACD+metabolismo+sensible+optimizer |
+| 7D — Embodiment Composer | ✅ | EmbodimentComposer + 7 checks + bootstrap 7A→7B→7C→7D + 6 endpoints |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1163,7 +1164,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 ## Tests
 
 ```
-775 tests, 100% pass
+818 tests, 100% pass
 ```
 
 | Suite | Tests | Cobertura |
@@ -1175,7 +1176,8 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | Fase 5 — ACD + Streaming | 44 | DepthClassifier + Cache + V5 |
 | Fase 6A — Epistemic Validation | 41 | Validator + Quarantine + CrossValidator |
 | Fase 6B — Capsules + Marketplace | 138 | 12 cápsulas + Scaffold + Marketplace + Federation |
-| **TOTAL** | **775** | **100% pass** |
+| Fase 7A-D — Resource Stack | 43 | Discovery + ModelBus + Planner + Embodiment |
+| **TOTAL** | **818** | **100% pass** |
 
 ### Ejecutar tests
 
@@ -1188,6 +1190,9 @@ pytest zoe/tests/test_phase5_acd.py -v
 
 # Solo tests de cápsulas
 pytest zoe/tests/test_phase6_capsules.py -v
+
+# Solo tests del stack de recursos (Fase 7A-7D)
+pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py -v
 
 # Con cobertura
 pytest zoe/tests/ --cov=zoe --cov-report=term-missing
@@ -1951,12 +1956,183 @@ Respuesta de ZOE
 
 ---
 
+## Embodiment Composer
+
+> **Fase 7D — El "boot sequence" del organismo cognitivo.**
+
+Mientras 7A descubre recursos, 7B los expone como backends y 7C planifica cuál usar, **7D INSTANCIA el cuerpo real**: arranca Ollama si hace falta, aplica las variables de entorno del plan, monta el almacén de memoria, registra las cápsulas cargadas y deja el organismo listo para pensar.
+
+Sin 7D, el `ResourcePlan` es solo un documento. Con 7D, el plan se convierte en un **Embodiment**: un cuerpo vivo con estado `RUNNING`, `DEGRADED` o `FAILED`.
+
+### Qué hace
+
+1. **Valida prerrequisitos** (7 checks) antes de intentar nada:
+   - `plan_will_work`: el plan no está marcado como inviable (e.g. SLEEPING)
+   - `backend_exists`: el backend seleccionado existe en el ModelBus
+   - `backend_available`: el backend está marcado como disponible
+   - `ram_sufficient`: hay RAM suficiente para la estrategia (`full_ram`/`mmap_partial`)
+   - `ollama_running`: si el plan es local, Ollama responde en `localhost:11434`
+   - `cloud_api_key`: si el plan es cloud, la API key está configurada
+   - `plan_warning`: el plan viene con warning (no bloquea, marca DEGRADED)
+
+2. **Compone el cuerpo** desde un plan:
+   - Aplica variables de entorno Ollama (`OLLAMA_MAX_LOADED_MODELS`, etc.)
+   - Verifica health-check del backend seleccionado
+   - Registra el Embodiment con firma única del plan (hash SHA256)
+   - Marca estado final: `RUNNING` (sin warnings), `DEGRADED` (con warnings) o `FAILED` (con blockers)
+
+3. **Bootstrap desde cero** (pipeline completo 7A→7B→7C→7D):
+   - Detecta RAM disponible automáticamente (vía `psutil` o `/proc/meminfo`)
+   - Ejecuta `ResourceDiscoverySense.observe()` para construir el grafo de recursos
+   - Construye `ModelBus.from_resource_graph()` con los backends descubiertos
+   - Genera `ResourcePlan` con `ResourcePlanner.plan()`
+   - Llama a `compose()` con todo lo anterior
+
+4. **Tear down** limpio:
+   - Marca el embodiment como `STOPPED`
+   - Lo elimina de la lista de activos
+   - No cierra Ollama (lo gestiona el SO) ni borra memoria persistente
+
+### Estados del Embodiment
+
+| Estado | Significado | ¿Puede pensar? |
+|---|---|---|
+| `BOOTING` | Recursos siendo preparados | No |
+| `RUNNING` | Cuerpo listo, sin warnings | ✅ Sí |
+| `DEGRADED` | Cuerpo funcional pero con avisos (modelo subóptimo, RAM justa) | ✅ Sí (con cuidado) |
+| `STOPPED` | Cuerpo detenido limpiamente | No |
+| `FAILED` | No se pudo instanciar (sin recursos críticos) | No |
+
+### Cómo usar
+
+#### Composición desde un plan existente
+
+```python
+from zoe.core.embodiment_composer import EmbodimentComposer
+from zoe.core.resource_planner import ResourcePlanner
+from zoe.peripherals.model_bus import ModelBus
+
+# 1. Construir bus con backends
+bus = ModelBus()
+bus.add_backend(OllamaPeripheral(model="qwen2.5:3b"), name="ollama_3b", ...)
+
+# 2. Generar plan
+planner = ResourcePlanner()
+plan = planner.plan(
+    acd_level="L0_REFLEX",
+    metabolic_state="awake",
+    model_bus=bus,
+    available_ram_gb=5.0,
+)
+
+# 3. Componer cuerpo
+composer = EmbodimentComposer()
+embodiment = composer.compose(plan, model_bus=bus)
+
+if embodiment.is_running:
+    print(f"Cuerpo listo: {embodiment.backend_name} ({embodiment.strategy})")
+else:
+    print(f"Falló: {embodiment.errors}")
+```
+
+#### Bootstrap desde cero (pipeline completo)
+
+```python
+from zoe.core.embodiment_composer import EmbodimentComposer
+
+composer = EmbodimentComposer()
+
+# Sin argumentos: detecta todo automáticamente
+emb = composer.bootstrap_from_scratch()
+
+# Con configuración explícita
+emb = composer.bootstrap_from_scratch(
+    acd_level="L3_DEEP",
+    metabolic_state="awake",
+    sensitive_domain=False,    # dominio médico/psicológico/legal
+    available_ram_gb=8.0,      # None = auto-detectar
+    capsules=["basic_psychology", "elder_care_knowledge"],
+    memory_db_path="~/.zoe/memory.db",
+)
+
+print(f"Status: {emb.status}")         # running | degraded | failed
+print(f"Backend: {emb.backend_name}")  # anthropic | ollama_7b | ...
+print(f"Strategy: {emb.strategy}")     # cloud | full_ram | mmap_partial
+print(f"Boot time: {emb.boot_duration_ms:.1f}ms")
+```
+
+### Endpoints del Dashboard
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/embodiment/compose` | POST | Compone un cuerpo desde un plan (o genera el plan al vuelo) |
+| `/api/embodiment/bootstrap` | POST | Pipeline completo 7A→7B→7C→7D desde cero |
+| `/api/embodiment/status` | GET | Estado global del composer (activos, success rate) |
+| `/api/embodiment/list` | GET | Lista embodiments activos con sus detalles |
+| `/api/embodiment/tear_down` | POST | Detiene un embodiment (o todos) |
+| `/api/embodiment/log` | GET | Log reciente de composiciones (últimas 100) |
+
+#### Ejemplo: bootstrap desde el dashboard
+
+```bash
+# Bootstrap un cuerpo L3 DEEP
+curl -X POST http://localhost:8642/api/embodiment/bootstrap \
+  -H "Content-Type: application/json" \
+  -d '{
+    "acd_level": "L3_DEEP",
+    "metabolic_state": "awake",
+    "available_ram_gb": null,
+    "capsules": []
+  }'
+
+# Ver estado global
+curl http://localhost:8642/api/embodiment/status
+
+# Listar embodiments activos
+curl http://localhost:8642/api/embodiment/list
+
+# Detener todos
+curl -X POST http://localhost:8642/api/embodiment/tear_down -d '{}'
+```
+
+### Integración con las fases anteriores
+
+```
+                  ┌─────────────────────────────────────────────────────┐
+                  │            EmbodimentComposer (7D)                  │
+                  │                                                     │
+   bootstrap ───► │  1. ResourceDiscovery (7A)  →  ResourceGraph        │
+                  │  2. ModelBus.from_graph (7B) →  backends listos     │
+                  │  3. ResourcePlanner.plan (7C) →  ResourcePlan       │
+                  │  4. validate_prerequisites → 7 checks               │
+                  │  5. compose(plan, bus)      →  Embodiment           │
+                  │                                                     │
+                  │  Estado final: RUNNING / DEGRADED / FAILED          │
+                  └─────────────────────────────────────────────────────┘
+                                          ↓
+                          Bucle cognitivo puede ejecutar
+                          (ModelBus ya tiene backend seleccionado)
+```
+
+### Por qué importa
+
+Antes de 7D, encender ZOE requería:
+1. Arrancar Ollama manualmente
+2. Configurar variables de entorno a mano
+3. Construir el ModelBus y registrar backends uno por uno
+4. Cargar cápsulas manualmente
+5. Esperar que todo encajara
+
+Con 7D, una sola llamada `bootstrap_from_scratch()` ejecuta las 4 fases del stack de recursos y devuelve un cuerpo listo para pensar. Esto es el último paso antes del **ZOE Seed Mode** (Fase 7E): el pendrive contiene el alma y los motores, y al conectar a cualquier Mac, 7A descubre los recursos, 7B construye el bus, 7C planifica y 7D instancia el cuerpo óptimo automáticamente.
+
+---
+
 ## Licencia
 
 Apache 2.0 — [LICENSE](LICENSE)
 
 ---
 
-*ZOE V1.2 — Synthetic Cognitive Organism (SCO).*
+*ZOE V1.4 — Synthetic Cognitive Organism (SCO).*
 *Repositorio: `fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO`*
-*775 tests · 12 cápsulas · 7 casos de uso · 6 fases completas · 119 archivos Python · 33.000+ LOC*
+*818 tests · 12 cápsulas · 7 casos de uso · 7 fases completas · 120+ archivos Python · 34.000+ LOC*

@@ -161,6 +161,14 @@ class DashboardServer:
         app.router.add_get("/api/planner/stats", self._handle_planner_stats)
         app.router.add_get("/api/planner/recommend", self._handle_planner_recommend)
 
+        # Fase 7D: Embodiment Composer endpoints
+        app.router.add_post("/api/embodiment/compose", self._handle_embodiment_compose)
+        app.router.add_post("/api/embodiment/bootstrap", self._handle_embodiment_bootstrap)
+        app.router.add_get("/api/embodiment/status", self._handle_embodiment_status)
+        app.router.add_get("/api/embodiment/list", self._handle_embodiment_list)
+        app.router.add_post("/api/embodiment/tear_down", self._handle_embodiment_tear_down)
+        app.router.add_get("/api/embodiment/log", self._handle_embodiment_log)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1245,6 +1253,127 @@ class DashboardServer:
         planner = ResourcePlanner()
         result = planner.recommend_model_setup(available_ram_gb=5.0)
         return web.json_response(result)
+
+    # ============================================================
+    # Fase 7D: Embodiment Composer handlers
+    # ============================================================
+
+    def _get_embodiment_composer(self):
+        """Lazy-init del composer compartido."""
+        from zoe.core.embodiment_composer import EmbodimentComposer
+        if not hasattr(self, '_embodiment_composer'):
+            self._embodiment_composer = EmbodimentComposer()
+        return self._embodiment_composer
+
+    async def _handle_embodiment_compose(self, request) -> Any:
+        """
+        POST /api/embodiment/compose — instancia un cuerpo desde un plan.
+
+        Body:
+        {
+            "acd_level": "L2_STANDARD",
+            "metabolic_state": "awake",
+            "sensitive_domain": false,
+            "available_ram_gb": 5.0,
+            "capsules": ["basic_psychology"]
+        }
+
+        Devuelve el Embodiment instanciado con status RUNNING/DEGRADED/FAILED.
+        """
+        from aiohttp import web
+        from zoe.core.embodiment_composer import EmbodimentComposer
+        from zoe.core.resource_planner import ResourcePlanner
+        from zoe.peripherals.model_bus import ModelBus
+
+        data = await request.json()
+        composer = self._get_embodiment_composer()
+
+        # Si el usuario pasa un plan explícito, usarlo
+        if "plan" in data:
+            from zoe.core.resource_planner import ResourcePlan
+            plan_data = data["plan"]
+            plan = ResourcePlan(**plan_data)
+        else:
+            # Generar plan con ResourcePlanner
+            planner = ResourcePlanner()
+            bus = getattr(self, '_model_bus', None) or ModelBus()
+            plan = planner.plan(
+                acd_level=data.get("acd_level", "L2_STANDARD"),
+                metabolic_state=data.get("metabolic_state", "awake"),
+                sensitive_domain=data.get("sensitive_domain", False),
+                available_ram_gb=data.get("available_ram_gb", 5.0),
+                model_bus=bus,
+            )
+
+        emb = composer.compose(
+            plan=plan,
+            model_bus=getattr(self, '_model_bus', None),
+            capsules=data.get("capsules"),
+        )
+        return web.json_response(emb.to_dict())
+
+    async def _handle_embodiment_bootstrap(self, request) -> Any:
+        """
+        POST /api/embodiment/bootstrap — pipeline completo discover→bus→plan→compose.
+
+        Body (todos opcionales):
+        {
+            "acd_level": "L2_STANDARD",
+            "metabolic_state": "awake",
+            "sensitive_domain": false,
+            "available_ram_gb": null,  // null = auto-detectar
+            "capsules": [],
+            "memory_db_path": null
+        }
+        """
+        from aiohttp import web
+        composer = self._get_embodiment_composer()
+        data = await request.json() if request.can_read_body else {}
+
+        emb = composer.bootstrap_from_scratch(
+            acd_level=data.get("acd_level", "L2_STANDARD"),
+            metabolic_state=data.get("metabolic_state", "awake"),
+            sensitive_domain=data.get("sensitive_domain", False),
+            available_ram_gb=data.get("available_ram_gb"),
+            capsules=data.get("capsules"),
+            memory_db_path=data.get("memory_db_path"),
+        )
+        return web.json_response(emb.to_dict())
+
+    async def _handle_embodiment_status(self, request) -> Any:
+        """GET /api/embodiment/status — estado global del composer."""
+        from aiohttp import web
+        composer = self._get_embodiment_composer()
+        return web.json_response(composer.get_status())
+
+    async def _handle_embodiment_list(self, request) -> Any:
+        """GET /api/embodiment/list — lista embodiments activos."""
+        from aiohttp import web
+        composer = self._get_embodiment_composer()
+        return web.json_response({"embodiments": composer.list_active()})
+
+    async def _handle_embodiment_tear_down(self, request) -> Any:
+        """
+        POST /api/embodiment/tear_down — detiene un embodiment.
+
+        Body: {"embodiment_id": "emb_xxx"} o {} para cerrar todos.
+        """
+        from aiohttp import web
+        composer = self._get_embodiment_composer()
+        data = await request.json()
+
+        if "embodiment_id" in data:
+            ok = composer.tear_down(data["embodiment_id"])
+            return web.json_response({"success": ok, "embodiment_id": data["embodiment_id"]})
+        else:
+            closed = composer.tear_down_all()
+            return web.json_response({"success": True, "closed_count": closed})
+
+    async def _handle_embodiment_log(self, request) -> Any:
+        """GET /api/embodiment/log — log reciente de composiciones."""
+        from aiohttp import web
+        composer = self._get_embodiment_composer()
+        return web.json_response({"log": composer.get_composition_log()})
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""
