@@ -146,6 +146,11 @@ class DashboardServer:
         app.router.add_get("/api/models/catalog", self._handle_models_catalog)
         app.router.add_post("/api/models/optimize", self._handle_models_optimize)
 
+        # Fase 7A: Resource Discovery endpoints
+        app.router.add_get("/api/resources", self._handle_resources_graph)
+        app.router.add_get("/api/resources/stats", self._handle_resources_stats)
+        app.router.add_post("/api/resources/scan", self._handle_resources_scan)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1118,6 +1123,47 @@ class DashboardServer:
         return web.json_response({
             "optimization": result.to_dict(),
             "ollama_env": env,
+        })
+
+    # ============================================================
+    # Fase 7A: Resource Discovery handlers
+    # ============================================================
+
+    async def _handle_resources_graph(self, request) -> Any:
+        """GET /api/resources — grafo de recursos disponibles."""
+        from aiohttp import web
+        from zoe.peripherals.resource_discovery import ResourceDiscoverySense
+        sense = getattr(self, '_resource_sense', None)
+        if not sense:
+            sense = ResourceDiscoverySense()
+            await sense.observe()
+            self._resource_sense = sense
+        return web.json_response(sense.get_graph().to_dict())
+
+    async def _handle_resources_stats(self, request) -> Any:
+        """GET /api/resources/stats — estadísticas de recursos."""
+        from aiohttp import web
+        from zoe.peripherals.resource_discovery import ResourceDiscoverySense
+        sense = getattr(self, '_resource_sense', None)
+        if not sense:
+            sense = ResourceDiscoverySense()
+            await sense.observe()
+            self._resource_sense = sense
+        return web.json_response(sense.get_stats())
+
+    async def _handle_resources_scan(self, request) -> Any:
+        """POST /api/resources/scan — ejecuta un nuevo scan."""
+        from aiohttp import web
+        from zoe.peripherals.resource_discovery import ResourceDiscoverySense
+        sense = getattr(self, '_resource_sense', None)
+        if not sense:
+            sense = ResourceDiscoverySense()
+            self._resource_sense = sense
+        await sense.observe()
+        return web.json_response({
+            "success": True,
+            "stats": sense.get_stats(),
+            "graph": sense.get_graph().to_dict(),
         })
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:

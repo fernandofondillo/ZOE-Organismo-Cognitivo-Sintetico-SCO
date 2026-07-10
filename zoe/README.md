@@ -1151,6 +1151,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 6B — Capsules + Marketplace | ✅ | 13 cápsulas + Scaffold CLI + Marketplace + Dashboard UI |
 | 6C — Tutor Mentor Digital | ✅ | MentorAgent configurable + 3 endpoints REST |
 | 7F — Cognitive Memory Paging | ✅ | ModelOptimizer + modelos 14B-72B en pendrive con 8GB RAM |
+| 7A — Resource Discovery | ✅ | ResourceDiscoverySense + ResourceGraph + 3 endpoints |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1626,6 +1627,73 @@ ZOE no nace como "sistema cognitivo virgen". La cápsula `zoe_basal_knowledge` s
 - Reglas de comunicación (tono, frases prohibidas)
 - 4 skills procedimentales (honest_response, healthy_growth, respect_autonomy, self_introduction)
 - System prompt basal que define su forma de comunicar
+
+---
+
+## Resource Discovery — Descubrimiento automático de recursos
+
+> **ZOE detecta automáticamente qué recursos de cómputo existen a su alrededor.** GPUs, CPUs, instancias Ollama, cloud APIs, otros ZOEs federados, almacenamiento.
+
+### Qué descubre
+
+| Tipo de recurso | Qué detecta | Ejemplo |
+|---|---|---|
+| **CPU local** | Cores, plataforma | "Local CPU (8 cores)" |
+| **GPU local** | Apple Silicon (Metal), NVIDIA (CUDA) | "Apple Silicon (Apple M2)" |
+| **Ollama local** | Instancia en localhost:11434 + modelos disponibles | "Ollama (local)" con ["qwen2.5:3b", "qwen2.5:7b"] |
+| **Cloud APIs** | OpenAI, Anthropic, DeepSeek, Groq, Kimi, MiniMax (según env vars) | "OpenAI" con ["gpt-4o", "gpt-4o-mini"] |
+| **ZOEs peers** | Otros ZOE federados en la red | "ZOE peer: zoe_office" |
+| **Almacenamiento** | Disco local, pendrives con ZOE | "Pendrive: ZOE_DRIVE" |
+
+### Cómo funciona
+
+Al iniciar, ZOE ejecuta un scan completo:
+1. Detecta hardware local (CPU cores, RAM, GPU, Apple Silicon)
+2. Verifica si Ollama está corriendo localmente y lista sus modelos
+3. Revisa variables de entorno para cloud APIs configuradas
+4. Detecta pendrives montados que contienen ZOE
+5. Construye un **ResourceGraph** con todos los nodos
+
+El scan se repite periódicamente (cada 60 segundos por defecto) y se puede forzar manualmente.
+
+### Endpoints del Dashboard
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/resources` | GET | Grafo completo de recursos disponibles |
+| `/api/resources/stats` | GET | Estadísticas (nodos por tipo, modelos disponibles) |
+| `/api/resources/scan` | POST | Forzar un nuevo scan de recursos |
+
+### Ejemplo: ver recursos disponibles
+
+```bash
+curl http://localhost:8642/api/resources
+
+# Respuesta:
+# {
+#   "nodes": [
+#     {"id": "local_cpu", "type": "cpu", "name": "Local CPU (8 cores)", ...},
+#     {"id": "local_gpu_apple", "type": "gpu", "name": "Apple Silicon (Apple M2)", ...},
+#     {"id": "ollama_local", "type": "ollama", "name": "Ollama (local)",
+#      "models": ["qwen2.5:3b", "qwen2.5:7b"], ...},
+#     {"id": "cloud_openai", "type": "cloud_api", "name": "OpenAI",
+#      "models": ["gpt-4o", "gpt-4o-mini"], ...},
+#     {"id": "storage_local", "type": "storage", "name": "Local disk", ...}
+#   ],
+#   "node_count": 5,
+#   "available_models": ["gpt-4o", "gpt-4o-mini", "qwen2.5:3b", "qwen2.5:7b"]
+# }
+```
+
+### Integración con ModelOptimizer
+
+El ResourceGraph alimenta al ModelOptimizer: en lugar de que el usuario especifique qué modelo usar, ZOE puede consultar el grafo y seleccionar el modelo óptimo según:
+- Qué modelos están disponibles en Ollama local
+- Qué cloud APIs tienen API key configurada
+- Cuánta RAM hay disponible
+- Qué nivel ACD necesita la respuesta
+
+Esto es el primer paso hacia el **ZOE Seed Mode** (Fase 7E): el pendrive contiene el alma y los motores, y al conectar a cualquier Mac, descubre los recursos y construye el cuerpo óptimo.
 
 ---
 
