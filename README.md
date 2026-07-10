@@ -1137,6 +1137,219 @@ pytest zoe/tests/ --cov=zoe --cov-report=term-missing
 
 ---
 
+## Instalación en Pendrive USB (macOS)
+
+> **¿Quieres usar ZOE sin ocupar memoria en tu Mac?** Instálalo en un pendrive USB. Todo (código, entorno virtual, memoria, datos) vive en el pendrive. Conectas, usas, desconectas.
+
+### Requisitos
+
+- MacBook Air (o cualquier Mac) con macOS 11+
+- Pendrive USB de **mínimo 8GB** (recomendado 16GB o más)
+- Python 3.10+ instalado en el Mac (no ocupa espacio en el pendrive, solo se usa para crear el entorno)
+- Git instalado (viene con Xcode Command Line Tools: `xcode-select --install`)
+
+### Qué se instala en el pendrive
+
+```
+PENDRIVE/
+└── ZOE/
+    ├── zoe/                    # Código del proyecto (~25MB)
+    ├── venv/                   # Entorno virtual Python (~200MB)
+    ├── data/                   # Memoria de ZOE (crece con el uso)
+    │   └── zoe_memory.db       # SQLite con toda la memoria persistente
+    ├── ZOE-Chat.command        # 🚀 Doble clic para chat (Mock)
+    ├── ZOE-Chat-Ollama.command # 🚀 Doble clic para chat (Ollama)
+    └── ZOE-Dashboard.command   # 🚀 Doble clic para dashboard web
+```
+
+**Espacio total**: ~500MB inicial, crece con el uso (memoria, datos).
+
+### Instalación paso a paso (para no técnicos)
+
+#### Paso 1: Preparar el Mac
+
+Si no tienes Python o Git instalados:
+
+```bash
+# Instalar Command Line Tools (incluye Git)
+xcode-select --install
+
+# Instalar Python desde https://python.org/downloads
+# (descarga el instalador para macOS, doble clic y seguir el asistente)
+```
+
+Verifica que están instalados:
+```bash
+python3 --version    # debe mostrar 3.10 o superior
+git --version        # debe mostrar una versión de git
+```
+
+#### Paso 2: Conectar el pendrive
+
+1. Conecta el pendrive USB a tu MacBook Air
+2. El pendrive aparecerá en el Finder y en el Escritorio
+3. Anota el nombre del pendrive (ej. "USB", "PENDRIVE", "ZOE_DRIVE")
+
+#### Paso 3: Descargar el instalador
+
+Abre la aplicación **Terminal** (búscala con Spotlight: Cmd+Espacio, escribe "Terminal"):
+
+```bash
+# Navegar a tu carpeta de Descargas
+cd ~/Downloads
+
+# Descargar el instalador
+curl -O https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/install_pendrive_macos.sh
+
+# Dar permisos de ejecución
+chmod +x install_pendrive_macos.sh
+```
+
+#### Paso 4: Ejecutar el instalador
+
+```bash
+bash install_pendrive_macos.sh
+```
+
+El instalador te pedirá:
+1. **Seleccionar el pendrive** — muestra una lista de volúmenes montados, elige el número de tu pendrive
+2. **Confirmar** — verifica el espacio disponible
+3. **Esperar** — clona el repo, crea el entorno virtual, instala dependencias (1-2 minutos)
+
+Cuando termine, verás:
+```
+╔══════════════════════════════════════════════════════════╗
+║  ✅ INSTALACIÓN COMPLETA                                  ║
+╚══════════════════════════════════════════════════════════╝
+
+ZOE está instalado en tu pendrive: /Volumes/TU_PENDRIVE/ZOE
+```
+
+#### Paso 5: Usar ZOE
+
+**Opción A — Doble clic (más fácil)**:
+
+Abre el pendrive en Finder. Verás 3 iconos con extensión `.command`:
+
+| Icono | Qué hace |
+|---|---|
+| `ZOE-Chat.command` | Abre ZOE Chat en Terminal (sin LLM, modo Mock) |
+| `ZOE-Chat-Ollama.command` | Abre ZOE Chat con Ollama (requiere Ollama instalado en el Mac) |
+| `ZOE-Dashboard.command` | Abre el Dashboard web en http://localhost:8642 |
+
+Haz **doble clic** en cualquiera. Se abrirá Terminal y ZOE empezará.
+
+> **Nota**: La primera vez, macOS puede preguntar "¿Seguro que quieres abrir esto?". Click en "Abrir" o ve a **Preferencias del Sistema → Seguridad y Privacidad** y permite la apertura.
+
+**Opción B — Desde Terminal**:
+
+```bash
+# Ir al pendrive
+cd /Volumes/TU_PENDRIVE/ZOE/zoe
+
+# Activar entorno virtual
+source ../venv/bin/activate
+
+# Iniciar ZOE
+python -m zoe.cli_chat --backend mock
+
+# O con Ollama
+python -m zoe.cli_chat --backend ollama --model qwen2.5:3b
+
+# O dashboard
+python -m zoe.web_dashboard --backend mock
+```
+
+#### Paso 6: Hablar con ZOE
+
+Una vez iniciado, verás:
+```
+============================================================
+  ZOE v1.0 — Chat CLI
+  Synthetic Cognitive Organism
+============================================================
+
+✅ ZOE está viva.
+   Identidad: 8b5706c01d39456e...
+   Memoria: 13 entries
+   LLM: mock
+   ACD: ACTIVO
+
+👤 Tú: hola
+🧿 ZOE [L0_REFLEX 0.2ms]: Hola. Estoy aquí.
+
+👤 Tú: ¿qué eres?
+🧿 ZOE [L1_FAST 423ms]: Me llamo Zoe. Soy un organismo cognitivo...
+
+👤 Tú: /quit
+💾 Memoria guardada: 47 entries
+👋 ZOE se ha detenido. Memoria guardada.
+```
+
+### Cómo desconectar el pendrive
+
+1. **Cierra ZOE primero**: escribe `/quit` en el chat (o Ctrl+C en Terminal)
+2. Espera a que veas "Memoria guardada"
+3. Expulsa el pendrive desde Finder (click derecho → Expulsar)
+4. Desconecta el USB
+
+> **Importante**: Si desconectas el pendrive sin cerrar ZOE, la memoria puede corruptarse. Siempre `/quit` antes de desconectar.
+
+### Cómo usar ZOE con Ollama en el pendrive
+
+Si tienes [Ollama](https://ollama.ai) instalado en tu Mac:
+
+1. Descarga un modelo en el Mac (no en el pendrive, el modelo vive en el Mac):
+```bash
+ollama pull qwen2.5:3b
+```
+
+2. Haz doble clic en `ZOE-Chat-Ollama.command` en el pendrive
+
+3. ZOE usará el modelo de Ollama del Mac, pero toda la memoria y datos se guardan en el pendrive
+
+**Ventajas de esta configuración**:
+- El modelo LLM vive en el Mac (no ocupa espacio en el pendrive)
+- La memoria, identidad y trayectoria de ZOE viven en el pendrive
+- Puedes llevar tu ZOE a cualquier Mac con Ollama instalado
+- La identidad de ZOE es portátil: misma ZOE en cualquier Mac
+
+### Cómo actualizar ZOE en el pendrive
+
+Cuando salga una nueva versión:
+
+```bash
+cd /Volumes/TU_PENDRIVE/ZOE/zoe
+source ../venv/bin/activate
+git pull
+pip install -e .
+```
+
+La memoria y datos NO se tocan — solo se actualiza el código.
+
+### Qué hacer si ZOE no inicia
+
+| Problema | Solución |
+|---|---|
+| "python: command not found" | Instala Python desde python.org |
+| "git: command not found" | Ejecuta `xcode-select --install` |
+| "Permission denied" al hacer doble clic | Click derecho → Abrir → Open |
+| Terminal se cierra al instante | Abre Terminal primero, arrastra el .command y suéltalo en la ventana |
+| "No module named zoe" | `cd /Volumes/TU_PENDRIVE/ZOE/zoe && source ../venv/bin/activate && pip install -e .` |
+| El pendrive no aparece | Formatear como APFS o exFAT desde Utilidad de Discos |
+| ZOE no recuerda entre sesiones | Verifica que `data/zoe_memory.db` existe en el pendrive |
+
+### Formatear el pendrive (si es nuevo o tiene errores)
+
+1. Abre **Utilidad de Discos** (Disk Utility)
+2. Selecciona el pendrive en la barra lateral
+3. Click en **Borrar**
+4. Nombre: el que prefieras (ej. ZOE_DRIVE)
+5. Formato: **APFS** (recomendado para Mac) o **exFAT** (si quieres usar también en Windows)
+6. Click en **Borrar**
+
+---
+
 ## Licencia
 
 Apache 2.0 — [LICENSE](LICENSE)
