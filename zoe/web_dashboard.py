@@ -151,6 +151,11 @@ class DashboardServer:
         app.router.add_get("/api/resources/stats", self._handle_resources_stats)
         app.router.add_post("/api/resources/scan", self._handle_resources_scan)
 
+        # Fase 7B: Model Bus endpoints
+        app.router.add_get("/api/modelbus", self._handle_modelbus_list)
+        app.router.add_get("/api/modelbus/stats", self._handle_modelbus_stats)
+        app.router.add_post("/api/modelbus/select", self._handle_modelbus_select)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1165,6 +1170,42 @@ class DashboardServer:
             "stats": sense.get_stats(),
             "graph": sense.get_graph().to_dict(),
         })
+
+    # ============================================================
+    # Fase 7B: Model Bus handlers
+    # ============================================================
+
+    async def _handle_modelbus_list(self, request) -> Any:
+        """GET /api/modelbus — lista backends del ModelBus."""
+        from aiohttp import web
+        bus = getattr(self, '_model_bus', None)
+        if not bus:
+            return web.json_response({"error": "model_bus not initialized", "backends": []})
+        return web.json_response({"backends": bus.list_backends()})
+
+    async def _handle_modelbus_stats(self, request) -> Any:
+        """GET /api/modelbus/stats — estadísticas del ModelBus."""
+        from aiohttp import web
+        bus = getattr(self, '_model_bus', None)
+        if not bus:
+            return web.json_response({"error": "model_bus not initialized"})
+        return web.json_response(bus.get_stats())
+
+    async def _handle_modelbus_select(self, request) -> Any:
+        """POST /api/modelbus/select — selecciona backend óptimo."""
+        from aiohttp import web
+        bus = getattr(self, '_model_bus', None)
+        if not bus:
+            return web.json_response({"error": "model_bus not initialized"})
+        data = await request.json()
+        selected = bus.select_backend(
+            acd_level=data.get("acd_level"),
+            sensitive_domain=data.get("sensitive_domain", False),
+            prefer_local=data.get("prefer_local", False),
+        )
+        if selected:
+            return web.json_response({"selected": selected.to_dict()})
+        return web.json_response({"selected": None, "reason": "no backends available"})
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""

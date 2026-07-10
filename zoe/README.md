@@ -1152,6 +1152,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 6C — Tutor Mentor Digital | ✅ | MentorAgent configurable + 3 endpoints REST |
 | 7F — Cognitive Memory Paging | ✅ | ModelOptimizer + modelos 14B-72B en pendrive con 8GB RAM |
 | 7A — Resource Discovery | ✅ | ResourceDiscoverySense + ResourceGraph + 3 endpoints |
+| 7B — Universal Model Bus | ✅ | ModelBus + selección ACD-aware + fallback + from_resource_graph |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1694,6 +1695,111 @@ El ResourceGraph alimenta al ModelOptimizer: en lugar de que el usuario especifi
 - Qué nivel ACD necesita la respuesta
 
 Esto es el primer paso hacia el **ZOE Seed Mode** (Fase 7E): el pendrive contiene el alma y los motores, y al conectar a cualquier Mac, descubre los recursos y construye el cuerpo óptimo.
+
+---
+
+## Universal Model Bus (UMB)
+
+> **ZOE habla con un bus, no con un runtime específico.** El bus gestiona múltiples backends simultáneamente y selecciona el óptimo para cada petición según nivel ACD, dominio, coste, latencia y privacidad.
+
+### Qué hace
+
+El `ModelBus` es un `LLMPeripheral` compuesto. ZOE no sabe si habla con un LLM directo o con un bus. El bus decide internamente:
+
+- **L0/L1** → prefiere backend local, rápido, gratis (Ollama 3B)
+- **L2** → balance entre calidad y velocidad (Ollama 7B o cloud barato)
+- **L3** → máxima calidad (GPT-4o, Claude, 72B local)
+- **Dominio sensible** → excluye cloud por privacidad
+- **Fallback automático** → si un backend falla, intenta el siguiente
+
+### 6 estrategias de selección
+
+| Estrategia | Qué hace |
+|---|---|
+| `ACD_AWARE` (default) | Selecciona según nivel ACD + contexto |
+| `PRIORITY` | Mayor prioridad disponible |
+| `CHEAPEST` | Menor coste por token |
+| `FASTEST` | Menor latencia |
+| `LOCAL_FIRST` | Local primero, cloud como fallback |
+| `ROUND_ROBIN` | Rotación entre backends disponibles |
+
+### Cómo usar
+
+```python
+from zoe.peripherals.model_bus import ModelBus, SelectionStrategy
+from zoe.peripherals.llm import OllamaPeripheral, OpenAICompatiblePeripheral, AnthropicPeripheral
+
+bus = ModelBus(strategy=SelectionStrategy.ACD_AWARE)
+
+# Añadir backends
+bus.add_backend(
+    OllamaPeripheral(model="qwen2.5:3b"),
+    name="ollama_3b", priority=10, cost_per_1k=0.0,
+    privacy="local", tags=["local", "fast", "cheap"],
+)
+bus.add_backend(
+    OpenAICompatiblePeripheral(model="gpt-4o", api_key="sk-..."),
+    name="openai", priority=9, cost_per_1k=0.03,
+    privacy="cloud", tags=["cloud", "quality"],
+)
+bus.add_backend(
+    AnthropicPeripheral(model="claude-sonnet-4-20250514", api_key="sk-ant-..."),
+    name="anthropic", priority=9, cost_per_1k=0.02,
+    privacy="cloud", tags=["cloud", "quality", "ethical"],
+)
+
+# El bus selecciona automáticamente
+response = await bus.generate("hola", acd_level="L0_REFLEX")
+# → usa ollama_3b (gratis, rápido, local)
+
+response = await bus.generate("analiza las causas profundas", acd_level="L3_DEEP")
+# → usa anthropic o openai (máxima calidad)
+
+response = await bus.generate("dosis de medicamento", acd_level="L2_STANDARD", sensitive_domain=True)
+# → usa ollama_3b (excluye cloud por privacidad médica)
+```
+
+### Creación automática desde ResourceGraph
+
+El bus puede construirse automáticamente desde los recursos descubiertos por la Fase 7A:
+
+```python
+from zoe.peripherals.model_bus import ModelBus
+from zoe.peripherals.resource_discovery import ResourceDiscoverySense
+
+sense = ResourceDiscoverySense()
+await sense.observe()
+bus = ModelBus.from_resource_graph(sense.get_graph())
+# El bus ahora tiene un backend por cada modelo de Ollama local
+# y por cada cloud API con API key configurada
+```
+
+### Fallback automático
+
+Si el backend seleccionado falla:
+1. Se incrementa el contador de fallos del backend
+2. Tras `max_fails` (default 3), el backend se marca como no disponible
+3. Se intenta con el siguiente backend disponible
+4. Si todos fallan, devuelve mensaje de error
+
+### Endpoints del Dashboard
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/modelbus` | GET | Lista backends registrados |
+| `/api/modelbus/stats` | GET | Stats (requests, success_rate, fallbacks, selections) |
+| `/api/modelbus/select` | POST | Simula selección (devuelve qué backend se elegiría) |
+
+### Ejemplo: ver qué backend se seleccionaría
+
+```bash
+curl -X POST http://localhost:8642/api/modelbus/select \
+    -H 'Content-Type: application/json' \
+    -d '{"acd_level": "L3_DEEP"}'
+
+# Respuesta:
+# {"selected": {"name": "anthropic", "priority": 9, "privacy": "cloud", "tags": ["cloud", "quality"]}}
+```
 
 ---
 
