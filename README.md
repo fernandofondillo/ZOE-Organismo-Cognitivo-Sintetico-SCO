@@ -3,7 +3,7 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Tests](https://img.shields.io/badge/tests-914%2F914%20pass-brightgreen)](#tests)
+[![Tests](https://img.shields.io/badge/tests-952%2F952%20pass-brightgreen)](#tests)
 [![Version](https://img.shields.io/badge/version-1.6.0-blue)](#roadmap)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#instalación)
@@ -208,7 +208,7 @@ zoe-capsules list
 
 # Ejecutar tests
 pytest zoe/tests/ -q
-# Debe mostrar "914 passed"
+# Debe mostrar "952 passed"
 ```
 
 ### Estructura del proyecto
@@ -286,7 +286,7 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
     ├── config/                  # production.yaml, development.yaml
     ├── docs/                    # Guía V1 + auditoría PDF
     ├── phases/                  # Planes y resultados por fase
-    ├── tests/                   # 39 archivos, 914 tests
+    ├── tests/                   # 40 archivos, 952 tests
     ├── examples/                # Demos
     └── scripts/                 # deploy.sh
 ```
@@ -1268,7 +1268,7 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 ## Tests
 
 ```
-914 tests, 100% pass
+952 tests, 100% pass
 ```
 
 | Suite | Tests | Cobertura |
@@ -1280,8 +1280,8 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | Fase 5 — ACD + Streaming | 44 | DepthClassifier + Cache + V5 |
 | Fase 6A — Epistemic Validation | 41 | Validator + Quarantine + CrossValidator |
 | Fase 6B — Capsules + Marketplace | 138 | 12 cápsulas + Scaffold + Marketplace + Federation |
-| Fase 7A-G — Resource Stack | 215 | Discovery + ModelBus + Planner + Embodiment + Seed + Hardware Opt |
-| **TOTAL** | **914** | **100% pass** |
+| Fase 7A-G — Resource Stack | 253 | Discovery + ModelBus + Planner + Embodiment + Seed + Hardware Opt + Hardware Endpoints |
+| **TOTAL** | **952** | **100% pass** |
 
 ### Ejecutar tests
 
@@ -1296,7 +1296,7 @@ pytest zoe/tests/test_phase5_acd.py -v
 pytest zoe/tests/test_phase6_capsules.py -v
 
 # Solo tests del stack de recursos (Fase 7A-7G)
-pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py zoe/tests/test_phase7e_seed_mode.py zoe/tests/test_phase7g_hardware_optimization.py -v
+pytest zoe/tests/test_phase7a_resource_discovery.py zoe/tests/test_phase7b_model_bus.py zoe/tests/test_phase7c_resource_planner.py zoe/tests/test_phase7d_embodiment_composer.py zoe/tests/test_phase7e_seed_mode.py zoe/tests/test_phase7g_hardware_optimization.py zoe/tests/test_phase7g_hardware_endpoints.py -v
 
 # Con cobertura
 pytest zoe/tests/ --cov=zoe --cov-report=term-missing
@@ -2685,7 +2685,7 @@ warning = opt.get_cable_warning()
 
 ### Endpoints del Dashboard
 
-Los endpoints existentes del `ModelOptimizer` (Fase 7F) ahora devuelven información enriquecida de Fase 7G:
+#### Endpoints existentes del `ModelOptimizer` (Fase 7F, enriquecidos por 7G)
 
 | Endpoint | Método | Qué devuelve nuevo |
 |---|---|---|
@@ -2694,7 +2694,43 @@ Los endpoints existentes del `ModelOptimizer` (Fase 7F) ahora devuelven informac
 | `/api/models/catalog` | GET | Lista de modelos soportados con cuantizaciones disponibles |
 | `/api/models/optimize` | POST | El resultado puede sugerir `IQ2_M` o `IQ3_XS` como cuantización |
 
-**Próximamente**: nuevos endpoints `/api/hardware/ssds`, `/api/hardware/token_rates`, `/api/hardware/cable_warning` para el dashboard de usuario final.
+#### Endpoints nuevos de Fase 7G (`/api/hardware/*`)
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/hardware/ssds` | GET | SSDs portátiles recomendados (Crucial X10 Pro, Kingston XS2000, SanDisk PRO-BLADE) |
+| `/api/hardware/token_rates` | GET | Tabla de tokens/s esperadas por modelo en M2/M3 8GB |
+| `/api/hardware/cable_warning` | GET | Warning crítico sobre qué cable USB-C usar (10x impacto en rendimiento) |
+| `/api/hardware/system` | GET | Info de hardware del host (P-cores, E-cores, RAM, Apple Silicon) |
+
+#### Ejemplos de uso
+
+```bash
+# SSDs recomendados para el usuario final
+curl http://localhost:8642/api/hardware/ssds
+# → {"ssds": [{"model": "Crucial X10 Pro", "read_speed_mbps": 2100, ...}], "count": 3}
+
+# Tabla de velocidades esperadas por modelo
+curl http://localhost:8642/api/hardware/token_rates
+# → {"token_rates": [{"model": "Qwen 2.5 3B", "tokens_per_second_range": "25-35", ...}],
+#    "benchmark": {"hardware": "MacBook Air M2/M3 8GB", ...}}
+
+# Warning del cable USB-C (para mostrar en dashboard)
+curl http://localhost:8642/api/hardware/cable_warning
+# → {"title": "Usa SIEMPRE el cable corto...", "problem": "...USB 2.0...",
+#    "impact_factor": "10x"}
+
+# Info de hardware del host actual
+curl http://localhost:8642/api/hardware/system
+# → {"platform": "Darwin", "is_apple_silicon": true,
+#    "total_ram_gb": 8.0, "p_cores": 4, "e_cores": 4, ...}
+```
+
+Estos endpoints están diseñados para que el dashboard pueda mostrar **sin configuración manual**:
+- Qué SSD comprar (con precios y velocidades)
+- Qué velocidad esperar de cada modelo (gestión de expectativas)
+- Qué cable usar (banner de advertencia si rendimiento es bajo)
+- Qué hardware tiene el host actual (para diagnóstico)
 
 ### Por qué importa
 
@@ -2749,4 +2785,4 @@ Apache 2.0 — [LICENSE](LICENSE)
 
 *ZOE V1.6 — Synthetic Cognitive Organism (SCO).*
 *Repositorio: `fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO`*
-*914 tests · 12 cápsulas · 7 casos de uso · 8 fases completas (0-7G) · 122+ archivos Python · 36.000+ LOC*
+*952 tests · 12 cápsulas · 7 casos de uso · 8 fases completas (0-7G) · 123+ archivos Python · 36.000+ LOC*

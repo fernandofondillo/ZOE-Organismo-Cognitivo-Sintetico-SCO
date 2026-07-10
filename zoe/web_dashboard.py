@@ -177,6 +177,12 @@ class DashboardServer:
         app.router.add_get("/api/seed/stats", self._handle_seed_stats)
         app.router.add_get("/api/seed/last_report", self._handle_seed_last_report)
 
+        # Fase 7G: Hardware Optimization & UX endpoints
+        app.router.add_get("/api/hardware/ssds", self._handle_hardware_ssds)
+        app.router.add_get("/api/hardware/token_rates", self._handle_hardware_token_rates)
+        app.router.add_get("/api/hardware/cable_warning", self._handle_hardware_cable_warning)
+        app.router.add_get("/api/hardware/system", self._handle_hardware_system)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1492,6 +1498,118 @@ class DashboardServer:
         if report is None:
             return web.json_response({"found": False})
         return web.json_response({"found": True, "report": report.to_dict()})
+
+    # ============================================================
+    # Fase 7G: Hardware Optimization & UX handlers
+    # ============================================================
+
+    async def _handle_hardware_ssds(self, request) -> Any:
+        """
+        GET /api/hardware/ssds — SSDs portátiles recomendados.
+
+        Devuelve la lista de SSDs comerciales "todo en uno" de fábrica
+        que recomendamos para ejecutar ZOE con modelos grandes vía mmap.
+        Útil para mostrar al usuario en el dashboard qué comprar.
+
+        Ejemplo de respuesta:
+        [
+            {"model": "Crucial X10 Pro", "capacity_tb": 1,
+             "read_speed_mbps": 2100, "price_eur": 110, "recommended": true,
+             "why": "Equilibrado: pequeño, resistente, rápido. Recomendado por defecto."},
+            ...
+        ]
+        """
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        return web.json_response({
+            "ssds": ModelOptimizer.get_recommended_ssds(),
+            "count": len(ModelOptimizer.get_recommended_ssds()),
+        })
+
+    async def _handle_hardware_token_rates(self, request) -> Any:
+        """
+        GET /api/hardware/token_rates — velocidades esperadas por modelo.
+
+        Devuelve la tabla de tokens/segundo esperadas para cada modelo
+        en un MacBook Air M2/M3 8GB con SSD de 2000 MB/s y cable USB-C
+        correcto. Útil para gestionar expectativas del usuario antes de
+        instalar un modelo.
+
+        Ejemplo de respuesta:
+        [
+            {"model": "Qwen 2.5 3B", "quantization": "Q4_K_M",
+             "ram_usage_gb": 2.5, "tokens_per_second_range": "25-35",
+             "experience": "Más rápido de lo que lees", "strategy": "full_ram"},
+            ...
+        ]
+        """
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        rates = ModelOptimizer.get_expected_token_rates()
+        return web.json_response({
+            "token_rates": rates,
+            "count": len(rates),
+            "benchmark": {
+                "hardware": "MacBook Air M2/M3 8GB",
+                "ssd": "2000 MB/s USB-C",
+                "cable": "USB 3.2 Gen 2 (cable corto original)",
+                "note": "Con pendrive USB normal (400 MB/s), divide entre 3-5",
+            },
+        })
+
+    async def _handle_hardware_cable_warning(self, request) -> Any:
+        """
+        GET /api/hardware/cable_warning — warning sobre el cable USB-C.
+
+        Devuelve el warning crítico sobre qué cable usar para conectar
+        el SSD al Mac. El cable equivocado (USB 2.0, el de carga del Mac)
+        limita el SSD a ~60 MB/s — 10x más lento que el cable correcto
+        (USB 3.2 Gen 2, el corto que viene en la caja del SSD).
+
+        Útil para mostrar un banner de advertencia en el dashboard cuando
+        ZOE detecta que el rendimiento es anormalmente bajo.
+
+        Ejemplo de respuesta:
+        {
+            "title": "Usa SIEMPRE el cable corto que viene en la caja del SSD",
+            "problem": "El cable largo de carga del MacBook Air es USB 2.0...",
+            "solution": "Usa el cable corto USB 3.2 Gen 2...",
+            "symptom_slow": "ZOE tarda 10+ segundos en responder...",
+            "symptom_fast": "ZOE responde en 1-2 segundos...",
+            "impact_factor": "10x"
+        }
+        """
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        return web.json_response(ModelOptimizer.get_cable_warning())
+
+    async def _handle_hardware_system(self, request) -> Any:
+        """
+        GET /api/hardware/system — info de hardware del host actual.
+
+        Devuelve información completa del hardware del host donde corre
+        ZOE: plataforma, RAM total/disponible, P-cores, E-cores, total
+        de cores, y si es Apple Silicon.
+
+        Útil para diagnosticar problemas de rendimiento y para que el
+        usuario entienda qué modelo puede ejecutar en su máquina.
+
+        Ejemplo de respuesta (MacBook Air M2):
+        {
+            "platform": "Darwin",
+            "machine": "arm64",
+            "is_apple_silicon": true,
+            "total_ram_gb": 8.0,
+            "available_ram_gb": 5.2,
+            "cpu_cores": 8,
+            "p_cores": 4,
+            "e_cores": 4
+        }
+        """
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        opt = ModelOptimizer()
+        return web.json_response(opt.get_system_info())
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""
