@@ -30,7 +30,15 @@
 14. [Roadmap](#roadmap)
 15. [Tests](#tests)
 16. [Documentación](#documentación)
-17. [Licencia](#licencia)
+17. [Instalación en Pendrive USB](#instalación-en-pendrive-usb-macos)
+18. [Cognitive Memory Paging (7F)](#cognitive-memory-paging--modelos-grandes-en-mac-con-8gb-ram)
+19. [Tutor Mentor Digital (6C)](#tutor-mentor-digital)
+20. [Resource Discovery (7A)](#resource-discovery--descubrimiento-automático-de-recursos)
+21. [Universal Model Bus (7B)](#universal-model-bus-umb)
+22. [Metabolic Resource Planner (7C)](#metabolic-resource-planner)
+23. [Embodiment Composer (7D)](#embodiment-composer)
+24. [ZOE Seed Mode (7E)](#zoe-seed-mode)
+25. [Licencia](#licencia)
 
 ---
 
@@ -107,7 +115,7 @@ python -m zoe.cli_chat --backend mock
 ```bash
 # Verificar versión
 python -c "import zoe; print(f'ZOE v{zoe.__version__}, phase={zoe.__phase__}')"
-# Output: ZOE v1.2.0, phase=phase_6b
+# Output: ZOE v1.5.0, phase=phase_7e
 
 # Verificar cápsulas disponibles
 zoe-capsules list
@@ -115,7 +123,7 @@ zoe-capsules list
 
 # Ejecutar tests
 pytest zoe/tests/ -q
-# Debe mostrar "775 passed"
+# Debe mostrar "864 passed"
 ```
 
 ### Estructura del proyecto
@@ -128,7 +136,7 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
 ├── README.md                   # Este archivo
 ├── LICENSE                     # Apache 2.0
 └── zoe/                        # Paquete principal
-    ├── __init__.py             # v1.2.0, phase_6b
+    ├── __init__.py             # v1.5.0, phase_7e
     ├── cli_chat.py             # CLI Chat interactivo
     ├── web_dashboard.py        # Web Dashboard (aiohttp + WebSocket)
     ├── serve.py                # Servidor de producción
@@ -169,11 +177,18 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
     │       ├── speaker.py
     │       ├── critic.py
     │       └── phase2_subagents.py    # 8 sub-agentes adicionales
+    │   # Fase 7 (resource stack):
+    │   #   model_optimizer.py        — 7F: Cognitive Memory Paging (mmap)
+    │   #   resource_planner.py       — 7C: plan ACD+metabolismo+sensible
+    │   #   embodiment_composer.py    — 7D: boot sequence del organismo
+    │   #   seed_mode.py              — 7E: semilla portátil (germinación)
     ├── metabolism/              # 4 estados + consolidación
     ├── memory/                  # 11 tipos + SQLite + deep consolidation
     ├── peripherals/             # LLMs + sentidos + actuadores
     │   ├── llm.py               # 4 backends + streaming
     │   ├── senses.py            # 5 sentidos
+    │   ├── resource_discovery.py # 7A: descubre hardware/cloud/peers
+    │   ├── model_bus.py          # 7B: Universal Model Bus (ACD-aware)
     │   └── actuators.py         # 4 actuadores
     ├── capsules/                # 12 cápsulas + sistema
     │   ├── schema.py / loader.py / registry.py / scaffold.py
@@ -184,7 +199,7 @@ ZOE-Organismo-Cognitivo-Sintetico-SCO/
     ├── config/                  # production.yaml, development.yaml
     ├── docs/                    # Guía V1 + auditoría PDF
     ├── phases/                  # Planes y resultados por fase
-    ├── tests/                   # 37 archivos, 775 tests
+    ├── tests/                   # 38 archivos, 864 tests
     ├── examples/                # Demos
     └── scripts/                 # deploy.sh
 ```
