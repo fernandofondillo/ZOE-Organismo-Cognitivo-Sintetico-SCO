@@ -1148,7 +1148,9 @@ El clasificador es 100% heurístico (sin LLM, <50ms). Combina: tokens L0, keywor
 | 4 — Federación + Deploy | ✅ | CognitiveLoopV4 + federación HTTP + quorum + 7 casos |
 | 5 — ACD + Streaming | ✅ | CognitiveLoopV5 + DepthClassifier + Cache + Streaming |
 | 6A — Epistemic Validation | ✅ | EpistemicValidator + Quarantine + CrossValidator + Federation |
-| 6B — Capsules + Marketplace | ✅ | 12 cápsulas + Scaffold CLI + Marketplace + Dashboard UI |
+| 6B — Capsules + Marketplace | ✅ | 13 cápsulas + Scaffold CLI + Marketplace + Dashboard UI |
+| 6C — Tutor Mentor Digital | ✅ | MentorAgent configurable + 3 endpoints REST |
+| 7F — Cognitive Memory Paging | ✅ | ModelOptimizer + modelos 14B-72B en pendrive con 8GB RAM |
 | App móvil | 🟡 | PWA/React Native con mismos endpoints |
 | Bot Telegram | 🟡 | Bot con mismo ZoeChat |
 | Pasarela pago marketplace | 🟡 | Stripe/PayPal para licencias paid/subscription |
@@ -1475,6 +1477,155 @@ La memoria y datos NO se tocan — solo se actualiza el código.
 4. Nombre: el que prefieras (ej. ZOE_DRIVE)
 5. Formato: **APFS** (recomendado para Mac) o **exFAT** (si quieres usar también en Windows)
 6. Click en **Borrar**
+
+---
+
+## Cognitive Memory Paging — Modelos grandes en Mac con 8GB RAM
+
+> **¿Tienes un Mac con 8GB RAM y quieres usar modelos de 14B-72B parámetros locales?** ZOE lo hace posible con memory-mapped loading (mmap) desde el pendrive.
+
+### El problema
+
+Un MacBook Air de 8GB RAM tiene ~5GB disponibles tras el sistema operativo. Un modelo de 14B necesita 8GB. Uno de 72B necesita 40GB. **No caben en RAM.**
+
+### La solución: memory-mapped loading (mmap)
+
+1. El modelo vive en el **pendrive** como archivo GGUF (no en el Mac)
+2. llama.cpp (el motor de Ollama) lo **memory-mapea** con `mmap`
+3. El SO solo carga en RAM las **capas activas** (~2-4GB)
+4. El resto del modelo se queda en el **pendrive** hasta que se necesita
+5. Es como la **paginación de memoria** de un SO: no toda la memoria está en RAM
+
+### Modelos que puedes usar con 8GB RAM
+
+| Modelo | Tamaño en pendrive | RAM usada (mmap) | Velocidad | Estrategia |
+|---|---|---|---|---|
+| Qwen 2.5 3B | 2GB | ~1.5GB | Rápida | full_ram |
+| Qwen 2.5 7B | 4.5GB | ~3GB | Media | mmap_partial |
+| **Qwen 2.5 14B** | 8GB | ~3.5GB | Media | mmap_partial |
+| **Qwen 2.5 32B** | 18GB | ~3GB | Lenta | mmap_full |
+| **Qwen 2.5 72B** | 40GB | ~3-4GB | Muy lenta | mmap_full |
+| DeepSeek R1 14B | 8GB | ~3.5GB | Media | mmap_partial |
+| DeepSeek R1 32B | 18GB | ~3GB | Lenta | mmap_full |
+| Llama 3.1 70B | 40GB | ~3-4GB | Muy lenta | mmap_full |
+
+> **Sí, puedes ejecutar un modelo de 72B parámetros en tu MacBook Air de 8GB.** Será lento (30-120 segundos por respuesta L3), pero **funciona**.
+
+### Cómo instalar un modelo grande en el pendrive
+
+```bash
+# Ejecutar el gestor de modelos grandes
+bash zoe/scripts/zoe_large_model_manager.sh
+
+# El script:
+# 1. Detecta tu hardware (RAM, chip, cores)
+# 2. Muestra menú con 14 modelos (0.5B a 72B)
+# 3. Analiza viabilidad y muestra estrategia + velocidad esperada
+# 4. Descarga el modelo al pendrive con OLLAMA_MODELS
+# 5. Configura variables de entorno óptimas (mmap, keep_alive, flash_attention)
+# 6. Crea scripts .command personalizados para Chat y Dashboard
+```
+
+### Recomendación óptima para 8GB Mac
+
+| Nivel ACD | Modelo | Estrategia | Velocidad |
+|---|---|---|---|
+| L0-L1 (reflejo/rápido) | Qwen 2.5 3B | full_ram | <1s |
+| L2 (estándar) | Llama 3.1 8B | mmap_partial | 6-15s |
+| L3 (profundo) | Qwen 2.5 72B | mmap_full | 60-120s |
+
+Instala los 3 modelos en el pendrive y ZOE usará cada uno según el nivel ACD. L0-L1 será rápido (3B en RAM), L3 será potente pero lento (72B vía mmap).
+
+### Requisitos del pendrive para modelos grandes
+
+| Requisito | Para 14B | Para 72B |
+|---|---|---|
+| Capacidad mínima | 16GB | 64GB |
+| Espacio libre | 10GB | 45GB |
+| Formato | APFS o exFAT | APFS |
+| Velocidad USB | USB 3.0+ (500MB/s) | USB 3.1+ (900MB/s) |
+| Modelo Ollama | qwen2.5:14b (8GB) | qwen2.5:72b (40GB) |
+
+### Endpoints del ModelOptimizer en el Dashboard
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/models/system_info` | GET | Info de hardware (RAM, chip, cores, Apple Silicon) |
+| `/api/models/recommend` | GET | Recomendaciones de modelo por nivel ACD |
+| `/api/models/catalog` | GET | Catálogo de modelos compatibles con tu RAM |
+| `/api/models/optimize` | POST | Optimiza un modelo específico (devuelve estrategia + env vars) |
+
+### Ejemplo: optimizar Qwen 2.5 14B con 5GB RAM disponibles
+
+```bash
+curl -X POST http://localhost:8642/api/models/optimize \
+    -H 'Content-Type: application/json' \
+    -d '{"model": "qwen2.5:14b"}'
+
+# Respuesta:
+# {
+#   "optimization": {
+#     "model_name": "qwen2.5:14b",
+#     "strategy": "mmap_partial",
+#     "available_ram_gb": 5.0,
+#     "model_size_gb": 8.0,
+#     "estimated_ram_usage_gb": 3.5,
+#     "estimated_speed": "medium",
+#     "will_work": true,
+#     "warning": "Modelo 8.0GB excede RAM (5.0GB). Usando mmap."
+#   },
+#   "ollama_env": {
+#     "OLLAMA_MAX_LOADED_MODELS": "1",
+#     "OLLAMA_NUM_PARALLEL": "1",
+#     "OLLAMA_KEEP_ALIVE": "30m"
+#   }
+# }
+```
+
+---
+
+## Tutor Mentor Digital
+
+> **Un mentor configurable que guía el crecimiento saludable de ZOE.** No la controla: la orienta hacia direcciones de crecimiento definidas por el usuario.
+
+### Qué hace
+
+Cada N pensamientos autónomos (configurable), el mentor evalúa:
+1. ¿El pensamiento está alineado con las áreas de crecimiento priorizadas?
+2. ¿Respeta los valores enfatizados?
+3. ¿Toca temas prohibidos?
+4. ¿Hay patrones repetitivos o negatividad acumulada?
+
+Si detecta desviación, genera una intervención con severidad (critical/medium/low).
+
+### Configuración desde el Dashboard
+
+| Parámetro | Qué hace | Default |
+|---|---|---|
+| `growth_areas` | Áreas prioritarias: communication, empathy, critical_thinking, creativity, ethical, social... | 4 áreas |
+| `emphasized_values` | Valores a enfatizar (de los 7 de ZOE) | 3 valores |
+| `forbidden_topics` | Temas que ZOE no debe explorar | Vacío |
+| `personality_direction` | balanced / curious / cautious / creative / analytical | balanced |
+| `intervention_frequency` | Cada N pensamientos evaluar | 5 |
+| `enabled` | Activar/desactivar | true |
+
+### Endpoints
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/mentor` | GET | Obtener configuración actual |
+| `/api/mentor` | POST | Actualizar configuración |
+| `/api/mentor/stats` | GET | Estadísticas (evaluaciones, intervenciones, refuerzos) |
+
+### Cápsula basal de conocimiento
+
+ZOE no nace como "sistema cognitivo virgen". La cápsula `zoe_basal_knowledge` se carga **siempre** al iniciar y le da:
+- Identidad fundamental ("soy un organismo cognitivo sintético, no un chatbot")
+- Valores y propósito (9 vectores, 7 valores, propósito declarado)
+- Conocimiento del mundo (tiempo, humanos, lenguaje, internet)
+- Reglas de comunicación (tono, frases prohibidas)
+- 4 skills procedimentales (honest_response, healthy_growth, respect_autonomy, self_introduction)
+- System prompt basal que define su forma de comunicar
 
 ---
 
