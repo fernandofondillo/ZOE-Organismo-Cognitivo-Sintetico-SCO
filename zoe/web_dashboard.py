@@ -140,6 +140,12 @@ class DashboardServer:
         app.router.add_post("/api/mentor", self._handle_mentor_update)
         app.router.add_get("/api/mentor/stats", self._handle_mentor_stats)
 
+        # Fase 7F: Model Optimizer endpoints
+        app.router.add_get("/api/models/system_info", self._handle_models_system_info)
+        app.router.add_get("/api/models/recommend", self._handle_models_recommend)
+        app.router.add_get("/api/models/catalog", self._handle_models_catalog)
+        app.router.add_post("/api/models/optimize", self._handle_models_optimize)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1073,6 +1079,46 @@ class DashboardServer:
         if not hasattr(self.chat, 'mentor'):
             return web.json_response({"error": "mentor not initialized"}, status=500)
         return web.json_response(self.chat.mentor.get_stats())
+
+    # ============================================================
+    # Fase 7F: Model Optimizer handlers
+    # ============================================================
+
+    async def _handle_models_system_info(self, request) -> Any:
+        """GET /api/models/system_info — info del hardware."""
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        opt = ModelOptimizer()
+        return web.json_response(opt.get_system_info())
+
+    async def _handle_models_recommend(self, request) -> Any:
+        """GET /api/models/recommend — recomendaciones por nivel ACD."""
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        opt = ModelOptimizer()
+        return web.json_response(opt.recommend_for_acd())
+
+    async def _handle_models_catalog(self, request) -> Any:
+        """GET /api/models/catalog — catálogo de modelos compatibles."""
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer, MODEL_CATALOG
+        opt = ModelOptimizer()
+        models = opt.list_models_for_ram()
+        return web.json_response({"models": models, "count": len(models)})
+
+    async def _handle_models_optimize(self, request) -> Any:
+        """POST /api/models/optimize — optimiza un modelo específico."""
+        from aiohttp import web
+        from zoe.core.model_optimizer import ModelOptimizer
+        data = await request.json()
+        model_name = data.get("model", "qwen2.5:3b")
+        opt = ModelOptimizer()
+        result = opt.optimize(model_name)
+        env = opt.generate_ollama_env(result)
+        return web.json_response({
+            "optimization": result.to_dict(),
+            "ollama_env": env,
+        })
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""
