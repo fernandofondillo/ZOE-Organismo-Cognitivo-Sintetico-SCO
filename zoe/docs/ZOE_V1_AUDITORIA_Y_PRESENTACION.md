@@ -1,3 +1,18 @@
+> ⚠️ **DOCUMENTO OBSOLETO** ⚠️
+> 
+> Este documento describe ZOE V1.0/V1.2 y **NO refleja el estado actual del proyecto** (V1.6.0).
+> 
+> **Documentación actualizada:**
+> - [`01_ZOE_OVERVIEW.md`](01_ZOE_OVERVIEW.md) — visión global actualizada
+> - [`02_ARCHITECTURE.md`](02_ARCHITECTURE.md) — arquitectura técnica profunda
+> - [`09_USAGE_GUIDE.md`](09_USAGE_GUIDE.md) — guía de uso actualizada
+> - [`README.md`](../README.md) — README profesional
+> 
+> Este documento se mantiene solo como **archivo histórico**. Para información actual, usar los documentos anteriores.
+> 
+> ---
+
+
 # ZOE V1 — Auditoría y Presentación del Proyecto
 
 > **Versión:** V1.0 · Fase 5 (ACD + Streaming)
