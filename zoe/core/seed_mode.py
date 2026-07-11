@@ -272,6 +272,16 @@ class ZOESeed:
                     for vol in os.listdir(user_path):
                         candidate_paths.append(f"{user_path}/{vol}")
 
+        # Windows: drives D: to Z:
+        if platform.system() == "Windows":
+            import string
+            for letter in string.ascii_uppercase:
+                if letter == "C":
+                    continue
+                drive_path = f"{letter}:\\"
+                if os.path.exists(drive_path):
+                    candidate_paths.append(drive_path)
+
         # Dev mode: ~/.zoe-seed/
         dev_seed = os.path.expanduser("~/.zoe-seed")
         if os.path.isdir(dev_seed):
@@ -338,6 +348,15 @@ class ZOESeed:
                 if os.path.isdir(user_path):
                     for vol in os.listdir(user_path):
                         paths.append({"path": f"{user_path}/{vol}", "source": "linux_media"})
+
+        if platform.system() == "Windows":
+            import string
+            for letter in string.ascii_uppercase:
+                if letter == "C":
+                    continue
+                drive_path = f"{letter}:\\"
+                if os.path.exists(drive_path):
+                    paths.append({"path": drive_path, "source": "windows_drives"})
 
         dev_seed = os.path.expanduser("~/.zoe-seed")
         if os.path.isdir(dev_seed):

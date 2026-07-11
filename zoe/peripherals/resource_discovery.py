@@ -437,6 +437,24 @@ class ResourceDiscoverySense:
                         privacy_level="local",
                     ))
 
+        # Windows: detectar drives D: a Z:
+        if system == "Windows":
+            import string
+            for letter in string.ascii_uppercase:
+                drive_path = f"{letter}:\\"
+                if os.path.exists(drive_path):
+                    zoe_path = os.path.join(drive_path, "ZOE")
+                    has_zoe = os.path.isdir(zoe_path)
+                    if letter != "C":  # No reportar disco del sistema
+                        nodes.append(ResourceNode(
+                            id=f"storage_{letter}",
+                            type=ResourceType.STORAGE,
+                            name=f"Drive {letter}:",
+                            address=drive_path,
+                            capabilities={"has_zoe": has_zoe},
+                            privacy_level="local",
+                        ))
+
         # Disco local
         nodes.append(ResourceNode(
             id="storage_local",

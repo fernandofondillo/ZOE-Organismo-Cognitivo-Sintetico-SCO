@@ -19,9 +19,12 @@ Fases del proyecto:
 - Fase 7E: ZOE Seed Mode (semilla portátil que germina en cualquier host).
 - Fase 7G: Hardware Optimization & UX (P-cores, IQ2_M/IQ3_XS, flash-attn,
   SSDs comerciales recomendados, tabla de tokens/s esperadas).
+- Sprint 1: Multi-idioma (ES/EN/FR/DE), Windows nativo, PWA responsive,
+  Telegram bot bridge. ZOE ahora habla 4 idiomas, funciona en Windows,
+  es instalable como app móvil, y se puede usar desde Telegram.
 """
 
-__version__ = "1.6.0"
-__phase__ = "phase_7g"
+__version__ = "1.7.0"
+__phase__ = "sprint1"
 __author__ = "Fernando Fondillo"
 __license__ = "Apache-2.0"

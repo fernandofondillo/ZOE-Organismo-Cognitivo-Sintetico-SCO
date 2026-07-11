@@ -183,6 +183,9 @@ class DashboardServer:
         app.router.add_get("/api/hardware/cable_warning", self._handle_hardware_cable_warning)
         app.router.add_get("/api/hardware/system", self._handle_hardware_system)
 
+        # PWA manifest (Sprint 1.3)
+        app.router.add_get("/manifest.json", self._handle_manifest)
+
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -1611,6 +1614,24 @@ class DashboardServer:
         opt = ModelOptimizer()
         return web.json_response(opt.get_system_info())
 
+    async def _handle_manifest(self, request) -> Any:
+        """GET /manifest.json — PWA manifest para instalación en móvil."""
+        from aiohttp import web
+        manifest = {
+            "name": "ZOE — Synthetic Cognitive Organism",
+            "short_name": "ZOE",
+            "description": "Organismo cognitivo sintético soberano",
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#0a0a0f",
+            "theme_color": "#7c4dff",
+            "orientation": "any",
+            "icons": [],
+            "lang": "es",
+            "categories": ["productivity", "utilities"],
+        }
+        return web.json_response(manifest)
+
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""
         if cmd == "stats":
@@ -1641,7 +1662,11 @@ def _get_dashboard_html() -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZOE v1.0 — Synthetic Cognitive Organism</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="/manifest.json">
+<title>ZOE v1.7 — Synthetic Cognitive Organism</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; overflow: hidden; }
@@ -1723,10 +1748,39 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a4a; }
 
-/* Responsive */
+/* Responsive — PWA mobile support (Sprint 1.3) */
 @media (max-width: 768px) {
-  .main { grid-template-columns: 1fr; }
-  .panel-left, .panel-right { display: none; }
+  .main { grid-template-columns: 1fr; height: calc(100vh - 49px); }
+  .panel-left, .panel-right { 
+    display: none; 
+    position: absolute; 
+    top: 49px; 
+    bottom: 0; 
+    width: 85%; 
+    max-width: 320px; 
+    z-index: 100; 
+    background: #0d0d14;
+    overflow-y: auto;
+  }
+  .panel-left { left: 0; border-right: 1px solid #2a2a3a; }
+  .panel-right { right: 0; border-left: 1px solid #2a2a3a; }
+  .panel-left.show, .panel-right.show { display: block; }
+  .topbar { padding: 6px 10px; gap: 8px; }
+  .topbar .logo { font-size: 15px; }
+  .topbar .llm-select { font-size: 12px; max-width: 120px; }
+  .topbar .meta-status { font-size: 11px; }
+  .panel { padding: 8px; }
+  .chat-messages { font-size: 14px; }
+  .chat-input { font-size: 14px; }
+  .btn-mobile-toggle { display: inline-block !important; }
+}
+
+@media (max-width: 480px) {
+  .topbar .logo { font-size: 13px; }
+  .topbar .llm-select { max-width: 90px; font-size: 11px; }
+  .chat-messages { font-size: 13px; }
+  .chat-input { font-size: 13px; padding: 6px; }
+  .state-label { font-size: 10px; }
 }
 </style>
 </head>
