@@ -1,0 +1,45 @@
+name: language_patterns
+version: 1.0.0
+description: "Patrones de lenguaje para generación sin LLM (PatternSpeaker)"
+domain: language.patterns
+trust_level: verified
+provenance: "ZOE Core Team — Sprint 3 .zoe format"
+last_updated: 2026-07-11
+
+depends_on:
+  - zoe_basal_knowledge
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+  - vigilancia_cognitiva
+  - investigacion_autonoma
+  - federacion_b2b
+  - asistente_crece_contigo
+  - ia_heredable
+
+load_cost: 0.05
+default_confidence: 0.85
+
+components:
+  semantic_memory: true
+  procedural_skills: true
+  causal_models: false
+  emotional_patterns: false
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - generate_responses_without_llm
+  - classify_intent_from_text
+  - adapt_response_from_memory
+  - fill_templates_with_context
+
+restrictions:
+  - no_generate_medical_advice_without_disclaimer
+  - no_claim_to_be_human
+  - maintain_warm_but_honest_tone
+
+expires_at: null
