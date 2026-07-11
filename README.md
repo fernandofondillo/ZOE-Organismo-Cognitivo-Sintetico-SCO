@@ -22,11 +22,12 @@
 4. [Cómo elegir tu instalación](#cómo-elegir-tu-instalación)
 5. [Arquitectura en una imagen](#arquitectura-en-una-imagen)
 6. [Características principales](#características-principales)
-7. [Estado actual](#estado-actual)
-8. [Documentación completa](#documentación-completa)
-9. [Roadmap resumido](#roadmap-resumido)
-10. [Cómo contribuir](#cómo-contribuir)
-11. [Licencia](#licencia)
+7. [Cómo optimiza ZOE según el LLM disponible](#cómo-optimiza-zoe-según-el-llm-disponible)
+8. [Estado actual](#estado-actual)
+9. [Documentación completa](#documentación-completa)
+10. [Roadmap resumido](#roadmap-resumido)
+11. [Cómo contribuir](#cómo-contribuir)
+12. [Licencia](#licencia)
 
 ---
 
@@ -44,7 +45,25 @@
 
 ## Quickstart (3 minutos)
 
-### Opción A — Mac con Ollama local (gratis, recomendado para probar)
+### Opción A — Sin LLM, sin instalación, sin coste (más fácil)
+
+```bash
+# 1. Clonar
+git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
+cd ZOE-Organismo-Cognitivo-Sintetico-SCO
+pip install -e .
+
+# 2. Hablar con ZOE (usa PatternSpeaker, no necesita Ollama ni API)
+zoe-chat --backend pattern
+
+# 3. Dashboard web (también sin LLM)
+zoe-dashboard --backend pattern
+# → abre http://localhost:8642
+```
+
+ZOE responde desde patrones + memoria + conocimiento de cápsulas. No tan potente como GPT-4o, pero **funciona sin instalar nada más y es 100% gratis y offline.**
+
+### Opción B — Con Ollama local (gratis, más potente)
 
 ```bash
 # 1. Instalar ZOE
@@ -52,18 +71,18 @@ git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-
 cd ZOE-Organismo-Cognitivo-Sintetico-SCO
 pip install -e .
 
-# 2. Instalar Ollama (si no lo tienes) desde https://ollama.com
-ollama pull qwen2.5:3b  # modelo 3B, 2GB, gratis
+# 2. Instalar Ollama desde https://ollama.com y descargar modelo
+ollama pull qwen2.5:3b  # 2GB, gratis
 
 # 3. Hablar con ZOE
 zoe-chat --backend ollama --model qwen2.5:3b
 
-# 4. Abrir Dashboard web (opcional)
+# 4. Dashboard web (opcional)
 zoe-dashboard --backend ollama --model qwen2.5:3b
 # → abre http://localhost:8642
 ```
 
-### Opción B — Mac con OpenAI GPT-4o (calidad máxima)
+### Opción C — Con OpenAI GPT-4o (calidad máxima)
 
 ```bash
 git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
@@ -74,7 +93,7 @@ export OPENAI_API_KEY="sk-tu-key-aqui"
 zoe-chat --backend openai_compatible --model gpt-4o
 ```
 
-### Opción C — Pendrive USB (portátil, soberano)
+### Opción D — Pendrive USB / SSD (portátil, soberano)
 
 ```bash
 # Conecta un SSD portátil (Crucial X10 Pro recomendado, ~110€)
@@ -249,7 +268,41 @@ pytest + pytest-asyncio  # Tests
 | **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
 | **Cognitive Optimization Layer** (.zmap + CPL + TPE) | Sprint 5 — `cognitive_optimization.py` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
-| **1008 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+| **510 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+
+---
+
+## Cómo optimiza ZOE según el LLM disponible
+
+ZOE tiene un sistema inteligente (Cognitive Optimization Layer) que **usa la información que ya tiene** (qué tipo de pregunta es, qué memoria tiene, qué cápsulas están cargadas) para decidir la mejor forma de responder.
+
+### Funciona con cualquier configuración:
+
+| Tu configuración | Pregunta simple (L0/L1) | Pregunta compleja (L2/L3) |
+|---|---|---|
+| **Sin LLM** (solo Python) | PatternSpeaker: instantáneo, gratis, offline | PatternSpeaker + destiladas + cápsulas: decente sin LLM |
+| **Ollama local** (gratis) | PatternSpeaker: no toca Ollama, ahorra RAM | CPL pre-carga modelo + .zmap optimiza capas + LLM responde |
+| **Cloud API** (GPT-4o/Claude) | PatternSpeaker: no gasta API, ahorra €€ | CPL pre-construye contexto + API responde con máxima calidad |
+| **.zoe portátil** | PatternSpeaker: siempre disponible | PatternSpeaker + destiladas (si las hay) |
+
+**El usuario no configura nada.** ZOE detecta qué tiene disponible y elige la mejor opción automáticamente.
+
+### Ejemplo práctico
+
+```
+Usuario: "Hola" (L0_REFLEX)
+    → ZOE: usa PatternSpeaker → "Hola. Estoy aquí." (instantáneo, no toca ningún LLM)
+
+Usuario: "Mi madre toma paracetamol, ¿puede con alcohol?" (L2_STANDARD)
+    → ZOE con Ollama: CPL pre-carga Qwen 7B + recupera cápsula pharmacy_interactions → responde
+    → ZOE con cloud: CPL pre-construye contexto + llama GPT-4o → responde con máxima calidad
+    → ZOE sin LLM: PatternSpeaker + CapsuleRetriever → responde con conocimiento de la cápsula
+
+Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
+    → ZOE con Ollama: CPL pre-carga Qwen 14B + .zmap optimiza mmap → responde (lento pero gratis)
+    → ZOE con cloud: CPL pre-construye contexto + llama GPT-4o → responde (rápido, cuesta ~€0.05)
+    → ZOE sin LLM: PatternSpeaker → "Necesito un LLM para análisis profundo. Instala Ollama o configura API key."
+```
 
 ---
 

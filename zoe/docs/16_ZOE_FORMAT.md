@@ -368,5 +368,61 @@ Un .zoe con Enhanced PatternSpeaker puede:
 
 ---
 
-*ZOE V1.7.0 — Documento 16: ZOE Format (.zoe)*
+## 11. Sprint 5 — Cognitive Optimization Layer en .zoe
+
+El Cognitive Optimization Layer (COL) funciona dentro del .zoe de forma transparente:
+
+### Con .zoe Lite (sin modelo embebido)
+
+```
+Usuario escribe → CPL evalúa:
+  ¿L0/L1? → PatternSpeaker responde (instantáneo, sin LLM)
+  ¿L2/L3? → Enhanced PatternSpeaker + destiladas + cápsulas
+             (si no hay destiladas, responde con lo mejor posible)
+```
+
+### Con .zoe Pro (con modelo embebido)
+
+```
+Usuario escribe → CPL evalúa:
+  ¿L0/L1? → PatternSpeaker responde (no carga el modelo, ahorra RAM)
+  ¿L2/L3? → CPL pre-carga modelo embebido + .zmap optimiza capas
+             → Modelo genera respuesta (offline, sin red)
+```
+
+### Con .zoe + Ollama detectado en el host
+
+```
+Usuario escribe → CPL evalúa:
+  ¿L0/L1? → PatternSpeaker responde (no toca Ollama)
+  ¿L2/L3? → CPL pre-carga modelo en Ollama (warmup)
+             + .zmap optimiza qué capas cargar
+             + TPE predice qué capas necesitará
+             → Ollama genera respuesta (mejor calidad que embebido)
+```
+
+### Con .zoe + Cloud API detectada
+
+```
+Usuario escribe → CPL evalúa:
+  ¿L0/L1? → PatternSpeaker responde (no gasta API)
+  ¿L2/L3? → CPL pre-construye contexto enriquecido
+             (system prompt + memoria + cápsulas ya recuperadas)
+             → Cloud API genera respuesta (máxima calidad)
+```
+
+### Beneficio para el usuario
+
+**El usuario no necesita entender nada de esto.** ZOE detecta qué tiene disponible y elige la mejor opción automáticamente. El .zoe funciona en cualquier escenario:
+
+| Escenario | L0/L1 (simple) | L2/L3 (complejo) |
+|---|---|---|
+| Solo .zoe | PatternSpeaker instantáneo | PatternSpeaker + destiladas |
+| .zoe + Ollama | PatternSpeaker (no toca Ollama) | CPL pre-carga + .zmap + Ollama |
+| .zoe + Cloud API | PatternSpeaker (no gasta API) | CPL pre-construye + API |
+| .zoe + modelo embebido | PatternSpeaker (no carga modelo) | CPL + modelo embebido offline |
+
+---
+
+*ZOE V1.8.0 — Documento 16: ZOE Format (.zoe)*
 *Julio 2026*
