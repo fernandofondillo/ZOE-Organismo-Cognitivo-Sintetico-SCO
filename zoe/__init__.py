@@ -22,9 +22,13 @@ Fases del proyecto:
 - Sprint 1: Multi-idioma (ES/EN/FR/DE), Windows nativo, PWA responsive,
   Telegram bot bridge. ZOE ahora habla 4 idiomas, funciona en Windows,
   es instalable como app móvil, y se puede usar desde Telegram.
+- Sprint 2: Multi-modal (Visión VLM + Voz STT/TTS + cápsula multimodal).
+  ZOE puede ver imágenes, escuchar voz, y hablar. 3 nuevos sentidos/actuadores.
+- Sprint 3: Formato .zoe (PatternSpeaker + ZoePackager). ZOE puede funcionar
+  SIN LLM externo usando patrones. Se empaqueta en un archivo .zoe portátil.
 """
 
 __version__ = "1.7.0"
-__phase__ = "sprint1"
+__phase__ = "sprint3"
 __author__ = "Fernando Fondillo"
 __license__ = "Apache-2.0"

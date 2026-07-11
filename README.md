@@ -3,13 +3,13 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento intercambiables y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue)](docs/REFERENCE/CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1008%2F1008%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-blue)](docs/REFERENCE/CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-373%2F373%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
-[![Capsules](https://img.shields.io/badge/capsules-13%20available-teal)](docs/06_CAPSULES_GUIDE.md)
+[![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
 [![Marketplace](https://img.shields.io/badge/marketplace-open%20for%20authors-success)](docs/07_MARKETPLACE_GUIDE.md)
-[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20complete-purple)](docs/14_ROADMAP.md)
+[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-3-purple)](docs/14_ROADMAP.md)
 
 ---
 
@@ -235,6 +235,15 @@ pytest + pytest-asyncio  # Tests
 | **ZOE Seed Mode** (semilla portátil que germina) | [Deployment Guide §Seed](docs/08_DEPLOYMENT_GUIDE.md#zoe-seed-mode) |
 | **50+ endpoints REST** | [API Reference](docs/REFERENCE/API_REFERENCE.md) |
 | **7 casos de uso** documentados | [Usage Guide §Casos de uso](docs/09_USAGE_GUIDE.md#casos-de-uso) |
+| **Multi-idioma** (ES, EN, FR, DE) | Sprint 1 — `LanguageDetector` |
+| **Windows nativo** + installer PowerShell | Sprint 1 — `install_windows.ps1` |
+| **PWA** (instalable como app móvil) | Sprint 1 — manifest + responsive CSS |
+| **Telegram bot** bridge | Sprint 1 — `telegram_bridge.py` |
+| **Multi-modal** (Visión VLM + Voz STT/TTS) | Sprint 2 — `multimodal.py` |
+| **Cápsula multimodal_perception** | Sprint 2 — 14ª cápsula |
+| **PatternSpeaker** (generación sin LLM) | Sprint 3 — `pattern_speaker.py` |
+| **Formato .zoe** (organismo en un archivo) | Sprint 3 — `zoe_packager.py` |
+| **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
 | **1008 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
@@ -242,12 +251,14 @@ pytest + pytest-asyncio  # Tests
 
 ## Estado actual
 
-**Versión:** V1.6.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G
-**Tests:** 1008 tests, 100% pasando
-**Cápsulas:** 13 operativas
+**Versión:** V1.7.0 (Julio 2026)
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3
+**Tests:** 373+ tests, 100% pasando
+**Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 50+
+**Idiomas:** 4 (ES, EN, FR, DE)
+**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil, Telegram
 **Líneas de código:** ~41.000 LOC Python + ~16.300 LOC tests
 
 ### Roadmap resumido
@@ -271,8 +282,10 @@ pytest + pytest-asyncio  # Tests
 | ✅ | 7D — Embodiment Composer | Boot sequence 7A→7B→7C→7D |
 | ✅ | 7E — ZOE Seed Mode | Semilla portátil que germina en cualquier host |
 | ✅ | 7G — Hardware Optimization | P-cores + IQ2_M + flash-attn + SSDs + endpoints |
-| 🟡 | App móvil | PWA/React Native |
-| 🟡 | Bot Telegram | Interfaz alternativa |
+| ✅ | Sprint 1 — Multi-idioma + Windows + PWA + Telegram | 4 idiomas, Windows nativo, PWA móvil, bot Telegram |
+| ✅ | Sprint 2 — Multi-modal | Visión (VLM) + Voz (STT/TTS) + cápsula multimodal |
+| ✅ | Sprint 3 — Formato .zoe | PatternSpeaker (sin LLM) + ZoePackager + .zoe portátil |
+| 🟡 | Sprint 4 — Voice-first | Conversación por voz tipo Her + wake word |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)
@@ -403,6 +416,6 @@ limitations under the License.
 
 ---
 
-*ZOE V1.6.0 — Synthetic Cognitive Organism (SCO).*
-*1008 tests · 13 cápsulas · 7 casos de uso · 8 fases completas (0-7G) · 95 archivos Python · 41.000+ LOC*
+*ZOE V1.7.0 — Synthetic Cognitive Organism (SCO).*
+*373+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 8 plataformas · Sprint 1-3 completos*
 *"ZOE no es un modelo que responde. Es un organismo que existe."*
