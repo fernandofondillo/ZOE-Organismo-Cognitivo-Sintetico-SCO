@@ -9,7 +9,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
 [![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
 [![Marketplace](https://img.shields.io/badge/marketplace-open%20for%20authors-success)](docs/07_MARKETPLACE_GUIDE.md)
-[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-4-purple)](docs/14_ROADMAP.md)
+[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-5.5-purple)](docs/14_ROADMAP.md)
 [![.zoe](https://img.shields.io/badge/.zoe%20format-portable%20organism-orange)](docs/16_ZOE_FORMAT.md)
 
 ---
@@ -247,16 +247,19 @@ pytest + pytest-asyncio  # Tests
 | **Formato .zoe** (organismo en un archivo) | Sprint 3 — `zoe_packager.py` |
 | **ZoeRuntime** (ejecutar .zoe sin dependencias) | Sprint 3.5 — `zoe_runtime.py` |
 | **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
+| **Cognitive Optimization Layer** (.zmap + CPL + TPE) | Sprint 5 — `cognitive_optimization.py` |
+| **Model Downloader** (IQ2_M de HuggingFace + Modelfile Ollama) | Sprint 5.5 — `model_downloader.py` |
+| **zoe-setup** (asistente interactivo de instalación) | Sprint 5.5 — `zoe_setup.py` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
-| **1008 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+| **552 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
 ---
 
 ## Estado actual
 
-**Versión:** V1.7.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4
-**Tests:** 435+ tests, 100% pasando
+**Versión:** V1.8.0 (Julio 2026)
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5
+**Tests:** 552+ tests, 100% pasando
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 50+
@@ -291,6 +294,8 @@ pytest + pytest-asyncio  # Tests
 | ✅ | Sprint 3.5 — ZoeRuntime | Runtime mínimo para ejecutar .zoe sin dependencias |
 | ✅ | Sprint 3.6 — Enhanced PatternSpeaker | Destilación + retrieval + dialog state (sin LLM, más capaz) |
 | ✅ | Sprint 4 — Voice-first mode | Conversación natural por voz + wake word + interrupción |
+| ✅ | Sprint 5 — Cognitive Optimization Layer | .zmap + Cognitive Prefetch Layer + Tensor Prediction Engine |
+| ✅ | Sprint 5.5 — Model Downloader + zoe-setup | IQ2_M de HuggingFace + Modelfile Ollama + asistente interactivo |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)
