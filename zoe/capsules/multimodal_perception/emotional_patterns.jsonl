@@ -1,0 +1,3 @@
+{"id": "mm_emot_001", "pattern": "voz_rapida_alta", "triggers": ["urgencia", "ansiedad", "excitacion"], "emotional_response": {"valence": -0.3, "arousal": 0.8}, "duration_hours": 1, "coping_strategy": "calmar + escuchar + validar"}
+{"id": "mm_emot_002", "pattern": "voz_lenta_pausas", "triggers": ["tristeza", "cansancio", "depresion"], "emotional_response": {"valence": -0.5, "arousal": 0.3}, "duration_hours": 4, "coping_strategy": "validar + acompañar + sugerir descanso"}
+{"id": "mm_emot_003", "pattern": "imagen_entorno_desordenado", "triggers": ["cambio_rutina", "deterioro_cognitivo", "depresion"], "emotional_response": {"valence": -0.4, "arousal": 0.5}, "duration_hours": 24, "coping_strategy": "preguntar abierta + derivar si persiste"}

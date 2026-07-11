@@ -1,0 +1,8 @@
+{"id": "mm_001", "fact": "Las imágenes proporcionan contexto visual que el texto no puede capturar", "source": "perception studies", "confidence": 0.90, "domain": "perception"}
+{"id": "mm_002", "fact": "El tono de voz revela emociones que el texto solo no muestra", "source": "prosody research", "confidence": 0.88, "domain": "perception"}
+{"id": "mm_003", "fact": "La velocidad del habla indica urgencia o calma", "source": "speech analysis", "confidence": 0.85, "domain": "perception"}
+{"id": "mm_004", "fact": "Las pausas en el habla pueden indicar dudas o emociones reprimidas", "source": "psycholinguistics", "confidence": 0.82, "domain": "perception"}
+{"id": "mm_005", "fact": "Un pastillero desordenado puede indicar olvidos de medicación", "source": "geriatric care", "confidence": 0.85, "domain": "healthcare.elders"}
+{"id": "mm_006", "fact": "Las capturas de pantalla de errores contienen stack traces útiles para diagnóstico", "source": "SRE practices", "confidence": 0.90, "domain": "tech.devops"}
+{"id": "mm_007", "fact": "Las imágenes de documentos pueden extraerse texto con OCR", "source": "computer vision", "confidence": 0.92, "domain": "perception"}
+{"id": "mm_008", "fact": "La combinación de imagen y texto proporciona mejor contexto que cualquiera por separado", "source": "multimodal learning", "confidence": 0.88, "domain": "perception"}

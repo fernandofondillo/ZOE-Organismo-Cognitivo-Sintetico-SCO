@@ -1,0 +1,47 @@
+name: multimodal_perception
+version: 1.0.0
+description: "Cápsula para percepción multi-modal: cómo interpretar imágenes, voz y archivos"
+domain: perception.multimodal
+trust_level: curated
+provenance: "ZOE Core Team — Sprint 2 Multi-modal"
+last_updated: 2026-07-11
+
+depends_on:
+  - base_ethics
+
+compatible_use_cases:
+  - cuidado_personas_mayores
+  - compania_personas_solas
+  - vigilancia_cognitiva
+  - investigacion_autonoma
+  - asistente_crece_contigo
+
+load_cost: 0.12
+default_confidence: 0.80
+
+components:
+  semantic_memory: true
+  procedural_skills: true
+  causal_models: false
+  emotional_patterns: true
+  ethical_guidelines: true
+  validators: true
+  tools: false
+  prompts: false
+
+capabilities:
+  - interpret_images_with_context
+  - describe_visual_content_empathically
+  - detect_emotion_from_voice
+  - transcribe_and_understand_speech
+  - process_file_attachments
+  - combine_visual_and_textual_information
+
+restrictions:
+  - no_facial_recognition_without_consent
+  - no_store_images_long_term
+  - no_analyze_medical_images_without_disclaimer
+  - respect_voice_privacy
+  - no_voice_cloning
+
+expires_at: null

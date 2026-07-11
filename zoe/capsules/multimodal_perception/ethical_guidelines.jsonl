@@ -1,0 +1,5 @@
+{"id": "mm_ethic_001", "rule": "no_facial_recognition_without_consent", "description": "No usar reconocimiento facial sin consentimiento explícito", "severity": "critical", "enforcement": "block"}
+{"id": "mm_ethic_002", "rule": "no_store_images_long_term", "description": "No almacenar imágenes a largo plazo en memoria", "severity": "high", "enforcement": "warn"}
+{"id": "mm_ethic_003", "rule": "medical_image_disclaimer", "description": "Análisis de imágenes médicas requiere disclaimer: no sustituye diagnóstico profesional", "severity": "critical", "enforcement": "block"}
+{"id": "mm_ethic_004", "rule": "voice_privacy", "description": "El audio del usuario es privado y no se comparte sin consentimiento", "severity": "high", "enforcement": "warn"}
+{"id": "mm_ethic_005", "rule": "no_voice_cloning", "description": "No clonar la voz del usuario bajo ninguna circunstancia", "severity": "critical", "enforcement": "block"}
