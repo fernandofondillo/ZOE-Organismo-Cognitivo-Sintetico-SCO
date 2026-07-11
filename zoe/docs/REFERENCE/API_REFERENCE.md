@@ -192,9 +192,17 @@ Estado de federación.
 
 ---
 
+## PWA (Sprint 1)
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/manifest.json` | GET | PWA manifest para instalación en móvil |
+
+---
+
 **Total: 50+ endpoints REST**
 
 ---
 
-*ZOE V1.6.0 — API Reference*
+*ZOE V1.7.0 — API Reference*
 *Julio 2026*

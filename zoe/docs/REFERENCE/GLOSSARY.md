@@ -71,7 +71,29 @@
 | **Trust Level** | Nivel de confianza de una cápsula: verified, curated, community, experimental. |
 | **Umbrella Model Bus (UMB)** | Ver ModelBus. |
 | **ZOE Seed** | Semilla portátil que germina en cualquier host (Fase 7E). |
+| **.zoe** | Formato de archivo portable que contiene un organismo ZOE completo (memoria + cápsulas + patrones + config). Sprint 3. |
+| **PatternSpeaker** | LLMPeripheral que genera lenguaje SIN LLM usando patrones, memoria y templates. Sprint 3. |
+| **EnhancedPatternSpeaker** | PatternSpeaker mejorado con destilación de respuestas, retrieval de cápsulas y dialog state tracking. Sprint 3.6. |
+| **ZoePackager** | Empaquetador de organismos ZOE en formato .zoe. Sprint 3. |
+| **ZoeRuntime** | Runtime mínimo incluido en .zoe para ejecutar sin dependencias. Sprint 3.5. |
+| **ResponseDistiller** | Captura respuestas buenas de LLMs (GPT-4o, Claude) y las almacena para reutilizar sin LLM. Sprint 3.6. |
+| **CapsuleRetriever** | Recupera knowledge relevante de las cápsulas para enriquecer respuestas. Sprint 3.6. |
+| **DialogStateTracker** | Rastrea emoción, tema y turnos de conversación. Sprint 3.6. |
+| **LanguageDetector** | Detecta idioma del usuario por heurística de stopwords (<10ms). Sprint 1. |
+| **LanguageProfile** | System prompts, reflex maps y validators por idioma. Sprint 1. |
+| **VLMPeripheral** | LLM con capacidad de visión (GPT-4o, Claude, LLaVA). Sprint 2. |
+| **VisionSense** | Sentido que procesa imágenes y genera Observations. Sprint 2. |
+| **VoiceInputSense** | Sentido STT con Whisper que transcribe audio a texto. Sprint 2. |
+| **VoiceActuator** | Actuador TTS con Piper que genera voz natural local. Sprint 2. |
+| **VoiceFirstMode** | Conversación natural por voz tipo Her con wake word e interrupción. Sprint 4. |
+| **WakeWordDetector** | Detecta "Hey ZOE" para activar escucha. Sprint 4. |
+| **VoiceActivityDetector** | Detecta cuándo el usuario habla/termina (VAD). Sprint 4. |
+| **InterruptionHandler** | Maneja interrupciones del usuario durante la respuesta de ZOE. Sprint 4. |
+| **TelegramBridge** | Puente entre Telegram y ZOE. Sprint 1. |
+| **PWA** | Progressive Web App. Dashboard instalable como app móvil. Sprint 1. |
+| **DistilledResponse** | Respuesta capturada de un LLM de calidad para reutilizar sin LLM. Sprint 3.6. |
+| **VoiceConfig** | Configuración del Voice-first mode (wake word, STT, TTS, VAD). Sprint 4. |
 
 ---
 
-*ZOE V1.6.0 — Glossary*
+*ZOE V1.7.0 — Glossary*

@@ -161,5 +161,48 @@ ModelOptimizer.get_cable_warning()
 
 ---
 
-*ZOE V1.6.0 — Documento 10: Hardware Optimization*
+## 12. Voice-first mode — dependencias (Sprint 4)
+
+Voice-first mode usa componentes que requieren hardware específico:
+
+| Componente | Dependencia | Instalación | HW requerido |
+|---|---|---|---|
+| **Whisper STT** | `openai-whisper` | `pip install openai-whisper` | CPU (GPU opcional para speed) |
+| **Piper TTS** | `piper` binario | [github.com/rhasspy/piper](https://github.com/rhasspy/piper) | CPU |
+| **openWakeWord** | `openwakeword` | `pip install openwakeword` | CPU |
+| **webrtcvad** | `webrtcvad` | `pip install webrtcvad` | CPU |
+| **Audio capture** | `sounddevice` + `numpy` | `pip install sounddevice numpy` | Micrófono |
+| **Audio playback** | `ffplay` / `afplay` / `aplay` | Incluido en la mayoría de SO | Altavoz |
+
+### Modelos Whisper por tamaño
+
+| Modelo | Tamaño | RAM | Velocidad (CPU) | Velocidad (GPU) |
+|---|---|---|---|---|
+| tiny | 75 MB | 1 GB | ~10x realtime | ~30x |
+| base | 142 MB | 1 GB | ~5x realtime | ~15x |
+| small | 466 MB | 2 GB | ~2x realtime | ~8x |
+| medium | 1.5 GB | 5 GB | ~1x realtime | ~4x |
+| large | 3 GB | 10 GB | ~0.5x realtime | ~2x |
+
+**Recomendado:** `base` para MacBook Air 8GB (balance velocidad/calidad).
+
+### Voces Piper por idioma
+
+| Idioma | Voz recomendada | Género |
+|---|---|---|
+| Español | `es_ES-davefx-medium` | Masculino |
+| Inglés | `en_US-lessac-medium` | Femenino |
+| Francés | `fr_FR-siwis-medium` | Femenino |
+| Alemán | `de_DE-thorsten-medium` | Masculino |
+
+### Sin dependencias instaladas
+
+Si no hay Whisper/Piper/openWakeWord/webrtcvad instalados, Voice-first mode no falla:
+- Usa **fallback por energía** para wake word y VAD
+- STT/TTS no disponibles → informa al usuario qué instalar
+- Push-to-talk mode si no hay wake word detector
+
+---
+
+*ZOE V1.7.0 — Documento 10: Hardware Optimization*
 *Julio 2026*

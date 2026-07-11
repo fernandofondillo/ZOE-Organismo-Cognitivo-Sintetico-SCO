@@ -648,48 +648,56 @@ ZOE puede cambiar de LLM sin reiniciar, manteniendo memoria e identidad.
 ### 5.1 Desde CLI
 
 ```bash
-# Cambiar a Anthropic
 zoe> /llm anthropic claude-sonnet-4-20250514
-
-# Cambiar a OpenAI
 zoe> /llm openai_compatible gpt-4o
-
-# Cambiar a Ollama
 zoe> /llm ollama qwen2.5:7b
-
-# Cambiar a Mock (sin LLM)
 zoe> /llm mock
 ```
 
 ### 5.2 Desde Dashboard
 
-1. Clic en el selector de LLM de la top bar
-2. Seleccionar backend del dropdown
-3. (Si cloud) Introducir API key si no está configurada
-4. Clic en "Aplicar"
+Selector de LLM en la top bar → elegir backend → aplicar.
 
-El cambio es instantáneo. La memoria, identidad y trayectoria se conservan.
+### 5.3 PatternSpeaker (sin LLM) — Sprint 3
 
-### 5.3 Desde API REST
+ZOE puede funcionar SIN ningún LLM usando PatternSpeaker:
 
 ```bash
-curl -X POST http://localhost:8642/llm \
-  -H "Content-Type: application/json" \
-  -d '{
-    "backend": "anthropic",
-    "model": "claude-sonnet-4-20250514",
-    "api_key": "sk-ant-..."
-  }'
+# CLI con PatternSpeaker
+zoe-chat --backend pattern
+
+# Dashboard con PatternSpeaker (sin Ollama, sin cloud)
+zoe-dashboard --backend pattern
 ```
 
-### 5.4 Backends disponibles
+PatternSpeaker genera respuestas desde:
+1. Respuestas destiladas de LLM (Sprint 3.6 — si hay destiladas)
+2. Conocimiento de cápsulas (Sprint 3.6 — retrieval)
+3. Templates básicos (Sprint 3)
+
+### 5.4 Enhanced PatternSpeaker — Sprint 3.6
+
+Para máxima calidad sin LLM, usar EnhancedPatternSpeaker:
+
+```python
+from zoe.peripherals.enhanced_pattern_speaker import EnhancedPatternPeripheral
+
+llm = EnhancedPatternPeripheral(
+    memory=living_memory,
+    distilled_responses_path="distilled_responses.jsonl",
+    capsules_dir="zoe/capsules",
+)
+```
+
+### 5.5 Backends disponibles
 
 | Backend | Modelos | Privacidad | Coste |
 |---|---|---|---|
 | `mock` | — | Total | Gratis |
-| `ollama` | qwen2.5:3b/7b/14b/32b/72b, llama3.1:8b/70b, etc. | Total (local) | Gratis |
-| `openai_compatible` | gpt-4o, deepseek-chat, moonshot-v1-8k, etc. | Cloud | €0.01-0.05/respuesta |
-| `anthropic` | claude-sonnet-4, claude-opus-4, claude-haiku | Cloud | €0.01-0.03/respuesta |
+| `pattern` | PatternSpeaker | Total | Gratis |
+| `ollama` | qwen2.5:3b/7b/14b/32b/72b | Total (local) | Gratis |
+| `openai_compatible` | gpt-4o, deepseek-chat, etc. | Cloud | €0.01-0.05/respuesta |
+| `anthropic` | claude-sonnet-4, etc. | Cloud | €0.01-0.03/respuesta |
 | `zai` | glm-4.6 | Cloud | Variable |
 
 ---
@@ -887,7 +895,102 @@ cp /backups/memory_20260710.db /opt/zoe/data/memory.db
 
 ---
 
-## 10. Apagar ZOE correctamente
+## 10. Telegram bot (Sprint 1)
+
+ZOE se puede usar desde Telegram sin instalar app nativa.
+
+### 10.1 Configurar bot
+
+```bash
+# 1. Crear bot en Telegram (hablar con @BotFather, obtener token)
+# 2. Instalar dependencia
+pip install python-telegram-bot
+
+# 3. Ejecutar bridge
+python -m zoe.peripherals.telegram_bridge \
+  --token TU_BOT_TOKEN \
+  --zoe-url http://localhost:8642 \
+  --mode api
+```
+
+### 10.2 Comandos Telegram
+
+| Comando | Descripción |
+|---|---|
+| `/start` | Iniciar conversación |
+| `/help` | Ayuda |
+| `/stats` | Estadísticas del organismo |
+| `/sleep` | Forzar SLEEPING |
+| `/wake` | Forzar AWAKE |
+
+### 10.3 Modos
+
+- **`api`**: ZOE corre en VPS con Dashboard. TelegramBridge envía peticiones REST.
+- **`direct`**: TelegramBridge crea ZoeChat directamente (sin Dashboard).
+
+### 10.4 Restricción de usuarios
+
+```bash
+# Solo permitir usuarios específicos
+python -m zoe.peripherals.telegram_bridge \
+  --token TU_TOKEN \
+  --allowed-ids 123456789,987654321
+```
+
+---
+
+## 11. Voice-first mode (Sprint 4)
+
+Conversación natural por voz, tipo "Her".
+
+### 11.1 Requisitos
+
+```bash
+pip install openai-whisper sounddevice numpy
+# Piper TTS: https://github.com/rhasspy/piper
+# openWakeWord (opcional): pip install openwakeword
+# webrtcvad (opcional): pip install webrtcvad
+```
+
+### 11.2 Ejecutar
+
+```bash
+# Modo wake word (automático)
+python -m zoe.peripherals.voice_first \
+  --zoe-url http://localhost:8642 \
+  --wake-word "hey zoe"
+
+# Modo push-to-talk (sin wake word)
+python -m zoe.peripherals.voice_first --mode push_to_talk
+
+# Con configuración custom
+python -m zoe.peripherals.voice_first \
+  --wake-word "hola zoe" \
+  --stt-model small \
+  --tts-voice es_ES-davefx-medium
+```
+
+### 11.3 Flujo
+
+```
+Hey ZOE → ZOE escucha → transcribe con Whisper →
+procesa con bucle cognitivo → sintetiza con Piper →
+reproduce voz (con detección de interrupción) → vuelve a escuchar
+```
+
+### 11.4 Estados
+
+| Estado | Significado |
+|---|---|
+| IDLE | Esperando wake word |
+| LISTENING | Usuario está hablando |
+| PROCESSING | ZOE está pensando |
+| SPEAKING | ZOE está hablando |
+| INTERRUPTED | Usuario interrumpió a ZOE |
+
+---
+
+## 12. Apagar ZOE correctamente
 
 ### 10.1 Desde CLI
 

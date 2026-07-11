@@ -5,6 +5,60 @@
 
 ---
 
+## [1.7.0] — Julio 2026
+
+### Added — Sprint 1: Multi-idioma + Windows + PWA + Telegram
+- **LanguageDetector** (`zoe/core/language_detector.py`): detección de idioma por heurística de stopwords (<10ms, sin LLM). 4 idiomas: ES, EN, FR, DE.
+- **LanguageProfile**: system prompts, reflex maps, validator keywords, ethical disclaimers y cultural notes por idioma.
+- **Windows nativo**: detección de drives D:-Z: en `ResourceDiscoverySense` y `ZOESeed`. Installer PowerShell (`install_windows.ps1`). Scripts `.bat` launchers.
+- **PWA responsive**: manifest.json endpoint, meta tags apple-mobile-web-app, CSS responsive 768px/480px. Instalable como app móvil.
+- **Telegram bot bridge** (`zoe/peripherals/telegram_bridge.py`): puente entre Telegram y ZOE. 2 modos (api/direct). Comandos /start /help /stats /sleep /wake. Maneja texto, voz y fotos.
+- 56 tests nuevos.
+
+### Added — Sprint 2: Multi-modal (Visión + Voz)
+- **VLMPeripheral** (`zoe/peripherals/multimodal.py`): LLM con capacidad de visión. 3 backends: OpenAI GPT-4o, Anthropic Claude, Ollama LLaVA.
+- **VisionSense**: sentido que procesa imágenes. `inject_image(bytes, prompt)` → Observation con descripción.
+- **VoiceInputSense**: STT con Whisper. `inject_audio(bytes)` → transcribe → Observation. Captura desde micrófono.
+- **VoiceActuator**: TTS con Piper. `execute(action)` → genera voz → reproduce. Local, gratis, multilingüe.
+- **Cápsula `multimodal_perception`** (14ª): 8 entries semánticas, 3 skills, 3 patrones emocionales, 5 directrices éticas, validators.
+- 29 tests nuevos.
+
+### Added — Sprint 3: Formato .zoe (PatternSpeaker + ZoePackager)
+- **PatternPeripheral** (`zoe/peripherals/pattern_speaker.py`): LLMPeripheral que genera lenguaje SIN LLM. Clasifica intención (<1ms), busca en memoria, usa templates. Streaming simulado.
+- **ZoePackager** (`zoe/core/zoe_packager.py`): empaqueta organismo ZOE completo en archivo `.zoe` (tarball). `package()`, `unpackage()`, `inspect()`. Incluye memory.db, capsules, config, manifest.json.
+- **Cápsula `language_patterns`** (15ª): patrones de lenguaje para generación sin LLM. 5 semánticas, 2 skills, 3 éticas, validators.
+- 35 tests nuevos.
+
+### Added — Sprint 3.5: ZoeRuntime
+- **zoe_runtime.py** (`zoe/core/zoe_runtime.py`): runtime mínimo que se incluye dentro de cada `.zoe`. Funciona con SOLO Python stdlib (sin pip install). Carga memory.db, capsules, identity. Detecta backends (pattern/embedded/ollama/cloud). CLI interactivo + Dashboard web mínimo con `http.server`.
+- 32 tests nuevos.
+
+### Added — Sprint 3.6: Enhanced PatternSpeaker
+- **EnhancedPatternPeripheral** (`zoe/peripherals/enhanced_pattern_speaker.py`): PatternSpeaker mejorado con 3 capas:
+  - **ResponseDistiller**: captura respuestas buenas de GPT-4o/Claude y las almacena en `distilled_responses.jsonl`. Recuperación por similitud léxica (Jaccard) + quality score.
+  - **CapsuleRetriever**: carga 260+ entries de 15 cápsulas. Recupera knowledge relevante para enriquecer respuestas.
+  - **DialogStateTracker**: rastrea emoción, tema, turnos. `_contextualize()` añade empatía según estado emocional.
+- 30 tests nuevos.
+
+### Added — Sprint 4: Voice-first mode
+- **VoiceFirstMode** (`zoe/peripherals/voice_first.py`): conversación natural por voz tipo "Her". Bucle continuo: wake word → grabar → transcribir → ZOE → TTS → reproducir → repetir.
+- **WakeWordDetector**: detecta "Hey ZOE" con openWakeWord (o fallback por energía).
+- **VoiceActivityDetector**: detecta cuándo usuario habla/termina con webrtcvad (o fallback por energía).
+- **InterruptionHandler**: detecta si usuario interrumpe a ZOE mientras habla.
+- 2 modos: wake_word (automático) y push_to_talk (manual). 5 estados: IDLE/LISTENING/PROCESSING/SPEAKING/INTERRUPTED.
+- 37 tests nuevos.
+
+### Changed
+- Version bump: 1.6.0 → 1.7.0
+- Tests: 253 → 472 (219 nuevos)
+- `__init__.py`: docstring actualizado con Sprint 1-4
+- README: badges, features table, roadmap, estado actual actualizados
+- `web_dashboard.py`: meta tags PWA + CSS responsive + endpoint manifest.json
+- `resource_discovery.py`: detección de drives Windows
+- `seed_mode.py`: detección de semillas en Windows
+
+---
+
 ## [1.6.0] — Julio 2026
 
 ### Added

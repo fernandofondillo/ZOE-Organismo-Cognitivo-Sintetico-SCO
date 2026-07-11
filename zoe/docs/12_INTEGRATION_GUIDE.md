@@ -202,13 +202,143 @@ class MyCustomActuator(Actuator):
         return "my_custom"
     
     async def execute(self, action):
-        # Ejecutar acción
         return ActionResult(success=True, output="Done")
 ```
 
 ---
 
-## 8. Webhooks (en roadmap)
+## 8. Multi-modal (Sprint 2)
+
+### Visión (VLM)
+
+```python
+from zoe.peripherals.multimodal import VLMPeripheral, VisionSense
+
+# Crear VLM
+vlm = VLMPeripheral(backend="openai_compatible", model="gpt-4o")
+
+# Crear sense de visión
+vision = VisionSense(vlm=vlm)
+
+# Inyectar imagen
+vision.inject_image(image_bytes, "¿Qué ves en esta imagen?")
+
+# El bucle cognitivo la procesará en el próximo tick
+```
+
+### Voz (STT + TTS)
+
+```python
+from zoe.peripherals.multimodal import VoiceInputSense, VoiceActuator
+
+# STT con Whisper
+voice_input = VoiceInputSense(engine="whisper", model="base")
+await voice_input.start_listening(duration=5.0)
+
+# TTS con Piper
+voice_output = VoiceActuator(engine="piper", voice="es_ES-davefx-medium")
+await voice_output.execute({"type": "voice", "payload": "Hola, soy ZOE"})
+```
+
+---
+
+## 9. Voice-first mode (Sprint 4)
+
+```python
+from zoe.peripherals.voice_first import VoiceFirstMode, VoiceConfig
+
+# Configurar
+config = VoiceConfig(
+    wake_word="hey zoe",
+    stt_model="base",
+    tts_voice="es_ES-davefx-medium",
+    enable_interruption=True,
+)
+
+# Crear y ejecutar
+mode = VoiceFirstMode(zoe_url="http://localhost:8642", config=config)
+await mode.initialize()
+await mode.run()
+```
+
+O desde CLI:
+```bash
+python -m zoe.peripherals.voice_first --zoe-url http://localhost:8642
+```
+
+---
+
+## 10. PatternSpeaker (sin LLM) — Sprint 3
+
+```python
+from zoe.peripherals.pattern_speaker import PatternPeripheral
+
+# PatternSpeaker básico
+llm = PatternPeripheral(memory=living_memory)
+response = await llm.generate("Hola, ¿quién eres?")
+```
+
+### Enhanced PatternSpeaker — Sprint 3.6
+
+```python
+from zoe.peripherals.enhanced_pattern_speaker import EnhancedPatternPeripheral
+
+# Con destilación + retrieval + dialog state
+llm = EnhancedPatternPeripheral(
+    memory=living_memory,
+    distilled_responses_path="distilled_responses.jsonl",
+    capsules_dir="zoe/capsules",
+)
+response = await llm.generate("Mi madre toma paracetamol, ¿puede con alcohol?")
+# Respuesta enriquecida con knowledge de cápsulas + respuestas destiladas
+```
+
+### Destilar respuestas de LLM
+
+```python
+from zoe.peripherals.enhanced_pattern_speaker import ResponseDistiller
+
+distiller = ResponseDistiller("distilled_responses.jsonl")
+
+# Después de una buena respuesta de GPT-4o:
+distiller.distill(
+    input_text="¿Qué es la paracetamol?",
+    response_text="La paracetamol es un analgésico...",
+    source="gpt-4o",
+    quality_score=0.95,
+)
+# Esta respuesta se reutilizará sin necesidad de GPT-4o en el futuro
+```
+
+---
+
+## 11. Formato .zoe (Sprint 3)
+
+```python
+from zoe.core.zoe_packager import ZoePackager
+
+packager = ZoePackager()
+
+# Empaquetar organismo completo
+packager.package(
+    output_path="mi_zoe.zoe",
+    organism_id="zoe_fernando",
+    memory_db="zoe_data/memory.db",
+    capsules_dir="zoe/capsules",
+    embedded_model_path="models/qwen2.5:3b.gguf",  # opcional
+)
+
+# Inspeccionar sin desempaquetar
+manifest = packager.inspect("mi_zoe.zoe")
+
+# Desempaquetar
+packager.unpackage("mi_zoe.zoe", "/path/to/output")
+# cd /path/to/output && python zoe_runtime.py
+```
+
+---
+
+## 12. Webhooks (en roadmap)
 
 ZOE podrá enviar webhooks a sistemas externos:
 - `on_thought` — cuando ZOE genera pensamiento autónomo

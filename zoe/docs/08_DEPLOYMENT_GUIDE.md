@@ -698,34 +698,58 @@ zoe-chat --backend ollama --model qwen2.5:7b
 
 ## 9. Portátil Windows
 
-### 9.1 Vía WSL2 (recomendado)
+### 9.1 Windows nativo (Sprint 1 — recomendado)
 
-ZOE no tiene soporte nativo para Windows todavía. La forma recomendada es usar WSL2 (Windows Subsystem for Linux).
+ZOE tiene soporte nativo para Windows desde V1.7.0 (Sprint 1).
 
-**Paso 1: Instalar WSL2**
+**Paso 1: Instalar dependencias**
 
 ```powershell
-# En PowerShell como administrador
+# Instalar Python 3.10+ desde https://python.org
+# Instalar Git desde https://git-scm.com
+# (Opcional) Instalar Ollama desde https://ollama.com
+```
+
+**Paso 2: Instalar ZOE con el installer PowerShell**
+
+```powershell
+# Descargar y ejecutar installer
+.\install_windows.ps1
+```
+
+El installer:
+1. Verifica Python y Git
+2. Selecciona disco de instalación (D:, E:, o local)
+3. Clona el repositorio
+4. Crea entorno virtual
+5. Instala dependencias
+6. Crea 4 scripts `.bat` launchers (Chat Mock, Chat Ollama, Dashboard Mock, Dashboard Ollama)
+7. Configura API key opcional
+
+**Paso 3: Ejecutar ZOE**
+
+```cmd
+# Doble clic en ZOE-Chat.bat (modo Mock)
+# Doble clic en ZOE-Chat-Ollama.bat (con Ollama)
+# Doble clic en ZOE-Dashboard.bat (Dashboard web)
+```
+
+**Detección automática de drives Windows:**
+- `ResourceDiscoverySense` detecta drives D: a Z: automáticamente
+- `ZOESeed.detect_seed_volume()` busca semillas en drives Windows
+- `ZOESeed.list_seed_paths()` incluye paths Windows
+
+### 9.2 Vía WSL2 (alternativa)
+
+Si prefieres usar WSL2:
+
+```powershell
 wsl --install -d Ubuntu-24.04
 ```
 
-**Paso 2: Dentro de WSL2, instalar ZOE como en Linux**
+Dentro de WSL2, instalar ZOE como en Linux (ver §8).
 
-```bash
-# Dentro de WSL2
-sudo apt update
-sudo apt install -y python3.12 python3.12-venv git
-
-git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
-cd ZOE-Organismo-Cognitivo-Sintetico-SCO
-python3.12 -m venv venv
-source venv/bin/activate
-pip install -e .
-
-zoe-chat --backend mock
-```
-
-### 9.2 Limitaciones actuales
+### 9.3 Limitaciones actuales
 
 - No soporte nativo para Windows (en roadmap 2027)
 - Detección de pendrive USB en WSL2 requiere configuración adicional
@@ -1052,9 +1076,31 @@ ZOE Cloud estará disponible en Q4 2026 con:
 
 ## 14. Migración entre plataformas (ZOE Seed Mode)
 
-ZOE Seed Mode (Fase 7E) permite migrar ZOE entre plataformas sin perder identidad ni memoria.
+ZOE Seed Mode (Fase 7E) permite migrar ZOE entre plataformas sin perder identidad ni memoria. El formato .zoe (Sprint 3) es la forma más portable: un archivo contiene todo el organismo.
 
-### 14.1 Pendrive → VPS
+### 14.1 Formato .zoe (Sprint 3 — portable)
+
+```python
+from zoe.core.zoe_packager import ZoePackager
+
+# Crear .zoe
+packager = ZoePackager()
+packager.package(
+    output_path="mi_zoe.zoe",
+    organism_id="zoe_fernando",
+    memory_db="zoe_data/memory.db",
+    capsules_dir="zoe/capsules",
+    config_path="zoe/config/production.yaml",
+)
+
+# Desempaquetar y ejecutar sin dependencias
+packager.unpackage("mi_zoe.zoe", "/path/to/output")
+# cd /path/to/output && python zoe_runtime.py
+```
+
+Ver [`16_ZOE_FORMAT.md`](16_ZOE_FORMAT.md) para detalle completo del formato.
+
+### 14.2 Pendrive → VPS
 
 ```bash
 # 1. En el Mac, crear semilla en el SSD

@@ -559,18 +559,25 @@ Puedes cambiar de LLM sin perder nada. Un día usas GPT-4o (calidad), otro día 
 
 ---
 
-## 9. Estado actual V1.6.0
+## 9. Estado actual V1.7.0
 
 ### Completado (✅)
 
 - **17 fases completas** (0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G)
-- **1008 tests automatizados**, 100% pasando
-- **13 cápsulas de conocimiento** operativas
+- **6 sprints completos** (Sprint 1, 2, 3, 3.5, 3.6, 4)
+- **472 tests automatizados**, 100% pasando
+- **15 cápsulas de conocimiento** operativas (13 originales + multimodal_perception + language_patterns)
 - **7 casos de uso** documentados
 - **50+ endpoints REST** + WebSocket
-- **6 backends LLM** (Mock, Ollama, OpenAI, Anthropic, ZAI, OpenAI-compatible)
-- **41.000+ LOC** Python + 16.300 LOC tests
-- **95 archivos Python**
+- **6 backends LLM + PatternSpeaker + EnhancedPatternSpeaker** (8 total)
+- **4 idiomas** (ES, EN, FR, DE) con detección automática
+- **9 plataformas** (macOS, Linux, Windows, Docker, K8s, PWA, Telegram, .zoe, Voice-first)
+- **43.000+ LOC** Python + 18.000+ LOC tests
+- **100+ archivos Python**
+- **Formato .zoe** portable (organismo completo en un archivo)
+- **Voice-first mode** (conversación natural por voz tipo Her)
+- **Multi-modal** (visión VLM + voz STT/TTS)
+- **PatternSpeaker** (funciona sin LLM usando patrones + destilación + retrieval)
 - **ZOE Seed Mode** funcional (semilla portátil que germina)
 - **Modelos 70B en Mac 8GB** vía mmap + IQ2_M
 - **Federación B2B** con quorum y veto por valores
@@ -580,24 +587,25 @@ Puedes cambiar de LLM sin perder nada. Un día usas GPT-4o (calidad), otro día 
 
 ### En roadmap (🟡)
 
-- **App móvil PWA** (Q3 2026)
-- **Bot Telegram** (Q4 2026)
 - **Pasarela de pago Stripe** (Q4 2026)
 - **Cloud gestionado** (Q1 2027)
-- **Multi-modal** (visión, voz) (2027)
-- **Soporte Windows nativo** (2027)
+- **ZOE Puck hardware** (Q4 2026)
+- **App iOS/Android nativa** (Q1 2027)
+- **Multi-idioma ampliado** — IT, PT, NL (Q1 2027)
 
 ### Métricas del proyecto
 
 | Métrica | Valor |
 |---|---|
-| Versión | V1.6.0 |
-| Fases completas | 17 (0 a 7G) |
-| Tests | 1008 (100% pass) |
-| Cápsulas | 13 |
+| Versión | V1.7.0 |
+| Fases completas | 17 (0 a 7G) + 6 Sprints |
+| Tests | 472 (100% pass) |
+| Cápsulas | 15 |
 | Casos de uso | 7 |
 | Endpoints REST | 50+ |
-| Backends LLM | 6 |
+| Backends LLM | 8 (6 LLM + Pattern + Enhanced) |
+| Idiomas | 4 (ES, EN, FR, DE) |
+| Plataformas | 9 |
 | Archivos Python | 95 |
 | LOC Python | ~41.000 |
 | LOC Tests | ~16.300 |
