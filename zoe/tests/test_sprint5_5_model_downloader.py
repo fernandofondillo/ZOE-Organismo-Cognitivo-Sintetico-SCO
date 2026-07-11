@@ -26,7 +26,7 @@ class TestOptimizedModelsCatalog:
 
     def test_catalog_has_models(self):
         """El catálogo tiene modelos."""
-        assert len(OPTIMIZED_MODELS) > 0
+        assert len(OPTIMIZED_MODELS) >= 9  # 5 originales + 4 nuevos
 
     def test_qwen_32b_iq2_exists(self):
         """Qwen 2.5 32B IQ2_M está en el catálogo."""
@@ -39,6 +39,31 @@ class TestOptimizedModelsCatalog:
     def test_llama_70b_iq2_exists(self):
         """Llama 3.1 70B IQ2_M está en el catálogo."""
         assert "llama3.1:70b-iq2" in OPTIMIZED_MODELS
+
+    def test_qwq_32b_iq2_exists(self):
+        """QwQ-32B IQ2_M está en el catálogo."""
+        assert "qwq-32b-iq2" in OPTIMIZED_MODELS
+        model = OPTIMIZED_MODELS["qwq-32b-iq2"]
+        assert "razonamiento" in model.description.lower()
+
+    def test_qwen_coder_32b_iq2_exists(self):
+        """Qwen 2.5 Coder 32B IQ2_M está en el catálogo."""
+        assert "qwen2.5-coder-32b-iq2" in OPTIMIZED_MODELS
+        model = OPTIMIZED_MODELS["qwen2.5-coder-32b-iq2"]
+        assert "programación" in model.description.lower() or "programacion" in model.description.lower()
+
+    def test_gemma_2_9b_iq2_exists(self):
+        """Gemma 2 9B IQ2_M está en el catálogo."""
+        assert "gemma-2-9b-iq2" in OPTIMIZED_MODELS
+        model = OPTIMIZED_MODELS["gemma-2-9b-iq2"]
+        assert model.size_gb <= 5.0  # ligero
+        assert model.recommended_ram_gb == 4.0  # funciona con poca RAM
+
+    def test_agents_a1_iq2_exists(self):
+        """Agents-A1 IQ2_M está en el catálogo."""
+        assert "agents-a1-iq2" in OPTIMIZED_MODELS
+        model = OPTIMIZED_MODELS["agents-a1-iq2"]
+        assert "MoE" in model.display_name or "agente" in model.description.lower()
 
     def test_all_models_have_hf_repo(self):
         """Todos los modelos tienen repo de HuggingFace."""
