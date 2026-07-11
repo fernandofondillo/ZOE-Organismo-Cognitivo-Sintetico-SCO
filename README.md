@@ -3,13 +3,13 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento intercambiables y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Version](https://img.shields.io/badge/version-1.7.0-blue)](docs/REFERENCE/CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-435%2F435%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
+[![Version](https://img.shields.io/badge/version-1.8.0-blue)](docs/REFERENCE/CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-510%2F510%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
 [![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
 [![Marketplace](https://img.shields.io/badge/marketplace-open%20for%20authors-success)](docs/07_MARKETPLACE_GUIDE.md)
-[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-4-purple)](docs/14_ROADMAP.md)
+[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-5-purple)](docs/14_ROADMAP.md)
 [![.zoe](https://img.shields.io/badge/.zoe%20format-portable%20organism-orange)](docs/16_ZOE_FORMAT.md)
 
 ---
@@ -247,6 +247,7 @@ pytest + pytest-asyncio  # Tests
 | **Formato .zoe** (organismo en un archivo) | Sprint 3 — `zoe_packager.py` |
 | **ZoeRuntime** (ejecutar .zoe sin dependencias) | Sprint 3.5 — `zoe_runtime.py` |
 | **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
+| **Cognitive Optimization Layer** (.zmap + CPL + TPE) | Sprint 5 — `cognitive_optimization.py` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
 | **1008 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
@@ -254,9 +255,9 @@ pytest + pytest-asyncio  # Tests
 
 ## Estado actual
 
-**Versión:** V1.7.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4
-**Tests:** 435+ tests, 100% pasando
+**Versión:** V1.8.0 (Julio 2026)
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5
+**Tests:** 510+ tests, 100% pasando
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 50+
@@ -291,6 +292,7 @@ pytest + pytest-asyncio  # Tests
 | ✅ | Sprint 3.5 — ZoeRuntime | Runtime mínimo para ejecutar .zoe sin dependencias |
 | ✅ | Sprint 3.6 — Enhanced PatternSpeaker | Destilación + retrieval + dialog state (sin LLM, más capaz) |
 | ✅ | Sprint 4 — Voice-first mode | Conversación natural por voz + wake word + interrupción |
+| ✅ | Sprint 5 — Cognitive Optimization Layer | .zmap + Cognitive Prefetch Layer + Tensor Prediction Engine |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)
@@ -422,6 +424,6 @@ limitations under the License.
 
 ---
 
-*ZOE V1.7.0 — Synthetic Cognitive Organism (SCO).*
-*435+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Sprint 1-4 completos*
+*ZOE V1.8.0 — Synthetic Cognitive Organism (SCO).*
+*510+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Cognitive Optimization Layer · Sprint 1-5 completos*
 *"ZOE no es un modelo que responde. Es un organismo que existe."*

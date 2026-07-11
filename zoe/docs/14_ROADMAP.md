@@ -1,11 +1,11 @@
 # 14 — Roadmap
 
 > **Estado actual y roadmap futuro de ZOE.**
-> **Versión:** V1.7.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
-## 1. Estado actual (V1.7.0)
+## 1. Estado actual (V1.8.0)
 
 ### Fases completas (✅)
 
@@ -39,21 +39,22 @@
 | 3.5 | ZoeRuntime: runtime mínimo para ejecutar .zoe sin dependencias | Julio 2026 |
 | 3.6 | Enhanced PatternSpeaker: destilación + retrieval + dialog state tracking | Julio 2026 |
 | 4 | Voice-first mode: conversación natural por voz tipo Her + wake word + interrupción | Julio 2026 |
+| 5 | Cognitive Optimization Layer: .zmap + Cognitive Prefetch Layer + Tensor Prediction Engine | Julio 2026 |
 
 ### Métricas
 
 | Métrica | Valor |
 |---|---|
-| Versión | V1.7.0 |
-| Tests | 472 (100% pass) |
+| Versión | V1.8.0 |
+| Tests | 510 (100% pass) |
 | Cápsulas | 15 |
 | Casos de uso | 7 |
 | Endpoints REST | 50+ |
-| Backends LLM | 6 + PatternSpeaker + EnhancedPatternSpeaker |
+| Backends LLM | 8 + Cognitive Optimization Layer |
 | Idiomas | 4 (ES, EN, FR, DE) |
 | Plataformas | macOS, Linux, Windows, Docker, K8s, PWA, Telegram, .zoe |
-| Archivos Python | 100+ |
-| LOC Python | ~43.000 |
+| Archivos Python | 105+ |
+| LOC Python | ~45.000 |
 
 ---
 
@@ -67,6 +68,7 @@
 - ~~Multi-modal (visión + voz)~~ ✅ Sprint 2
 - ~~Formato .zoe~~ ✅ Sprint 3-3.6
 - ~~Voice-first mode~~ ✅ Sprint 4
+- ~~Cognitive Optimization Layer~~ ✅ Sprint 5
 - **10 cápsulas nuevas** de comunidad
 - **Beta privada** 50 usuarios
 
