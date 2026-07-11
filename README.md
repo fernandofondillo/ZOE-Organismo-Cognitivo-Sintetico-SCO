@@ -105,6 +105,13 @@ curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cogn
 # Doble clic en ZOE-Chat-Ollama.command (en el SSD)
 ```
 
+### Opción E — No sabes por dónde empezar
+
+```bash
+# Ejecuta el asistente interactivo — detecta qué tienes y te guía:
+python zoe/scripts/zoe_setup.py
+```
+
 **Tiempo desde clone hasta primera respuesta de ZOE: < 3 minutos.**
 
 > ⚠️ **Cable USB-C crítico**: usa SIEMPRE el cable corto que viene en la caja del SSD. El cable largo de carga del MacBook Air es USB 2.0 y limita el SSD a ~60 MB/s — **10x más lento**. Ver [Hardware Optimization](docs/10_HARDWARE_OPTIMIZATION.md#cable-usb-c) para details.
@@ -374,6 +381,7 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 | 14 | [Roadmap](docs/14_ROADMAP.md) | Todos — estado actual + futuro |
 | 15 | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) | Contribuidores — tests, contribuir, ADRs |
 | 16 | [ZOE Format (.zoe)](docs/16_ZOE_FORMAT.md) | Todos — formato .zoe portable, runtime, Enhanced PatternSpeaker |
+| 17 | [Guía de Instalación y Uso (No Técnicos)](docs/17_USER_INSTALLATION_GUIDE.md) | Todos — guía paso a paso simplificada |
 
 ### Referencia
 
