@@ -54,6 +54,16 @@
 curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/zoe-bootstrap.sh | bash
 ```
 
+> ⚠️ **Formato del SSD**: el instalador detecta automáticamente el formato. Si tu SSD está en FAT32, te avisará de que no se pueden descargar modelos grandes (>4GB).
+>
+> | Formato | Compatible con | Ideal para | Limitación |
+> |---|---|---|---|
+> | **APFS** | Mac, iPhone, iPad | Solo Apple — máxima velocidad mmap | Windows/Android no lo leen |
+> | **exFAT** | Mac, iPhone, Android, Windows | Multiplataforma — universal | Ninguna |
+> | ~~FAT32~~ | ~~Todos~~ | ~~Dispositivos antiguos~~ | ❌ No permite archivos >4GB (inútil para modelos) |
+>
+> **Recomendación:** APFS si solo usas Mac. exFAT si usas Mac + Windows/Android.
+
 El instalador te guía paso a paso:
 1. Detecta tu SSD automáticamente
 2. Verifica Python y Git

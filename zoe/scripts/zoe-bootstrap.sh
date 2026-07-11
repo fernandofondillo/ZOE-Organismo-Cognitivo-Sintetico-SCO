@@ -122,6 +122,88 @@ mkdir -p "$ZOE_HOME"
 print_ok "Instalando en: $ZOE_HOME"
 
 # ============================================================================
+# PASO 1b: Verificar formato del SSD
+# ============================================================================
+print_step "1b/8" "Verificar formato del SSD"
+
+SSD_VOLUME_PATH=$(dirname "$ZOE_HOME")
+
+detect_format_macos() {
+    local path=$1
+    # Obtener el dispositivo del volumen
+    local dev=$(diskutil info "$path" 2>/dev/null | grep "Device Node" | awk '{print $3}')
+    if [ -z "$dev" ]; then
+        # Intentar con mount
+        dev=$(mount | grep "$path" | awk '{print $1}')
+    fi
+    # Obtener tipo de filesystem
+    local fstype=$(diskutil info "$path" 2>/dev/null | grep "File System" | awk -F':+' '{print $2}' | xargs)
+    if [ -z "$fstype" ]; then
+        fstype=$(mount | grep "$path" | awk '{print $5}' | tr -d '()')
+    fi
+    echo "$fstype"
+}
+
+detect_format_linux() {
+    local path=$1
+    local fstype=$(df -T "$path" 2>/dev/null | tail -1 | awk '{print $2}')
+    if [ -z "$fstype" ]; then
+        fstype=$(mount | grep "$path" | awk '{print $5}' | tr -d '()')
+    fi
+    echo "$fstype"
+}
+
+SSD_FORMAT=""
+if [ "$PLATFORM" = "Darwin" ]; then
+    SSD_FORMAT=$(detect_format_macos "$SSD_VOLUME_PATH")
+elif [ "$PLATFORM" = "Linux" ]; then
+    SSD_FORMAT=$(detect_format_linux "$SSD_VOLUME_PATH")
+fi
+
+SSD_FORMAT_LOWER=$(echo "$SSD_FORMAT" | tr '[:upper:]' '[:lower:]')
+
+if [ -n "$SSD_FORMAT_LOWER" ]; then
+    print_info "Formato del SSD: $SSD_FORMAT"
+    
+    # Verificar si es FAT32 (incompatible con archivos >4GB)
+    if echo "$SSD_FORMAT_LOWER" | grep -qi "fat32\|msdos"; then
+        print_err "⚠️ El SSD está formateado en FAT32."
+        echo ""
+        echo -e "  ${RED}${BOLD}PROBLEMA CRÍTICO:${NC} FAT32 no permite archivos de más de 4 GB."
+        echo -e "  Los modelos de IA de ZOE pesan entre 3.5 GB y 25 GB."
+        echo -e "  La descarga FALLARÁ con error 'Archivo demasiado grande'."
+        echo ""
+        echo -e "  ${YELLOW}${BOLD}SOLUCIÓN:${NC}"
+        echo -e "  1. Abre 'Utilidad de Discos' en tu Mac"
+        echo -e "  2. Selecciona tu SSD"
+        echo -e "  3. Clic en 'Borrar'"
+        echo -e "  4. Formato: ${BOLD}APFS${NC} (solo Mac) o ${BOLD}exFAT${NC} (Mac + Windows + Android)"
+        echo -e "  5. ⚠️ Esto borrará todo el contenido del SSD"
+        echo ""
+        echo -e "  ${BOLD}Tabla de formatos:${NC}"
+        echo -e "  ${GREEN}APFS${NC}   → Solo Mac/iPhone. Máxima velocidad mmap. Recomendado si solo usas Apple."
+        echo -e "  ${GREEN}exFAT${NC}  → Mac + Windows + Android. Universal. Recomendado si usas varios dispositivos."
+        echo -e "  ${RED}FAT32${NC} → ❌ INÚTIL. No permite archivos >4GB. Los modelos no caben."
+        echo ""
+        echo -n "  ¿Quieres continuar de todas formas (sin descargar modelos grandes)? (s/N): "
+        read continue_fat32
+        if [ "$continue_fat32" != "s" ] && [ "$continue_fat32" != "S" ]; then
+            print_info "Instalación cancelada. Formatea el SSD y vuelve a ejecutar este script."
+            exit 0
+        fi
+        print_warn "Continuando con FAT32. No se descargarán modelos >4GB."
+    elif echo "$SSD_FORMAT_LOWER" | grep -qi "apfs"; then
+        print_ok "APFS detectado. Formato óptimo para Mac. Velocidad mmap máxima."
+    elif echo "$SSD_FORMAT_LOWER" | grep -qi "exfat\|ntfs"; then
+        print_ok "exFAT/NTFS detectado. Compatible con modelos grandes. Multiplataforma."
+    else
+        print_info "Formato: $SSD_FORMAT. Si tienes problemas con archivos grandes, formatea a APFS o exFAT."
+    fi
+else
+    print_info "No se pudo detectar el formato del SSD. Si tienes errores al descargar modelos, formatea a APFS (Mac) o exFAT (multiplataforma)."
+fi
+
+# ============================================================================
 # PASO 2: Verificar Python y Git
 # ============================================================================
 print_step "2/8" "Verificar Python y Git"

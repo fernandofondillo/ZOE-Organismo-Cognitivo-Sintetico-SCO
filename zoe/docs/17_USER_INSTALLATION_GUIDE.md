@@ -84,6 +84,25 @@ Un archivo `.zoe` contiene TODO: ZOE + memoria + cápsulas + patrones. No necesi
 
 **Un solo comando** configura ZOE completo en tu SSD. No necesitas saber programar.
 
+> ⚠️ **ANTES DE EMPEZAR — Formato del SSD**
+>
+> El formato del SSD es crítico. Los modelos de IA pesan entre 3.5 GB y 25 GB.
+>
+> | Formato | Compatible con | Ideal para | Limitación |
+> |---|---|---|---|
+> | **APFS** | Mac, iPhone, iPad | Solo Apple — máxima velocidad mmap | Windows/Android no lo leen |
+> | **exFAT** | Mac, iPhone, Android, Windows | Multiplataforma — universal | Ninguna |
+> | ~~FAT32~~ | ~~Todos~~ | ~~Dispositivos antiguos~~ | ❌ No permite archivos >4GB (inútil para modelos) |
+>
+> **¿Cómo formatear?**
+> 1. Abre "Utilidad de Discos" en tu Mac
+> 2. Selecciona tu SSD
+> 3. Clic en "Borrar"
+> 4. Formato: **APFS** (solo Mac) o **exFAT** (Mac + Windows + Android)
+> 5. ⚠️ Esto borrará todo el contenido del SSD
+>
+> El instalador de ZOE detecta automáticamente el formato y te avisa si es incompatible.
+
 ```bash
 # PASO 1: Conecta el SSD al Mac (usa el cable CORTO de la caja del SSD)
 # PASO 2: Abre Terminal y ejecuta:
@@ -91,7 +110,7 @@ curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cogn
 ```
 
 El instalador hace TODO automáticamente:
-1. Detecta tu SSD
+1. Detecta tu SSD y **verifica el formato** (avisa si es FAT32)
 2. Verifica Python y Git
 3. Instala ZOE + entorno virtual EN EL SSD (no carga tu Mac)
 4. Te pregunta si instalar Ollama (IA local gratis)
