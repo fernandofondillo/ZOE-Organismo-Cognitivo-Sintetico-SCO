@@ -80,7 +80,29 @@ Un archivo `.zoe` contiene TODO: ZOE + memoria + cápsulas + patrones. No necesi
 
 ## Instalación paso a paso — Elige tu escenario
 
-### Escenario A: Mac o Linux (5 minutos)
+### Escenario A: SSD/Pendrive con instalación automática (recomendado, 5 minutos)
+
+**Un solo comando** configura ZOE completo en tu SSD. No necesitas saber programar.
+
+```bash
+# PASO 1: Conecta el SSD al Mac (usa el cable CORTO de la caja del SSD)
+# PASO 2: Abre Terminal y ejecuta:
+curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/zoe-bootstrap.sh | bash
+```
+
+El instalador hace TODO automáticamente:
+1. Detecta tu SSD
+2. Verifica Python y Git
+3. Instala ZOE + entorno virtual EN EL SSD (no carga tu Mac)
+4. Te pregunta si instalar Ollama (IA local gratis)
+5. Te pregunta qué modelos descargar (Gemma, Qwen, etc.)
+6. Configura API keys opcionales
+7. Crea scripts de doble clic (.command)
+8. Arranca el Dashboard
+
+**Cuando termine, ve al SSD en Finder y doble clic en ZOE-Dashboard.command**
+
+### Escenario B: Mac o Linux (5 minutos, sin SSD)
 
 ```bash
 # PASO 1: Descargar ZOE

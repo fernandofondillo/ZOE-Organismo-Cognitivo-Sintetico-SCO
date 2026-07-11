@@ -45,44 +45,52 @@
 
 ## Quickstart (3 minutos)
 
-### Opción A — Sin LLM, sin instalación, sin coste (más fácil)
+### Opción A — Instalación automática en SSD/Pendrive (recomendado)
+
+**Un solo comando** configura ZOE completo en tu SSD: detecta hardware, instala ZOE, descarga modelos, crea lanzadores y arranca el Dashboard.
 
 ```bash
-# 1. Clonar
-git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
-cd ZOE-Organismo-Cognitivo-Sintetico-SCO
-pip install -e .
-
-# 2. Hablar con ZOE (usa PatternSpeaker, no necesita Ollama ni API)
-zoe-chat --backend pattern
-
-# 3. Dashboard web (también sin LLM)
-zoe-dashboard --backend pattern
-# → abre http://localhost:8642
+# Conecta tu SSD al Mac (usa el cable CORTO de la caja)
+curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/zoe-bootstrap.sh | bash
 ```
 
-ZOE responde desde patrones + memoria + conocimiento de cápsulas. No tan potente como GPT-4o, pero **funciona sin instalar nada más y es 100% gratis y offline.**
+El instalador te guía paso a paso:
+1. Detecta tu SSD automáticamente
+2. Verifica Python y Git
+3. Instala ZOE + entorno virtual **EN EL SSD** (no carga tu Mac)
+4. Te pregunta si instalar Ollama (IA local gratis)
+5. Te pregunta qué modelos descargar al SSD
+6. Configura API keys opcionales (OpenAI, Anthropic)
+7. Crea scripts de doble clic (.command en macOS)
+8. Arranca el Dashboard automáticamente
 
-### Opción B — Con Ollama local (gratis, más potente)
+**No necesitas saber programar.** El instalador lo hace todo.
+
+### Opción B — Sin LLM, sin SSD (lo más rápido para probar)
 
 ```bash
-# 1. Instalar ZOE
+git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
+cd ZOE-Organismo-Cognitivo-Sintetico-SCO
+pip install -e .
+zoe-chat --backend pattern          # funciona sin IA, sin Ollama, sin API
+zoe-dashboard --backend pattern     # Dashboard web en http://localhost:8642
+```
+
+### Opción C — Con Ollama local (gratis, más potente)
+
+```bash
 git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
 cd ZOE-Organismo-Cognitivo-Sintetico-SCO
 pip install -e .
 
-# 2. Instalar Ollama desde https://ollama.com y descargar modelo
-ollama pull qwen2.5:3b  # 2GB, gratis
+# Instalar Ollama desde https://ollama.com
+ollama pull qwen2.5:3b              # 2GB, gratis
 
-# 3. Hablar con ZOE
 zoe-chat --backend ollama --model qwen2.5:3b
-
-# 4. Dashboard web (opcional)
 zoe-dashboard --backend ollama --model qwen2.5:3b
-# → abre http://localhost:8642
 ```
 
-### Opción C — Con OpenAI GPT-4o (calidad máxima)
+### Opción D — Con OpenAI GPT-4o (calidad máxima)
 
 ```bash
 git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
@@ -91,18 +99,6 @@ pip install -e .
 
 export OPENAI_API_KEY="sk-tu-key-aqui"
 zoe-chat --backend openai_compatible --model gpt-4o
-```
-
-### Opción D — Pendrive USB / SSD (portátil, soberano)
-
-```bash
-# Conecta un SSD portátil (Crucial X10 Pro recomendado, ~110€)
-# Usa el cable CORTO de la caja del SSD (no el de carga del Mac)
-
-# Instalar en el SSD:
-curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/install_pendrive_macos.sh | bash
-
-# Doble clic en ZOE-Chat-Ollama.command (en el SSD)
 ```
 
 ### Opción E — No sabes por dónde empezar
