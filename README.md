@@ -4,12 +4,13 @@
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento intercambiables y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
 [![Version](https://img.shields.io/badge/version-1.7.0-blue)](docs/REFERENCE/CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-373%2F373%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
+[![Tests](https://img.shields.io/badge/tests-435%2F435%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
 [![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
 [![Marketplace](https://img.shields.io/badge/marketplace-open%20for%20authors-success)](docs/07_MARKETPLACE_GUIDE.md)
-[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-3-purple)](docs/14_ROADMAP.md)
+[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-4-purple)](docs/14_ROADMAP.md)
+[![.zoe](https://img.shields.io/badge/.zoe%20format-portable%20organism-orange)](docs/16_ZOE_FORMAT.md)
 
 ---
 
@@ -242,7 +243,9 @@ pytest + pytest-asyncio  # Tests
 | **Multi-modal** (Visión VLM + Voz STT/TTS) | Sprint 2 — `multimodal.py` |
 | **Cápsula multimodal_perception** | Sprint 2 — 14ª cápsula |
 | **PatternSpeaker** (generación sin LLM) | Sprint 3 — `pattern_speaker.py` |
+| **Enhanced PatternSpeaker** (destilación + retrieval + dialog) | Sprint 3.6 — `enhanced_pattern_speaker.py` |
 | **Formato .zoe** (organismo en un archivo) | Sprint 3 — `zoe_packager.py` |
+| **ZoeRuntime** (ejecutar .zoe sin dependencias) | Sprint 3.5 — `zoe_runtime.py` |
 | **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
 | **1008 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
@@ -252,13 +255,13 @@ pytest + pytest-asyncio  # Tests
 ## Estado actual
 
 **Versión:** V1.7.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3
-**Tests:** 373+ tests, 100% pasando
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4
+**Tests:** 435+ tests, 100% pasando
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 50+
 **Idiomas:** 4 (ES, EN, FR, DE)
-**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil, Telegram
+**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil, Telegram, .zoe portable
 **Líneas de código:** ~41.000 LOC Python + ~16.300 LOC tests
 
 ### Roadmap resumido
@@ -285,7 +288,9 @@ pytest + pytest-asyncio  # Tests
 | ✅ | Sprint 1 — Multi-idioma + Windows + PWA + Telegram | 4 idiomas, Windows nativo, PWA móvil, bot Telegram |
 | ✅ | Sprint 2 — Multi-modal | Visión (VLM) + Voz (STT/TTS) + cápsula multimodal |
 | ✅ | Sprint 3 — Formato .zoe | PatternSpeaker (sin LLM) + ZoePackager + .zoe portátil |
-| 🟡 | Sprint 4 — Voice-first | Conversación por voz tipo Her + wake word |
+| ✅ | Sprint 3.5 — ZoeRuntime | Runtime mínimo para ejecutar .zoe sin dependencias |
+| ✅ | Sprint 3.6 — Enhanced PatternSpeaker | Destilación + retrieval + dialog state (sin LLM, más capaz) |
+| ✅ | Sprint 4 — Voice-first mode | Conversación natural por voz + wake word + interrupción |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)
@@ -313,6 +318,7 @@ pytest + pytest-asyncio  # Tests
 | 13 | [Troubleshooting](docs/13_TROUBLESHOOTING.md) | Todos — problemas comunes y soluciones |
 | 14 | [Roadmap](docs/14_ROADMAP.md) | Todos — estado actual + futuro |
 | 15 | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) | Contribuidores — tests, contribuir, ADRs |
+| 16 | [ZOE Format (.zoe)](docs/16_ZOE_FORMAT.md) | Todos — formato .zoe portable, runtime, Enhanced PatternSpeaker |
 
 ### Referencia
 
@@ -417,5 +423,5 @@ limitations under the License.
 ---
 
 *ZOE V1.7.0 — Synthetic Cognitive Organism (SCO).*
-*373+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 8 plataformas · Sprint 1-3 completos*
+*435+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Sprint 1-4 completos*
 *"ZOE no es un modelo que responde. Es un organismo que existe."*
