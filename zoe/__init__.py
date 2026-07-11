@@ -26,9 +26,14 @@ Fases del proyecto:
   ZOE puede ver imágenes, escuchar voz, y hablar. 3 nuevos sentidos/actuadores.
 - Sprint 3: Formato .zoe (PatternSpeaker + ZoePackager). ZOE puede funcionar
   SIN LLM externo usando patrones. Se empaqueta en un archivo .zoe portátil.
+- Sprint 4: Voice-first mode. Conversación natural por voz tipo Her con
+  wake word, VAD e interrupción.
+- Sprint 5: Cognitive Optimization Layer (.zmap + CPL + TPE). ZOE usa su
+  información cognitiva (ACD, memoria, cápsulas) para optimizar la inferencia
+  del LLM antes de llamarlo. 3 capas aditivas sin deconstruir nada.
 """
 
-__version__ = "1.7.0"
-__phase__ = "sprint3"
+__version__ = "1.8.0"
+__phase__ = "sprint5"
 __author__ = "Fernando Fondillo"
 __license__ = "Apache-2.0"

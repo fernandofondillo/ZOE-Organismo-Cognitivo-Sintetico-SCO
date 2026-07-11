@@ -3,13 +3,13 @@
 > **ZOE no es un LLM. No es un harness de agentes. No es una arquitectura de IA más.**
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento intercambiables y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
-[![Version](https://img.shields.io/badge/version-1.7.0-blue)](docs/REFERENCE/CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-435%2F435%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
+[![Version](https://img.shields.io/badge/version-1.8.0-blue)](docs/REFERENCE/CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-510%2F510%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
 [![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
 [![Marketplace](https://img.shields.io/badge/marketplace-open%20for%20authors-success)](docs/07_MARKETPLACE_GUIDE.md)
-[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-5.5-purple)](docs/14_ROADMAP.md)
+[![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-5-purple)](docs/14_ROADMAP.md)
 [![.zoe](https://img.shields.io/badge/.zoe%20format-portable%20organism-orange)](docs/16_ZOE_FORMAT.md)
 
 ---
@@ -22,11 +22,12 @@
 4. [Cómo elegir tu instalación](#cómo-elegir-tu-instalación)
 5. [Arquitectura en una imagen](#arquitectura-en-una-imagen)
 6. [Características principales](#características-principales)
-7. [Estado actual](#estado-actual)
-8. [Documentación completa](#documentación-completa)
-9. [Roadmap resumido](#roadmap-resumido)
-10. [Cómo contribuir](#cómo-contribuir)
-11. [Licencia](#licencia)
+7. [Cómo optimiza ZOE según el LLM disponible](#cómo-optimiza-zoe-según-el-llm-disponible)
+8. [Estado actual](#estado-actual)
+9. [Documentación completa](#documentación-completa)
+10. [Roadmap resumido](#roadmap-resumido)
+11. [Cómo contribuir](#cómo-contribuir)
+12. [Licencia](#licencia)
 
 ---
 
@@ -44,7 +45,25 @@
 
 ## Quickstart (3 minutos)
 
-### Opción A — Mac con Ollama local (gratis, recomendado para probar)
+### Opción A — Sin LLM, sin instalación, sin coste (más fácil)
+
+```bash
+# 1. Clonar
+git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
+cd ZOE-Organismo-Cognitivo-Sintetico-SCO
+pip install -e .
+
+# 2. Hablar con ZOE (usa PatternSpeaker, no necesita Ollama ni API)
+zoe-chat --backend pattern
+
+# 3. Dashboard web (también sin LLM)
+zoe-dashboard --backend pattern
+# → abre http://localhost:8642
+```
+
+ZOE responde desde patrones + memoria + conocimiento de cápsulas. No tan potente como GPT-4o, pero **funciona sin instalar nada más y es 100% gratis y offline.**
+
+### Opción B — Con Ollama local (gratis, más potente)
 
 ```bash
 # 1. Instalar ZOE
@@ -52,18 +71,18 @@ git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-
 cd ZOE-Organismo-Cognitivo-Sintetico-SCO
 pip install -e .
 
-# 2. Instalar Ollama (si no lo tienes) desde https://ollama.com
-ollama pull qwen2.5:3b  # modelo 3B, 2GB, gratis
+# 2. Instalar Ollama desde https://ollama.com y descargar modelo
+ollama pull qwen2.5:3b  # 2GB, gratis
 
 # 3. Hablar con ZOE
 zoe-chat --backend ollama --model qwen2.5:3b
 
-# 4. Abrir Dashboard web (opcional)
+# 4. Dashboard web (opcional)
 zoe-dashboard --backend ollama --model qwen2.5:3b
 # → abre http://localhost:8642
 ```
 
-### Opción B — Mac con OpenAI GPT-4o (calidad máxima)
+### Opción C — Con OpenAI GPT-4o (calidad máxima)
 
 ```bash
 git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
@@ -74,7 +93,7 @@ export OPENAI_API_KEY="sk-tu-key-aqui"
 zoe-chat --backend openai_compatible --model gpt-4o
 ```
 
-### Opción C — Pendrive USB (portátil, soberano)
+### Opción D — Pendrive USB / SSD (portátil, soberano)
 
 ```bash
 # Conecta un SSD portátil (Crucial X10 Pro recomendado, ~110€)
@@ -84,6 +103,13 @@ zoe-chat --backend openai_compatible --model gpt-4o
 curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/install_pendrive_macos.sh | bash
 
 # Doble clic en ZOE-Chat-Ollama.command (en el SSD)
+```
+
+### Opción E — No sabes por dónde empezar
+
+```bash
+# Ejecuta el asistente interactivo — detecta qué tienes y te guía:
+python zoe/scripts/zoe_setup.py
 ```
 
 **Tiempo desde clone hasta primera respuesta de ZOE: < 3 minutos.**
@@ -248,18 +274,50 @@ pytest + pytest-asyncio  # Tests
 | **ZoeRuntime** (ejecutar .zoe sin dependencias) | Sprint 3.5 — `zoe_runtime.py` |
 | **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
 | **Cognitive Optimization Layer** (.zmap + CPL + TPE) | Sprint 5 — `cognitive_optimization.py` |
-| **Model Downloader** (IQ2_M de HuggingFace + Modelfile Ollama) | Sprint 5.5 — `model_downloader.py` |
-| **zoe-setup** (asistente interactivo de instalación) | Sprint 5.5 — `zoe_setup.py` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
-| **552 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+| **510 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+
+---
+
+## Cómo optimiza ZOE según el LLM disponible
+
+ZOE tiene un sistema inteligente (Cognitive Optimization Layer) que **usa la información que ya tiene** (qué tipo de pregunta es, qué memoria tiene, qué cápsulas están cargadas) para decidir la mejor forma de responder.
+
+### Funciona con cualquier configuración:
+
+| Tu configuración | Pregunta simple (L0/L1) | Pregunta compleja (L2/L3) |
+|---|---|---|
+| **Sin LLM** (solo Python) | PatternSpeaker: instantáneo, gratis, offline | PatternSpeaker + destiladas + cápsulas: decente sin LLM |
+| **Ollama local** (gratis) | PatternSpeaker: no toca Ollama, ahorra RAM | CPL pre-carga modelo + .zmap optimiza capas + LLM responde |
+| **Cloud API** (GPT-4o/Claude) | PatternSpeaker: no gasta API, ahorra €€ | CPL pre-construye contexto + API responde con máxima calidad |
+| **.zoe portátil** | PatternSpeaker: siempre disponible | PatternSpeaker + destiladas (si las hay) |
+
+**El usuario no configura nada.** ZOE detecta qué tiene disponible y elige la mejor opción automáticamente.
+
+### Ejemplo práctico
+
+```
+Usuario: "Hola" (L0_REFLEX)
+    → ZOE: usa PatternSpeaker → "Hola. Estoy aquí." (instantáneo, no toca ningún LLM)
+
+Usuario: "Mi madre toma paracetamol, ¿puede con alcohol?" (L2_STANDARD)
+    → ZOE con Ollama: CPL pre-carga Qwen 7B + recupera cápsula pharmacy_interactions → responde
+    → ZOE con cloud: CPL pre-construye contexto + llama GPT-4o → responde con máxima calidad
+    → ZOE sin LLM: PatternSpeaker + CapsuleRetriever → responde con conocimiento de la cápsula
+
+Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
+    → ZOE con Ollama: CPL pre-carga Qwen 14B + .zmap optimiza mmap → responde (lento pero gratis)
+    → ZOE con cloud: CPL pre-construye contexto + llama GPT-4o → responde (rápido, cuesta ~€0.05)
+    → ZOE sin LLM: PatternSpeaker → "Necesito un LLM para análisis profundo. Instala Ollama o configura API key."
+```
 
 ---
 
 ## Estado actual
 
 **Versión:** V1.8.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5
-**Tests:** 552+ tests, 100% pasando
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5
+**Tests:** 510+ tests, 100% pasando
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 50+
@@ -295,7 +353,6 @@ pytest + pytest-asyncio  # Tests
 | ✅ | Sprint 3.6 — Enhanced PatternSpeaker | Destilación + retrieval + dialog state (sin LLM, más capaz) |
 | ✅ | Sprint 4 — Voice-first mode | Conversación natural por voz + wake word + interrupción |
 | ✅ | Sprint 5 — Cognitive Optimization Layer | .zmap + Cognitive Prefetch Layer + Tensor Prediction Engine |
-| ✅ | Sprint 5.5 — Model Downloader + zoe-setup | IQ2_M de HuggingFace + Modelfile Ollama + asistente interactivo |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)
@@ -324,6 +381,7 @@ pytest + pytest-asyncio  # Tests
 | 14 | [Roadmap](docs/14_ROADMAP.md) | Todos — estado actual + futuro |
 | 15 | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) | Contribuidores — tests, contribuir, ADRs |
 | 16 | [ZOE Format (.zoe)](docs/16_ZOE_FORMAT.md) | Todos — formato .zoe portable, runtime, Enhanced PatternSpeaker |
+| 17 | [Guía de Instalación y Uso (No Técnicos)](docs/17_USER_INSTALLATION_GUIDE.md) | Todos — guía paso a paso simplificada |
 
 ### Referencia
 
@@ -427,6 +485,6 @@ limitations under the License.
 
 ---
 
-*ZOE V1.7.0 — Synthetic Cognitive Organism (SCO).*
-*435+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Sprint 1-4 completos*
+*ZOE V1.8.0 — Synthetic Cognitive Organism (SCO).*
+*510+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Cognitive Optimization Layer · Sprint 1-5 completos*
 *"ZOE no es un modelo que responde. Es un organismo que existe."*

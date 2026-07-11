@@ -93,7 +93,12 @@
 | **PWA** | Progressive Web App. Dashboard instalable como app móvil. Sprint 1. |
 | **DistilledResponse** | Respuesta capturada de un LLM de calidad para reutilizar sin LLM. Sprint 3.6. |
 | **VoiceConfig** | Configuración del Voice-first mode (wake word, STT, TTS, VAD). Sprint 4. |
+| **.zmap** | Tensor Optimization Map. Metadata que acompaña al GGUF con estrategias de carga optimizadas. Sprint 5. |
+| **Cognitive Prefetch Layer (CPL)** | Capa que usa ACD + memory + capsules para preparar inferencia antes de llamar al LLM. Sprint 5. |
+| **Tensor Prediction Engine (TPE)** | Predice qué capas del modelo necesitará según ACD + intención + dominio. Sprint 5. |
+| **ZMAPLoader** | Carga archivos .zmap desde disco con cache. Sprint 5. |
+| **RAMStrategy** | Estrategia de carga para una cantidad de RAM específica. Sprint 5. |
 
 ---
 
-*ZOE V1.7.0 — Glossary*
+*ZOE V1.8.0 — Glossary*

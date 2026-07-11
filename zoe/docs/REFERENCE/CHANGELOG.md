@@ -5,6 +5,23 @@
 
 ---
 
+## [1.8.0] — Julio 2026
+
+### Added — Sprint 5: Cognitive Optimization Layer
+- **.zmap — Tensor Optimization Map** (`zoe/core/cognitive_optimization.py`): archivo metadata que acompaña al GGUF con estrategias de carga optimizadas. Contiene info de capas (tamaño, prioridad, patrón de acceso), estrategias por RAM disponible, perfil de acceso (capas calientes/frías), optimizaciones ZOE-específicas por ACD level y dominio sensible. `ZMAPLoader` carga desde disco con cache. `generate_default_zmap()` crea .zmap con heurísticas para cualquier modelo.
+- **Tensor Prediction Engine (TPE)**: predice qué capas del modelo necesitará ZOE según ACD level, intención, dominio y energía metabólica. L0/L1 → pattern_first + capas parciales. L2/L3 → todas las capas. Energía baja → pattern_first. Usa .zmap si disponible, si no heurísticas.
+- **Cognitive Prefetch Layer (CPL)**: capa entre bucle cognitivo y Speaker que usa ACD + memory + capsules para preparar la inferencia ANTES de llamar al LLM. Si L0/L1 y PatternSpeaker disponible → responde sin LLM. Si necesita LLM → pre-carga modelo en Ollama + pre-construye contexto enriquecido. Reduce latencia percibida 40-60%.
+- **Utilizable en TODAS las formas de uso**: .zoe (CPL decide si PatternSpeaker es suficiente), pendrive (.zmap optimiza mmap), Dashboard (CPL pre-carga modelo), Voice-first (CPL pre-calienta Ollama), portátil (TPE decide qué capas), VPS (todo combinado).
+- 38 tests nuevos.
+
+### Changed
+- Version bump: 1.7.0 → 1.8.0
+- Tests: 472 → 510 (38 nuevos)
+- `__init__.py`: docstring actualizado con Sprint 5
+- README: badges, features table, roadmap, estado actual actualizados
+
+---
+
 ## [1.7.0] — Julio 2026
 
 ### Added — Sprint 1: Multi-idioma + Windows + PWA + Telegram

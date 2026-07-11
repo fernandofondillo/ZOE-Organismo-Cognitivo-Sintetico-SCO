@@ -559,13 +559,13 @@ Puedes cambiar de LLM sin perder nada. Un día usas GPT-4o (calidad), otro día 
 
 ---
 
-## 9. Estado actual V1.7.0
+## 9. Estado actual V1.8.0
 
 ### Completado (✅)
 
 - **17 fases completas** (0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G)
-- **6 sprints completos** (Sprint 1, 2, 3, 3.5, 3.6, 4)
-- **472 tests automatizados**, 100% pasando
+- **7 sprints completos** (Sprint 1, 2, 3, 3.5, 3.6, 4, 5)
+- **510 tests automatizados**, 100% pasando
 - **15 cápsulas de conocimiento** operativas (13 originales + multimodal_perception + language_patterns)
 - **7 casos de uso** documentados
 - **50+ endpoints REST** + WebSocket
@@ -578,6 +578,7 @@ Puedes cambiar de LLM sin perder nada. Un día usas GPT-4o (calidad), otro día 
 - **Voice-first mode** (conversación natural por voz tipo Her)
 - **Multi-modal** (visión VLM + voz STT/TTS)
 - **PatternSpeaker** (funciona sin LLM usando patrones + destilación + retrieval)
+- **Cognitive Optimization Layer** (.zmap + CPL + TPE) — optimiza inferencia con info cognitiva
 - **ZOE Seed Mode** funcional (semilla portátil que germina)
 - **Modelos 70B en Mac 8GB** vía mmap + IQ2_M
 - **Federación B2B** con quorum y veto por valores
@@ -597,9 +598,9 @@ Puedes cambiar de LLM sin perder nada. Un día usas GPT-4o (calidad), otro día 
 
 | Métrica | Valor |
 |---|---|
-| Versión | V1.7.0 |
-| Fases completas | 17 (0 a 7G) + 6 Sprints |
-| Tests | 472 (100% pass) |
+| Versión | V1.8.0 |
+| Fases completas | 17 (0 a 7G) + 7 Sprints |
+| Tests | 510 (100% pass) |
 | Cápsulas | 15 |
 | Casos de uso | 7 |
 | Endpoints REST | 50+ |
