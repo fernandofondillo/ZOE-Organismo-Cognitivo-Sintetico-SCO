@@ -2760,8 +2760,16 @@ async def run_dashboard(
 
 def main():
     parser = argparse.ArgumentParser(description="ZOE v1.0 — Web Dashboard")
-    parser.add_argument("--backend", choices=["mock", "zai", "ollama", "openai_compatible", "anthropic"], default="mock")
-    parser.add_argument("--model", help="Modelo específico")
+    parser.add_argument(
+        "--backend",
+        choices=["mock", "zai", "ollama", "openai_compatible", "anthropic", "pattern"],
+        default="mock",
+        help="Backend LLM (default: mock). 'pattern' = PatternSpeaker sin LLM.",
+    )
+    parser.add_argument(
+        "--model",
+        help="Modelo específico del backend. Usa 'auto' para routing automático por nivel ACD (solo ollama).",
+    )
     parser.add_argument("--use-case", help="Caso de uso YAML")
     parser.add_argument("--port", type=int, default=8642)
     parser.add_argument("--db-path", default="zoe_data/dashboard_memory.db")

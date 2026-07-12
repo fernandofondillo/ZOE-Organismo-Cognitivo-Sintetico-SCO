@@ -74,22 +74,29 @@ if [ "$PLATFORM" = "Darwin" ]; then
     done
     
     if [ ${#volumes[@]} -eq 0 ]; then
-        print_err "No se encontraron discos externos."
-        echo -e "  Conecta un SSD o pendrive y vuelve a ejecutar este script."
-        exit 1
-    fi
-    
-    echo ""
-    echo -n "  Selecciona el disco [1-${#volumes[@]}] (o 'L' para local en ~/ZOE): "
-    read choice
-    
-    if [ "$choice" = "L" ] || [ "$choice" = "l" ]; then
-        ZOE_HOME="$HOME/ZOE"
-    elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#volumes[@]} ] 2>/dev/null; then
-        ZOE_HOME="${volumes[$((choice-1))]}ZOE"
+        print_warn "No se encontraron discos externos."
+        echo -e "  ¿Quieres instalar en local (~/${BOLD}ZOE${NC})? (s/N): "
+        echo -n "  >> "
+        read install_local
+        if [ "$install_local" = "s" ] || [ "$install_local" = "S" ]; then
+            ZOE_HOME="$HOME/ZOE"
+        else
+            print_err "Conecta un SSD o pendrive y vuelve a ejecutar este script."
+            exit 1
+        fi
     else
-        print_err "Selección inválida"
-        exit 1
+        echo ""
+        echo -n "  Selecciona el disco [1-${#volumes[@]}] (o 'L' para local en ~/ZOE): "
+        read choice
+        
+        if [ "$choice" = "L" ] || [ "$choice" = "l" ]; then
+            ZOE_HOME="$HOME/ZOE"
+        elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#volumes[@]} ] 2>/dev/null; then
+            ZOE_HOME="${volumes[$((choice-1))]}ZOE"
+        else
+            print_err "Selección inválida"
+            exit 1
+        fi
     fi
 
 elif [ "$PLATFORM" = "Linux" ]; then
@@ -115,6 +122,42 @@ elif [ "$PLATFORM" = "Linux" ]; then
             ZOE_HOME="${volumes[$((choice-1))]}ZOE"
         fi
     fi
+
+elif echo "$PLATFORM" | grep -qi "MINGW\|MSYS\|CYGWIN"; then
+    # Windows (Git Bash / MSYS2 / Cygwin)
+    print_info "Windows detectado vía $PLATFORM"
+    echo "  Discos disponibles:"
+    volumes=()
+    i=1
+    for drive in C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
+        if [ -d "/${drive}" ] || [ -d "${drive}:/" ]; then
+            # Saltar C: (sistema)
+            if [ "$drive" = "C" ]; then continue; fi
+            volpath="${drive}:/"
+            if [ -d "$volpath" ]; then
+                echo "    [$i] $volpath"
+                volumes+=("$volpath")
+                i=$((i+1))
+            fi
+        fi
+    done
+    
+    if [ ${#volumes[@]} -eq 0 ]; then
+        print_info "No se encontraron discos externos. Instalando en ~/ZOE"
+        ZOE_HOME="$HOME/ZOE"
+    else
+        echo -n "  Selecciona [1-${#volumes[@]}] (o 'L' para ~/ZOE): "
+        read choice
+        if [ "$choice" = "L" ] || [ "$choice" = "l" ]; then
+            ZOE_HOME="$HOME/ZOE"
+        elif [ "$choice" -ge 1 ] && [ "$choice" -le ${#volumes[@]} ] 2>/dev/null; then
+            ZOE_HOME="${volumes[$((choice-1))]}ZOE"
+        fi
+    fi
+else
+    print_err "Plataforma no soportada: $PLATFORM"
+    echo "  ZOE bootstrap funciona en macOS, Linux y Windows (Git Bash)."
+    exit 1
 fi
 
 # Crear directorio
@@ -211,11 +254,9 @@ print_step "2/8" "Verificar Python y Git"
 # Python
 if command -v python3 &> /dev/null; then
     PYVER=$(python3 --version 2>&1)
-    print_ok "Python: $PYVER"
     PYTHON=python3
 elif command -v python &> /dev/null; then
     PYVER=$(python --version 2>&1)
-    print_ok "Python: $PYVER"
     PYTHON=python
 else
     print_err "Python no encontrado."
@@ -228,30 +269,96 @@ else
     exit 1
 fi
 
+# Sprint 5.7.1 — Verificar versión Python >= 3.10
+PY_MAJOR=$($PYTHON -c "import sys; print(sys.version_info.major)")
+PY_MINOR=$($PYTHON -c "import sys; print(sys.version_info.minor)")
+if [ "$PY_MAJOR" -lt 3 ] || { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 10 ]; }; then
+    print_err "Python $PY_MAJOR.$PY_MINOR detectado — ZOE requiere Python 3.10+"
+    echo -e "  Descarga Python 3.10+ desde: https://python.org/downloads/"
+    exit 1
+fi
+print_ok "Python: $PYVER (>= 3.10 ✅)"
+
 # Git
 if command -v git &> /dev/null; then
     print_ok "Git: $(git --version)"
 else
-    print_warn "Git no encontrado. Instalando..."
+    print_warn "Git no encontrado. Intentando instalar..."
     if [ "$PLATFORM" = "Darwin" ]; then
-        xcode-select --install 2>/dev/null || true
+        # xcode-select requiere interacción del usuario; advertir y salir
+        print_err "Git no está instalado. En macOS, ejecuta primero:"
+        echo -e "  xcode-select --install"
+        echo -e "  (se abrirá una ventana del sistema; espera a que termine)"
+        echo -e "  Después vuelve a ejecutar este script."
+        exit 1
+    elif echo "$PLATFORM" | grep -qi "MINGW\|MSYS\|CYGWIN"; then
+        print_err "Git no está instalado. En Windows, instala Git Bash desde:"
+        echo -e "  https://git-scm.com/download/win"
+        exit 1
     else
-        sudo apt update && sudo apt install -y git
+        sudo apt update && sudo apt install -y git || { print_err "No se pudo instalar git"; exit 1; }
     fi
 fi
+
+# Sprint 5.7.1 — Verificar espacio libre en SSD antes de descargar modelos
+# Requiere: ZOE_HOME creado (paso 1) y setup elegido (paso 5) — movemos la verificación
+# justo antes de la descarga en el paso 5.
 
 # ============================================================================
 # PASO 3: Clonar ZOE y crear entorno virtual EN EL SSD
 # ============================================================================
 print_step "3/8" "Instalar ZOE en el SSD"
 
+ZOE_REPO_URL="https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git"
+ZOE_REPO_PUBLIC_URL="https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO"
+
 if [ -d "$ZOE_HOME/zoe" ]; then
     print_info "ZOE ya existe en el SSD. Actualizando..."
     cd "$ZOE_HOME/zoe"
-    git pull --quiet || true
+    git pull --quiet || print_warn "No se pudo actualizar (¿sin internet?). Continuando con versión local."
 else
     print_info "Clonando repositorio de ZOE..."
-    git clone --quiet https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git "$ZOE_HOME/zoe"
+    # Sprint 5.7.1 — Intentar clonar. Si falla (repo privado o sin creds), pedir token.
+    if ! git clone --quiet "$ZOE_REPO_URL" "$ZOE_HOME/zoe" 2>/dev/null; then
+        print_warn "Clone falló. El repositorio es privado o no hay credenciales configuradas."
+        echo ""
+        echo -e "  ${BOLD}Opciones:${NC}"
+        echo -e "  ${CYAN}[1]${NC} Tengo un Personal Access Token (PAT) de GitHub"
+        echo -e "  ${CYAN}[2]${NC} Ya tengo el repo descargado en otro sitio — copiaré la carpeta manualmente"
+        echo -e "  ${CYAN}[3]${NC} Cancelar instalación"
+        echo ""
+        echo -n "  Elige [1-3]: "
+        read clone_choice
+        
+        case "$clone_choice" in
+            1)
+                echo -n "  Pega tu GitHub PAT (ghp_...): "
+                read -r gh_token
+                if [ -z "$gh_token" ]; then
+                    print_err "Token vacío. Cancelando."
+                    exit 1
+                fi
+                print_info "Intentando clone con token..."
+                if ! git clone --quiet "https://${gh_token}@github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git" "$ZOE_HOME/zoe" 2>/dev/null; then
+                    print_err "Clone con token falló. Verifica que el token tenga permiso 'repo'."
+                    exit 1
+                fi
+                # Limpiar credenciales del .git/config para no dejar el token en el SSD
+                cd "$ZOE_HOME/zoe"
+                git remote set-url origin "$ZOE_REPO_PUBLIC_URL" 2>/dev/null || true
+                print_ok "Repositorio clonado (token no guardado en el SSD)"
+                ;;
+            2)
+                print_info "Copia manualmente la carpeta del repo a: $ZOE_HOME/zoe"
+                echo -e "  Después vuelve a ejecutar este script (detectará que ya existe)."
+                exit 0
+                ;;
+            *)
+                print_info "Instalación cancelada."
+                exit 0
+                ;;
+        esac
+    fi
 fi
 
 # Crear entorno virtual EN EL SSD (no en el Mac)
@@ -285,14 +392,24 @@ if command -v ollama &> /dev/null; then
         print_ok "Ollama está corriendo"
         OLLAMA_RUNNING=true
     else
-        print_info "Iniciando Ollama..."
+        print_info "Iniciando Ollama (puede tardar 10-15s la primera vez)..."
         ollama serve &> /dev/null &
-        sleep 3
-        if curl -s http://localhost:11434/api/tags &> /dev/null; then
-            OLLAMA_RUNNING=true
-            print_ok "Ollama iniciado"
-        else
-            print_warn "Ollama no pudo iniciar. Lo iniciarás manualmente con: ollama serve"
+        # Sprint 5.7.1 — Retry con backoff (3 intentos: 3s, 5s, 10s = 18s total)
+        for attempt in 1 2 3; do
+            sleep_times=(3 5 10)
+            sleep ${sleep_times[$((attempt-1))]}
+            if curl -s http://localhost:11434/api/tags &> /dev/null; then
+                OLLAMA_RUNNING=true
+                print_ok "Ollama iniciado (intentos: $attempt)"
+                break
+            fi
+            if [ $attempt -lt 3 ]; then
+                print_info "Esperando Ollama... (intento $attempt/3)"
+            fi
+        done
+        if [ "$OLLAMA_RUNNING" != "true" ]; then
+            print_warn "Ollama no pudo iniciar en 18s. Lo iniciarás manualmente con: ollama serve"
+            print_warn "Después ejecuta de nuevo este script, o los lanzadores .command funcionarán."
         fi
     fi
 else
@@ -303,19 +420,29 @@ else
     
     if [ "$INSTALL_OLLAMA" = "s" ] || [ "$INSTALL_OLLAMA" = "S" ]; then
         print_info "Instalando Ollama..."
-        if [ "$PLATFORM" = "Darwin" ]; then
-            curl -fsSL https://ollama.com/install.sh | sh
+        if curl -fsSL https://ollama.com/install.sh | sh; then
+            print_ok "Ollama instalado"
+            # Verificar instalación
+            if ! command -v ollama &> /dev/null; then
+                print_warn "Ollama instalado pero no en PATH. Reinicia tu terminal y vuelve a ejecutar."
+            else
+                # Iniciar con retry
+                ollama serve &> /dev/null &
+                for attempt in 1 2 3; do
+                    sleep_times=(3 5 10)
+                    sleep ${sleep_times[$((attempt-1))]}
+                    if curl -s http://localhost:11434/api/tags &> /dev/null; then
+                        OLLAMA_RUNNING=true
+                        print_ok "Ollama corriendo (intento $attempt)"
+                        break
+                    fi
+                done
+                if [ "$OLLAMA_RUNNING" != "true" ]; then
+                    print_warn "Ollama instalado. Inicia manualmente con: ollama serve"
+                fi
+            fi
         else
-            curl -fsSL https://ollama.com/install.sh | sh
-        fi
-        # Iniciar
-        ollama serve &> /dev/null &
-        sleep 4
-        if curl -s http://localhost:11434/api/tags &> /dev/null; then
-            OLLAMA_RUNNING=true
-            print_ok "Ollama instalado y corriendo"
-        else
-            print_warn "Ollama instalado. Inicia con: ollama serve"
+            print_err "La instalación de Ollama falló. Instálalo manualmente desde https://ollama.com"
         fi
     else
         print_info "Ollama no instalado. ZOE funcionará con PatternSpeaker (sin IA)."
@@ -385,9 +512,49 @@ if [ "$OLLAMA_RUNNING" = true ]; then
     esac
     
     if [ -n "$SETUP" ]; then
+        # Sprint 5.7.1 — Verificar espacio libre en SSD antes de descargar
+        # Tamaños mínimos por setup (con margen 20%)
+        case "$SETUP" in
+            minimal)  NEEDED_GB=5 ;;
+            balanced) NEEDED_GB=20 ;;
+            complete) NEEDED_GB=35 ;;
+            maximum)  NEEDED_GB=65 ;;
+            *)        NEEDED_GB=20 ;;
+        esac
+        
+        # Obtener espacio libre en MB
+        if [ "$PLATFORM" = "Darwin" ]; then
+            FREE_MB=$(df -m "$ZOE_HOME" 2>/dev/null | tail -1 | awk '{print $4}')
+        else
+            FREE_MB=$(df -m "$ZOE_HOME" 2>/dev/null | tail -1 | awk '{print $4}')
+        fi
+        
+        if [ -n "$FREE_MB" ] && [ "$FREE_MB" -gt 0 ] 2>/dev/null; then
+            FREE_GB=$((FREE_MB / 1024))
+            print_info "Espacio libre en $ZOE_HOME: ${FREE_GB}GB (necesario: ~${NEEDED_GB}GB)"
+            if [ "$FREE_GB" -lt "$NEEDED_GB" ]; then
+                print_err "Espacio insuficiente. Necesitas ${NEEDED_GB}GB libres, tienes ${FREE_GB}GB."
+                echo -e "  Opciones:"
+                echo -e "   1. Borra archivos del SSD y reintenta"
+                echo -e "   2. Elige un setup más pequeño (minimal: 5GB, balanced: 20GB)"
+                echo -e "   3. Continúa de todas formas (la descarga puede fallar a mitad)"
+                echo -n "  ¿Continuar de todas formas? (s/N): "
+                read continue_low_space
+                if [ "$continue_low_space" != "s" ] && [ "$continue_low_space" != "S" ]; then
+                    print_info "Descarga cancelada. ZOE funcionará con PatternSpeaker (sin IA)."
+                    SETUP=""
+                fi
+            fi
+        else
+            print_warn "No se pudo verificar el espacio libre. Continuando con precaución."
+        fi
+    fi
+    
+    if [ -n "$SETUP" ]; then
         print_info "Descargando setup '$SETUP' vía ModelDownloader (HuggingFace IQ2_M)..."
         print_info "Los modelos se guardan en: $MODELS_DIR"
         print_info "Cada modelo se registra en Ollama con su Modelfile optimizado."
+        print_info "⚠️  Esto puede tardar 10-30 min según tu conexión (no tu SSD)."
         echo ""
         
         "$ZOE_HOME/venv/bin/python" -m zoe.core.model_downloader \
@@ -444,8 +611,8 @@ fi
 # ============================================================================
 print_step "7/8" "Crear scripts lanzadores"
 
-# Función para cargar .env
-LOAD_ENV='if [ -f "$ZOE_HOME/data/.env" ]; then export $(grep -v "^#" "$ZOE_HOME/data/.env" | xargs); fi'
+# Función para cargar .env (Sprint 5.7.1: source en vez de xargs para no romper API keys)
+LOAD_ENV='if [ -f "$ZOE_HOME/data/.env" ]; then set -a; source "$ZOE_HOME/data/.env"; set +a; fi'
 
 # --- macOS: .command ---
 if [ "$PLATFORM" = "Darwin" ]; then
@@ -453,7 +620,8 @@ if [ "$PLATFORM" = "Darwin" ]; then
     # ZOE-Chat (PatternSpeaker — sin IA)
     cat > "$ZOE_HOME/ZOE-Chat.command" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+# Sprint 5.7.1: ZOE_HOME se calcula en runtime (no en escritura del heredoc)
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
 "\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend pattern
@@ -463,7 +631,7 @@ EOF
     # ZOE-Chat-Ollama (ACD Router — usa --model auto para routing por nivel cognitivo)
     cat > "$ZOE_HOME/ZOE-Chat-Ollama.command" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 export OLLAMA_MODELS="\$ZOE_HOME/models"
 # Iniciar Ollama si no está corriendo
@@ -479,7 +647,7 @@ EOF
     # ZOE-Dashboard (PatternSpeaker — sin IA)
     cat > "$ZOE_HOME/ZOE-Dashboard.command" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
 "\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend pattern
@@ -489,7 +657,7 @@ EOF
     # ZOE-Dashboard-Ollama (ACD Router — routing automático por nivel cognitivo)
     cat > "$ZOE_HOME/ZOE-Dashboard-Ollama.command" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 export OLLAMA_MODELS="\$ZOE_HOME/models"
 if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
@@ -509,7 +677,7 @@ elif [ "$PLATFORM" = "Linux" ]; then
     # ZOE-Chat (PatternSpeaker — sin IA)
     cat > "$ZOE_HOME/ZOE-Chat.sh" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
 "\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend pattern
@@ -519,7 +687,7 @@ EOF
     # ZOE-Chat-Ollama (ACD Router)
     cat > "$ZOE_HOME/ZOE-Chat-Ollama.sh" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 export OLLAMA_MODELS="\$ZOE_HOME/models"
 if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
@@ -534,7 +702,7 @@ EOF
     # ZOE-Dashboard (PatternSpeaker — sin IA)
     cat > "$ZOE_HOME/ZOE-Dashboard.sh" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
 "\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend pattern
@@ -544,7 +712,7 @@ EOF
     # ZOE-Dashboard-Ollama (ACD Router)
     cat > "$ZOE_HOME/ZOE-Dashboard-Ollama.sh" << EOF
 #!/bin/bash
-ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 export OLLAMA_MODELS="\$ZOE_HOME/models"
 if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
@@ -649,8 +817,12 @@ if [ "$start_now" = "s" ] || [ "$start_now" = "S" ]; then
     
     cd "$ZOE_HOME/zoe"
     export OLLAMA_MODELS="$MODELS_DIR"
+    # Sprint 5.7.1 — Usar source en vez de xargs (xargs rompe API keys con =, /, etc.)
     if [ -f "$ENV_FILE" ]; then
-        export $(grep -v "^#" "$ENV_FILE" | xargs)
+        set -a
+        # shellcheck disable=SC1090
+        source "$ENV_FILE"
+        set +a
     fi
     
     "$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend $BACKEND $MODEL

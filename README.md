@@ -43,42 +43,52 @@
 
 ---
 
-## Quickstart (3 minutos)
+## Quickstart
 
 ### Opción A — Instalación automática en SSD/Pendrive (recomendado)
 
-**Un solo comando** configura ZOE completo en tu SSD: detecta hardware, instala ZOE, descarga modelos, crea lanzadores y arranca el Dashboard.
+**Un solo comando** configura ZOE completo en tu SSD: detecta hardware, verifica Python/Git/Ollama, instala ZOE en el SSD, descarga modelos IQ2_M optimizados, crea lanzadores de doble clic y arranca el Dashboard.
+
+> ⚠️ **Requisitos previos** (el instalador te guía si falta algo):
+> - **Python 3.10+** instalado — descarga desde https://python.org (en macOS marca la casilla "Add Python to PATH")
+> - **Git** instalado — en macOS se ofrece al primer `git` (ventana del sistema); en Windows viene con Git Bash
+> - **Acceso al repositorio ZOE** — actualmente es **privado**. Necesitarás un Personal Access Token (PAT) de GitHub con permiso `repo`, o clonar el repo manualmente primero
+> - **SSD formateado en APFS** (solo Mac) o **exFAT** (multiplataforma). FAT32 no sirve (no permite archivos >4GB)
 
 ```bash
-# Conecta tu SSD al Mac (usa el cable CORTO de la caja)
+# PASO 1: Conecta tu SSD al Mac (usa el cable CORTO de la caja del SSD)
+# PASO 2: Abre Terminal y ejecuta:
 curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/zoe-bootstrap.sh | bash
+
+# PASO 3: El instalador te preguntará:
+#   - ¿Qué disco? → Elige tu SSD (o 'L' para instalar en ~/ZOE)
+#   - ¿Tienes PAT de GitHub? → Sí, pega el token (el repo es privado)
+#   - ¿Instalar Ollama? → Sí (recomendado, IA local gratis)
+#   - ¿Qué setup de modelos? → balanced (16GB) recomendado para 8GB RAM
+#   - ¿API keys de cloud? → No (opcional, puedes hacerlo después)
+#   - ¿Arrancar Dashboard? → Sí para probar, N para terminar
 ```
 
-> ⚠️ **Formato del SSD**: el instalador detecta automáticamente el formato (en macOS, Linux y Windows) y te avisa si está en FAT32 antes de descargar modelos grandes (>4GB).
->
-> | Formato | Compatible con | Ideal para | Limitación |
-> |---|---|---|---|
-> | **APFS** | Mac, iPhone, iPad | Solo Apple — máxima velocidad mmap | Windows/Android no lo leen |
-> | **NTFS** | Solo Windows | Máxima velocidad en Windows | Mac lo lee pero no escribe sin drivers; Android no lo lee |
-> | **exFAT** | Mac, iPhone, Android, Windows | Multiplataforma — universal | Ninguna |
-> | ~~FAT32~~ | ~~Todos~~ | ~~Dispositivos antiguos~~ | ❌ No permite archivos >4GB (inútil para modelos) |
->
-> **Recomendación:**
-> - Solo Mac/iPhone → **APFS**
-> - Solo Windows → **NTFS**
-> - Mac + Windows + Android + iPhone → **exFAT** (universal, recomendado si vas a mover el SSD)
+**Tiempos reales:**
+- Instalación base de ZOE (código + venv): **2-4 minutos**
+- Descarga del setup `minimal` (3.5GB): **+5-10 minutos** según tu fibra
+- Descarga del setup `balanced` (16GB): **+15-30 minutos**
+- Descarga del setup `maximum` (53GB, los 4 modelos): **+45-90 minutos**
 
-El instalador te guía paso a paso:
-1. Detecta tu SSD automáticamente
-2. Verifica Python y Git
-3. Instala ZOE + entorno virtual **EN EL SSD** (no carga tu Mac)
-4. Te pregunta si instalar Ollama (IA local gratis)
-5. Te pregunta qué modelos descargar al SSD
-6. Configura API keys opcionales (OpenAI, Anthropic)
-7. Crea scripts de doble clic (.command en macOS)
-8. Arranca el Dashboard automáticamente
+> **Total realista con `balanced`**: 20-35 min. El "3 minutos" del título se refiere a la instalación del código; la descarga de modelos es adicional y depende de tu conexión.
 
-**No necesitas saber programar.** El instalador lo hace todo.
+El instalador hace TODO automáticamente:
+1. **Detecta tu SSD** y **verifica el formato** (avisa si es FAT32 antes de descargar)
+2. **Verifica Python 3.10+** y **Git** (te dice cómo instalarlos si faltan)
+3. **Clona ZOE** en el SSD (con manejo de repo privado vía PAT)
+4. Crea entorno virtual Python **EN EL SSD** (no carga tu Mac)
+5. Detecta/instala **Ollama** (IA local gratis, con retry de 18s si tarda en arrancar)
+6. Verifica **espacio libre** en SSD antes de descargar modelos
+7. Te pregunta qué **setup IQ2_M** descargar (minimal/balanced/complete/maximum)
+8. Configura **API keys** opcionales (OpenAI, Anthropic)
+9. Crea **scripts de doble clic** (.command en macOS, .sh en Linux, .bat equivalentes en Windows)
+10. **Elimina el atributo quarantine** de macOS (los .command arrancan sin warning de Gatekeeper)
+11. **Pregunta si arrancar el Dashboard** ahora
 
 ### Opción B — Sin LLM, sin SSD (lo más rápido para probar)
 
