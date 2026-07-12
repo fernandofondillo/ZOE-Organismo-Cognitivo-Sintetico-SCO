@@ -611,7 +611,8 @@ Todos los endpoints siguientes han sido testeados con `curl` real y devuelven **
 | 14 | [Roadmap](docs/14_ROADMAP.md) | Todos — estado actual + futuro |
 | 15 | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) | Contribuidores — tests, contribuir, ADRs |
 | 16 | [ZOE Format (.zoe)](docs/16_ZOE_FORMAT.md) | Todos — formato .zoe portable, runtime, Enhanced PatternSpeaker |
-| 17 | [Guía de Instalación y Uso (No Técnicos)](docs/17_USER_INSTALLATION_GUIDE.md) | Todos — guía paso a paso simplificada |
+| 17 | [Guía de Instalación y Uso](docs/17_USER_INSTALLATION_GUIDE.md) | No técnicos — instalación en SSD, Android, iPhone, VPS |
+| 18 | [ZOE Explicación para No Técnicos](docs/18_ZOE_EXPLICACION_NO_TECNICOS.md) | **Cualquier persona** — qué es ZOE, cómo piensa, evoluciona, compara con ChatGPT |
 
 ### Referencia
 
