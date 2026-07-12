@@ -207,6 +207,11 @@ class DashboardServer:
         app.router.add_get("/api/router/installed", self._handle_router_installed)
         app.router.add_get("/api/router/profile", self._handle_router_profile)
 
+        # Sprint 5.11 C10 — Voice-first endpoints
+        app.router.add_post("/api/voice/start", self._handle_voice_start)
+        app.router.add_post("/api/voice/stop", self._handle_voice_stop)
+        app.router.add_get("/api/voice/status", self._handle_voice_status)
+
         # PWA manifest (Sprint 1.3)
         app.router.add_get("/manifest.json", self._handle_manifest)
 
@@ -372,7 +377,11 @@ class DashboardServer:
         })
 
     async def _handle_feed_upload(self, request) -> Any:
-        """Subida de archivos para alimentar a ZOE."""
+        """Subida de archivos para alimentar a ZOE.
+
+        Sprint 5.11 C7 — Si el archivo es una imagen, usa VLMPeripheral
+        para describirla antes de guardarla en memoria semántica.
+        """
         from aiohttp import web
 
         reader = await request.multipart()
@@ -383,10 +392,45 @@ class DashboardServer:
 
         # Leer contenido
         content = await file_part.read()
-        text = content.decode('utf-8', errors='replace')
+        filename = file_part.filename or "uploaded.txt"
+        content_type = file_part.headers.get("Content-Type", "")
+
+        # Sprint 5.11 C7 — Si es imagen, usar VLM para describirla
+        is_image = content_type.startswith("image/") or filename.lower().endswith(
+            (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp")
+        )
+
+        text = ""
+        image_description = None
+
+        if is_image:
+            # Intentar describir la imagen con VLM
+            try:
+                from .peripherals.multimodal import VLMPeripheral
+                import os
+                vlm_backend = os.environ.get("ZOE_VLM_BACKEND", "ollama")
+                vlm_model = os.environ.get("ZOE_VLM_MODEL", "llava:7b")
+                api_key = os.environ.get("OPENAI_API_KEY") if vlm_backend == "openai" else None
+
+                vlm = VLMPeripheral(
+                    model=vlm_model,
+                    backend=vlm_backend,
+                    api_key=api_key,
+                )
+                image_description = await vlm.generate(
+                    prompt="Describe esta imagen en detalle. ¿Qué ves?",
+                    images=[content],
+                )
+                text = f"[Imagen: {filename}] {image_description}"
+                logger.info(f"VLM described image {filename}: {image_description[:100]}...")
+            except Exception as e:
+                logger.warning(f"VLM failed for {filename}: {e}. Storing raw metadata.")
+                text = f"[Imagen: {filename}] (VLM no disponible - {e})"
+        else:
+            # Archivo de texto
+            text = content.decode('utf-8', errors='replace')
 
         # Almacenar en memoria semántica
-        filename = file_part.filename or "uploaded.txt"
         entry_id = self.chat.memory.add(
             content=text[:2000],
             type="semantic",
@@ -414,8 +458,10 @@ class DashboardServer:
         return web.json_response({
             "status": "stored",
             "filename": filename,
-            "size": len(text),
+            "size": len(content),
             "entry_id": entry_id,
+            "is_image": is_image,
+            "image_description": image_description,
         })
 
     async def _handle_stats(self, request) -> Any:
@@ -1739,6 +1785,49 @@ class DashboardServer:
             "name": "none",
             "description": "ACD Router no activo. Ejecuta con --model auto."
         })
+
+    # ============================================================
+    # Sprint 5.11 C10 — Voice-first endpoints
+    # ============================================================
+
+    async def _handle_voice_start(self, request) -> Any:
+        """POST /api/voice/start — arranca el modo voice-first en background."""
+        from aiohttp import web
+        if hasattr(self, '_voice_mode') and self._voice_mode:
+            return web.json_response({"status": "already_listening"})
+        try:
+            from .peripherals.voice_first import VoiceFirstMode, VoiceConfig
+            config = VoiceConfig(
+                wake_word=request.query.get("wake_word", "hey zoe"),
+            )
+            self._voice_mode = VoiceFirstMode(config, zoe_chat=self.chat)
+            asyncio.create_task(self._voice_mode.start())
+            return web.json_response({"status": "listening", "wake_word": config.wake_word})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_voice_stop(self, request) -> Any:
+        """POST /api/voice/stop — detiene el modo voice-first."""
+        from aiohttp import web
+        if not hasattr(self, '_voice_mode') or not self._voice_mode:
+            return web.json_response({"status": "not_running"})
+        try:
+            await self._voice_mode.stop()
+            self._voice_mode = None
+            return web.json_response({"status": "stopped"})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_voice_status(self, request) -> Any:
+        """GET /api/voice/status — estado del modo voice-first."""
+        from aiohttp import web
+        if not hasattr(self, '_voice_mode') or not self._voice_mode:
+            return web.json_response({"status": "stopped"})
+        try:
+            state = self._voice_mode.state.value if hasattr(self._voice_mode, 'state') else "unknown"
+            return web.json_response({"status": "running", "state": state})
+        except Exception:
+            return web.json_response({"status": "running"})
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""

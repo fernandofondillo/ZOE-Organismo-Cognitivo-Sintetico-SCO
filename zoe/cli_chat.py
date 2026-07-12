@@ -295,6 +295,22 @@ class ZoeChat:
         # Sprint 5.10 C8 — Inyectar LanguageDetector en el bucle
         loop._language_detector = language_detector
 
+        # Sprint 5.11 C9 — CognitiveOptimizationLayer (ZMAP/CPL/TPE) activo
+        try:
+            from .core.cognitive_optimization import CognitivePrefetchLayer, ZMAPLoader, TensorPredictionEngine
+            _zmap_loader = ZMAPLoader()
+            _tpe = TensorPredictionEngine(_zmap_loader)
+            _cpl = CognitivePrefetchLayer(
+                zmap_loader=_zmap_loader,
+                tpe=_tpe,
+                pattern_speaker=speaker,
+            )
+            loop.cognitive_prefetch_layer = _cpl
+            print(f"  ✅ Cognitive Optimization Layer activo (ZMAP + TPE + CPL)")
+        except Exception as e:
+            logger.info(f"CognitivePrefetchLayer no disponible: {e}")
+            loop.cognitive_prefetch_layer = None
+
         # Guardar referencias
         self.loop = loop
         self.memory = memory
