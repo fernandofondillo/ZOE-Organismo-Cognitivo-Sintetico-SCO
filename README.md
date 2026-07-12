@@ -615,6 +615,8 @@ Todos los endpoints siguientes han sido testeados con `curl` real y devuelven **
 | 17 | [Guía de Instalación y Uso](docs/17_USER_INSTALLATION_GUIDE.md) | No técnicos — instalación en SSD, Android, iPhone, VPS |
 | 18 | [ZOE Explicación para No Técnicos](docs/18_ZOE_EXPLICACION_NO_TECNICOS.md) | **Cualquier persona** — qué es ZOE, cómo piensa, evoluciona, compara con ChatGPT |
 | 19 | [ZOE Technical Internals](docs/19_ZOE_TECHNICAL_INTERNALS.md) | **Equipo técnico, CTOs, desarrolladores** — arquitectura completa, APIs, puntos de extensión, ADRs |
+| 20 | [Guía de Usuario Definitiva](docs/20_ZOE_GUIA_USUARIO.md) | **Usuarios finales** — instalación paso a paso, Dashboard, casos de uso, FAQ, troubleshooting |
+| 21 | [Plan de Resolución de Gaps](docs/21_ZOE_PLAN_GAPS.md) | **Equipo técnico, CTO** — 10 gaps críticos identificados, plan de 5 sprints para resolverlos |
 
 ### Referencia
 
