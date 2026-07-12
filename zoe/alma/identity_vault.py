@@ -206,3 +206,49 @@ class IdentityVault:
     def is_compatible_with(self, other: "IdentityVault") -> bool:
         """Verifica si otro Vault tiene la misma identidad."""
         return self._identity_hash == other._identity_hash
+
+    # ============================================================
+    # Sprint 5.8 — Persistencia entre sesiones
+    # ============================================================
+
+    def save_to_disk(self, path: str) -> None:
+        """Sprint 5.8 — Persiste el Vault a disco como JSON.
+
+        Permite que ZOE mantenga la misma identidad entre sesiones.
+        Antes de este fix, ZOE 'nacia' de nuevo cada arranque porque
+        birth_timestamp cambiaba en cada ejecucion.
+
+        Args:
+            path: ruta del archivo JSON a escribir
+        """
+        from pathlib import Path
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(self.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
+        logger.info(f"IdentityVault saved to {path} (hash={self._identity_hash[:16]}...)")
+
+    @classmethod
+    def load_from_disk(cls, path: str) -> Optional["IdentityVault"]:
+        """Sprint 5.8 — Carga el Vault desde disco.
+
+        Si el archivo no existe, devuelve None (la persona que llama debe crear un Vault nuevo).
+        Si el archivo existe pero esta corrupto, devuelve None y logea warning.
+
+        Args:
+            path: ruta del archivo JSON
+
+        Returns:
+            IdentityVault cargado, o None si no existe o esta corrupto
+        """
+        from pathlib import Path
+        p = Path(path)
+        if not p.exists():
+            return None
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            vault = cls.from_dict(data)
+            logger.info(f"IdentityVault loaded from {path} (hash={vault._identity_hash[:16]}...)")
+            return vault
+        except Exception as e:
+            logger.warning(f"IdentityVault load failed from {path}: {e}. Creating new vault.")
+            return None

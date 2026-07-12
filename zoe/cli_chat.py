@@ -162,8 +162,30 @@ class ZoeChat:
         PhylogeneticPool._instance = None
         phylogenetic = PhylogeneticMotor(zoe_id="zoe_chat")
 
-        vault = IdentityVault(birth_timestamp=time.time())
-        chain = TrajectoryChain(organism_id="zoe_chat")
+        # Sprint 5.8 — Persistencia de identidad y trayectoria entre sesiones
+        from pathlib import Path as _Path
+        _data_dir = _Path(self.db_path).parent
+        _data_dir.mkdir(parents=True, exist_ok=True)
+        _vault_path = str(_data_dir / "identity_vault.json")
+        _chain_path = str(_data_dir / "trajectory_chain.json")
+        _capsules_path = str(_data_dir / "loaded_capsules.json")
+
+        # Cargar identidad existente o crear nueva
+        vault = IdentityVault.load_from_disk(_vault_path)
+        if vault is None:
+            vault = IdentityVault(birth_timestamp=time.time())
+            vault.save_to_disk(_vault_path)
+            print(f"  🆕 New ZOE born — identity hash: {vault.identity_hash[:16]}...")
+        else:
+            print(f"  ✅ ZOE identity loaded — hash: {vault.identity_hash[:16]}...")
+
+        # Cargar trayectoria existente o crear nueva
+        chain = TrajectoryChain.load_from_disk(_chain_path)
+        if chain is None:
+            chain = TrajectoryChain(organism_id="zoe_chat")
+        chain.set_persist_path(_chain_path)  # auto-save tras cada commit
+        print(f"  ✅ Trajectory loaded — {len(chain._mutations)} mutations")
+
         ontogenetic = OntogeneticMotorV2(
             identity_vault=vault, trajectory_chain=chain, laws=laws, organism_id="zoe_chat"
         )
@@ -324,6 +346,17 @@ class ZoeChat:
         except Exception as e:
             logger.warning(f"Could not load basal capsule: {e}")
 
+        # Sprint 5.8 — Recargar cápsulas que estaban cargadas en la sesión anterior
+        _saved_capsules = self.capsule_manager.load_loaded_state(_capsules_path)
+        for _cap_name in _saved_capsules:
+            if _cap_name == "zoe_basal_knowledge":
+                continue  # ya cargada arriba
+            try:
+                self.capsule_manager.load(_cap_name)
+                print(f"  ✅ Capsule reloaded: {_cap_name}")
+            except Exception as e:
+                logger.warning(f"Could not reload capsule {_cap_name}: {e}")
+
         # Cargar cápsulas compatibles con el caso de uso
         if self.use_case:
             try:
@@ -334,6 +367,10 @@ class ZoeChat:
         # Cargar memoria desde disco
         loop.initialize()
         self._initialized = True
+        # Sprint 5.8 — guardar paths para persistencia al cerrar
+        self._vault_path = _vault_path
+        self._chain_path = _chain_path
+        self._capsules_path = _capsules_path
 
         # Iniciar bucle en background
         self._background_task = asyncio.create_task(self._run_background())
@@ -716,7 +753,7 @@ class ZoeChat:
         )
 
     async def shutdown(self) -> None:
-        """Cierra ZOE guardando memoria."""
+        """Cierra ZOE guardando memoria, trayectoria y cápsulas."""
         if self._background_task:
             self._background_task.cancel()
             try:
@@ -727,6 +764,23 @@ class ZoeChat:
         if self.persistent_mem:
             saved = self.persistent_mem.save_to_disk()
             print(f"\n💾 Memoria guardada: {saved} entries")
+
+        # Sprint 5.8 — Persistir cápsulas cargadas al cerrar
+        if hasattr(self, '_capsules_path') and hasattr(self, 'capsule_manager'):
+            try:
+                self.capsule_manager.save_loaded_state(self._capsules_path)
+                print(f"📦 Cápsulas guardadas: {len(self.capsule_manager._loaded)} capsules")
+            except Exception as e:
+                logger.warning(f"Could not save capsules state: {e}")
+
+        # Sprint 5.8 — La trayectoria se auto-guarda tras cada commit (set_persist_path)
+        # pero forzamos un save final por si acaso
+        if hasattr(self, '_chain_path') and hasattr(self, 'chain'):
+            try:
+                self.chain.save_to_disk(self._chain_path)
+                print(f"🔗 Trayectoria guardada: {len(self.chain._mutations)} mutations")
+            except Exception as e:
+                logger.warning(f"Could not save trajectory: {e}")
 
 
 async def run_chat(backend: str, model: str, use_case: str, db_path: str, api_key: str = None, base_url: str = None):
@@ -891,24 +945,52 @@ async def run_chat(backend: str, model: str, use_case: str, db_path: str, api_ke
 
 
 def main():
+    import json as _json
+    from pathlib import Path as _Path
+
+    # Sprint 5.8 — Cargar configuración persistente de ~/.zoe/config.json
+    _config_path = _Path.home() / ".zoe" / "config.json"
+    _saved_config = {}
+    if _config_path.exists():
+        try:
+            _saved_config = _json.loads(_config_path.read_text(encoding="utf-8"))
+        except Exception:
+            _saved_config = {}
+
     parser = argparse.ArgumentParser(description="ZOE v1.0 — Chat CLI")
     parser.add_argument(
         "--backend",
         choices=["mock", "zai", "ollama", "openai_compatible", "anthropic", "pattern"],
-        default="mock",
-        help="Backend LLM (default: mock). 'pattern' = PatternSpeaker sin LLM.",
+        default=_saved_config.get("backend", "mock"),
+        help="Backend LLM (default: saved config or mock). 'pattern' = PatternSpeaker sin LLM.",
     )
     parser.add_argument(
         "--model",
-        help="Modelo específico del backend. Usa 'auto' para routing automático por nivel ACD (requiere modelos IQ2_M en SSD).",
+        default=_saved_config.get("model"),
+        help="Modelo específico del backend. Usa 'auto' para routing automático por nivel ACD.",
     )
     parser.add_argument("--use-case", help="Caso de uso YAML a cargar")
-    parser.add_argument("--db-path", default="zoe_data/chat_memory.db", help="Ruta de memoria")
-    parser.add_argument("--api-key", help="API key para backends cloud (OpenAI, Anthropic, DeepSeek, etc.)")
-    parser.add_argument("--base-url", help="URL base para APIs compatibles (DeepSeek, MiniMax, Kimi, etc.)")
+    parser.add_argument(
+        "--db-path",
+        default=_saved_config.get("db_path", "zoe_data/chat_memory.db"),
+        help="Ruta de memoria",
+    )
+    parser.add_argument("--api-key", help="API key para backends cloud")
+    parser.add_argument("--base-url", help="URL base para APIs compatibles")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")
+
+    # Sprint 5.8 — Guardar configuración para la próxima sesión
+    _config_path.parent.mkdir(parents=True, exist_ok=True)
+    _new_config = {
+        "backend": args.backend,
+        "model": args.model,
+        "db_path": args.db_path,
+    }
+    # Solo guardar si algo cambió
+    if _new_config != {k: _saved_config.get(k) for k in _new_config}:
+        _config_path.write_text(_json.dumps(_new_config, indent=2), encoding="utf-8")
 
     try:
         asyncio.run(run_chat(

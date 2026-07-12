@@ -78,6 +78,26 @@ class Mutation:
             d["hash"] = self.compute_hash()
         return d
 
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "Mutation":
+        """Sprint 5.8 — Deserializa una mutación desde dict."""
+        return cls(
+            id=d["id"],
+            type=d["type"],
+            target=d["target"],
+            payload=d.get("payload", {}),
+            justification=d.get("justification", ""),
+            provenance=d.get("provenance", ""),
+            cost=d.get("cost", 0.0),
+            confidence=d.get("confidence", 0.5),
+            timestamp=d.get("timestamp", 0.0),
+            signature=d.get("signature"),
+            prev_hash=d.get("prev_hash"),
+            hash=d.get("hash"),
+            applied=d.get("applied", False),
+            rolled_back=d.get("rolled_back", False),
+        )
+
 
 class TrajectoryChain:
     """
@@ -95,6 +115,12 @@ class TrajectoryChain:
         self._mutations: List[Mutation] = []
         self._last_hash: Optional[str] = None
         self._next_id = 0
+        # Sprint 5.8 — path de persistencia (si se setea, save tras cada commit)
+        self._persist_path: Optional[str] = None
+
+    def set_persist_path(self, path: str) -> None:
+        """Sprint 5.8 — Setea el path de persistencia automática."""
+        self._persist_path = path
 
     def commit(self, mutation: Mutation) -> str:
         """
@@ -131,6 +157,13 @@ class TrajectoryChain:
             f"TrajectoryChain commit: {mutation.id} (type={mutation.type}, "
             f"target={mutation.target}, hash={mutation.hash[:16]}...)"
         )
+
+        # Sprint 5.8 — persistir tras cada commit si hay path configurado
+        if self._persist_path:
+            try:
+                self.save_to_disk(self._persist_path)
+            except Exception as e:
+                logger.warning(f"TrajectoryChain persist failed: {e}")
 
         return mutation.hash
 
@@ -259,3 +292,64 @@ class TrajectoryChain:
             f"active={stats['active_mutations']}, "
             f"verified={stats['chain_verified']})"
         )
+
+    # ============================================================
+    # Sprint 5.8 — Persistencia entre sesiones
+    # ============================================================
+
+    def save_to_disk(self, path: str) -> None:
+        """Sprint 5.8 — Persiste la cadena completa a disco como JSON.
+
+        Permite que la trayectoria de ZOE sobreviva entre sesiones.
+        Antes de este fix, la blockchain de mutaciones se perdia al reiniciar.
+
+        Args:
+            path: ruta del archivo JSON a escribir
+        """
+        from pathlib import Path
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "organism_id": self.organism_id,
+            "mutations": [m.to_dict() for m in self._mutations],
+            "next_id": self._next_id,
+            "last_hash": self._last_hash,
+            "version": 1,
+        }
+        p.write_text(json.dumps(data, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+        logger.info(f"TrajectoryChain saved to {path} ({len(self._mutations)} mutations)")
+
+    @classmethod
+    def load_from_disk(cls, path: str) -> Optional["TrajectoryChain"]:
+        """Sprint 5.8 — Carga la cadena desde disco.
+
+        Si el archivo no existe, devuelve None.
+        Si el archivo existe pero esta corrupto, devuelve None y logea warning.
+
+        Args:
+            path: ruta del archivo JSON
+
+        Returns:
+            TrajectoryChain cargada, o None si no existe o esta corrupta
+        """
+        from pathlib import Path
+        p = Path(path)
+        if not p.exists():
+            return None
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            chain = cls(organism_id=data.get("organism_id", "zoe_default"))
+            for m_dict in data.get("mutations", []):
+                mutation = Mutation.from_dict(m_dict)
+                chain._mutations.append(mutation)
+            chain._next_id = data.get("next_id", len(chain._mutations))
+            chain._last_hash = data.get("last_hash")
+            # Verificar integridad de la cadena cargada
+            if not chain.verify_chain():
+                logger.warning(f"TrajectoryChain loaded from {path} but chain verification FAILED")
+            else:
+                logger.info(f"TrajectoryChain loaded from {path} ({len(chain._mutations)} mutations, verified=True)")
+            return chain
+        except Exception as e:
+            logger.warning(f"TrajectoryChain load failed from {path}: {e}. Creating new chain.")
+            return None

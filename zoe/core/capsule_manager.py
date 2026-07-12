@@ -500,3 +500,51 @@ class CapsuleManager:
             "total_entries_injected": self.total_entries_injected,
             "available_count": len(self.registry.list_all()),
         }
+
+    # ============================================================
+    # Sprint 5.8 — Persistencia de cápsulas cargadas
+    # ============================================================
+
+    def save_loaded_state(self, path: str) -> None:
+        """Sprint 5.8 — Persiste la lista de cápsulas cargadas a disco.
+
+        Permite que las cápsulas cargadas se recarguen automaticamente
+        al iniciar ZOE en la siguiente sesion.
+
+        Args:
+            path: ruta del archivo JSON a escribir
+        """
+        import json
+        from pathlib import Path
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "loaded": list(self._loaded.keys()),
+            "version": 1,
+        }
+        p.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        logger.info(f"CapsuleManager: saved loaded state to {path} ({len(self._loaded)} capsules)")
+
+    @staticmethod
+    def load_loaded_state(path: str) -> List[str]:
+        """Sprint 5.8 — Carga la lista de cápsulas cargadas desde disco.
+
+        Args:
+            path: ruta del archivo JSON
+
+        Returns:
+            Lista de nombres de cápsulas cargadas, o [] si no existe
+        """
+        import json
+        from pathlib import Path
+        p = Path(path)
+        if not p.exists():
+            return []
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            loaded = data.get("loaded", [])
+            logger.info(f"CapsuleManager: loaded state from {path} ({len(loaded)} capsules)")
+            return loaded
+        except Exception as e:
+            logger.warning(f"CapsuleManager: load state failed from {path}: {e}")
+            return []
