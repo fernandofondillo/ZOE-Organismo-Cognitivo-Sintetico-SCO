@@ -304,6 +304,12 @@ pytest + pytest-asyncio  # Tests
 | **ACD Model Router** (4 modelos IQ2_M según nivel cognitivo) | Sprint 5.7 — `model_profile_router.py` + `model_downloader.py` |
 | **L3_MAXIMUM** (nivel crítico: jurídico/médico/comparativas) | Sprint 5.7 — `depth_classifier.py` |
 | **ModelDownloader CLI** (setups minimal/balanced/complete/maximum) | Sprint 5.7 — `python -m zoe.core.model_downloader --download-setup` |
+| **ACD multi-señal** (substring + regex + longitud + puntuación + estructura) | Sprint 5.7.2 — `depth_classifier.py` |
+| **Hot-swap `speaker.llm` arreglado** (antes fallaba silenciosamente) | Sprint 5.7.2 — `cognitive_loop_v5.py:184` |
+| **Dashboard: 71 endpoints REST** (todos verificados 200 OK) | Sprint 5.7.3 — `web_dashboard.py` |
+| **Dashboard: 3 endpoints `/api/router/*`** (stats/installed/profile) | Sprint 5.7.2 — `web_dashboard.py` |
+| **Dashboard: lazy-init ModelBus + ResourcePlanner** (antes 500 error) | Sprint 5.7.3 — `web_dashboard.py` |
+| **Dashboard: cwd dinámico en validate/create cápsulas** (antes hardcoded) | Sprint 5.7.3 — `web_dashboard.py:722,852` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
 | **540+ tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
@@ -368,13 +374,179 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 ## Estado actual
 
 **Versión:** V1.8.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5
-**Tests:** 510+ tests, 100% pasando
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5, 5.6, 5.7, 5.7.1, 5.7.2, 5.7.3
+**Tests:** 545+ tests, 100% pasando (168 verificados en auditoría Sprint 5.7.3)
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
-**Endpoints REST:** 50+
+**Endpoints REST:** 71 (todos verificados 200 OK en auditoría real)
 **Idiomas:** 4 (ES, EN, FR, DE)
 **Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil (Android/iOS), Telegram (todas las plataformas), SSD portátil multiplataforma (exFAT), archivo .zoe, Android (Termux), iPhone/iPad (SSD USB-C / PWA Safari)
+
+---
+
+## Cómo funciona ZOE desde el SSD (verificado Sprint 5.7.3)
+
+### Flujo completo de una pregunta
+
+Cuando escribes un mensaje en el Dashboard, esto ocurre en orden:
+
+1. **Frontend** → WebSocket `/ws` envía `{"type":"chat", "message":"tu pregunta"}`
+2. **Dashboard** (`web_dashboard.py:247`) → llama a `chat.send_message_acd(message)`
+3. **ACD Classifier** (`depth_classifier.py:210`) → clasifica en L0/L1/L2/L3_DEEP/L3_MAXIMUM usando **5 señales combinadas**:
+   - Substring match (no palabra exacta): "analízame" detecta "analiza"
+   - Patrones regex: `\bcompara\b\s+\d+\s+\b(contratos|documentos|...)`
+   - Longitud del texto (>100, >200 chars suben score)
+   - Puntuación (múltiples `?`, `;`, saltos de línea)
+   - Estructura (listas numeradas, condicionales si...entonces)
+4. **ACD Router** (`cognitive_loop_v5.py:167`) → si está activo (`--model auto`), hot-swap del LLM:
+   - L0_REFLEX → no toca LLM (tabla refleja, <1ms)
+   - L1_FAST → Gemma 2 9B IQ2_M (3.5GB, 15-25 t/s)
+   - L2_STANDARD → Agents-A1 MoE IQ2_M (11.7GB, 5-10 t/s)
+   - L3_DEEP → QwQ-32B IQ2_M (12.5GB, 3-6 t/s)
+   - L3_MAXIMUM → Qwen 2.5 72B IQ2_M (25GB, 1-3 t/s)
+5. **Pipeline ramificado** → según nivel, ejecuta 3-12 sub-agentes
+6. **Speaker** → llama al LLM (OllamaPeripheral) que envía el payload a Ollama
+7. **Ollama** → lee el GGUF desde el SSD (vía mmap, solo ~3-4GB en RAM) y genera la respuesta
+8. **Dashboard** → devuelve `{"response":"...", "acd_level":"...", "latency_ms":..., "cost":...}` al frontend
+
+### Por qué los modelos NO cargan tu Mac
+
+3 mecanismos combinados garantizan que los modelos se quedan en el SSD:
+
+1. **`OLLAMA_MODELS` env var** — el bootstrap exporta `export OLLAMA_MODELS="$ZOE_HOME/models"`. Los lanzadores `.command` también lo hacen. Ollama guarda sus blobs en el SSD, no en `~/.ollama/` del Mac.
+
+2. **Modelfile con path absoluto** — el `ModelDownloader._generate_modelfile()` genera `FROM /Volumes/SSD/ZOE/models/QwQ-32B-IQ2_M.gguf`. Ollama lee el GGUF desde el SSD.
+
+3. **Parámetros optimizados para 8GB RAM** — el Modelfile incluye `num_ctx 2048`, `num_predict 512`, `num_parallel 1`. Ollama usa **mmap** (memory-mapped loading): solo carga en RAM las capas activas (~3-4GB), el resto vive en el SSD hasta que se necesita.
+
+### ZOE piensa autónomamente
+
+Cuando nadie le habla, ZOE sigue pensando. Verificado en auditoría real (3 thoughts en 7 segundos):
+
+- **Bucle cognitivo** (`cognitive_loop.py:99`) → ejecuta `_tick()` cada 3 segundos
+- **Tick** = observe → predict → evaluate → decide → act → si hay thought, lo guarda
+- **Dashboard** (`web_dashboard.py:524`) → cada 2s envía los thoughts pendientes a todos los WebSocket clients como `{"type":"autonomous_thought", "content":"...", "trigger":"...", "surprise":...}`
+
+### Cápsulas: 15 disponibles, cargables desde el Dashboard
+
+| Cápsula | Entries | Para qué sirve |
+|---|---|---|
+| `zoe_basal_knowledge` | 32 | Conocimiento fundamental de ZOE (cargada por defecto) |
+| `base_ethics` | — | Ética general |
+| `basic_psychology` | 49 | Psicología general |
+| `communication_skills` | — | Comunicación empática |
+| `elder_care_knowledge` | 54 | Cuidado geriátrico |
+| `elder_care_skills` | — | Herramientas de cuidado |
+| `pharmacy_interactions` | — | Interacciones de medicamentos |
+| `company_loneliness_knowledge` | — | Soledad y duelo |
+| `vigilance_devops_knowledge` | — | Sistemas y monitoring |
+| `research_methodology` | — | Método científico |
+| `federation_b2b_skills` | — | Federación entre empresas |
+| `b2c_assistant_growth` | — | Asistente personal |
+| `ia_heredable_legal` | — | IA heredable |
+| `multimodal_perception` | — | Visión y voz |
+| `language_patterns` | — | Patrones de lenguaje (sin LLM) |
+
+**Carga desde el Dashboard:** `POST /api/capsules/load` con `{"name":"elder_care_knowledge"}` → inyecta 54 entries en memoria semántica, modelos causales, motor emocional, motor ético y validadores.
+
+---
+
+## Dashboard — 71 endpoints REST verificados
+
+Todos los endpoints siguientes han sido testeados con `curl` real y devuelven **HTTP 200**:
+
+### Core (13 endpoints)
+| Endpoint | Función |
+|---|---|
+| `GET /` | Dashboard web (HTML) |
+| `GET /ws` | WebSocket para chat en tiempo real |
+| `POST /chat` | Chat REST (sin WebSocket) |
+| `GET /stats` | Iteraciones, thoughts, ACD stats, router stats |
+| `GET /state` | Energía, fatiga, metabolismo, physics, tensions |
+| `GET /memory` | Memoria episódica de ZOE |
+| `GET /identity` | Identidad criptográfica (hash SHA-256) |
+| `POST /sleep` | ZOE duerme (consolida memoria) |
+| `POST /wake` | ZOE despierta |
+| `POST /llm` | Cambio de LLM en caliente |
+| `GET /history` | Historial de conversación |
+| `POST /feed` | Subir archivos (imágenes, audio) |
+
+### Cápsulas (7 endpoints)
+| Endpoint | Función |
+|---|---|
+| `GET /api/capsules` | Lista 15 cápsulas disponibles |
+| `GET /api/capsules/loaded` | Cápsulas cargadas actualmente |
+| `POST /api/capsules/load` | Cargar cápsula (inyecta entries en memoria) |
+| `POST /api/capsules/unload` | Descargar cápsula |
+| `GET /api/capsules/{name}/info` | Info detallada de una cápsula |
+| `POST /api/capsules/{name}/validate` | Validar schema de cápsula |
+| `POST /api/capsules/create` | Crear nueva cápsula |
+
+### ACD Model Router (3 endpoints — Sprint 5.7.2)
+| Endpoint | Función |
+|---|---|
+| `GET /api/router/stats` | Swaps, skips, last_routed_tag, active_profile |
+| `GET /api/router/installed` | Modelos IQ2_M en el SSD (path, size, tag) |
+| `GET /api/router/profile` | Perfil activo del ModelProfileRouter |
+
+### Marketplace (5 endpoints)
+| Endpoint | Función |
+|---|---|
+| `GET /api/marketplace/capsules` | Lista cápsulas del marketplace |
+| `POST /api/marketplace/upload` | Subir cápsula al marketplace |
+| `POST /api/marketplace/download/{name}` | Descargar cápsula del marketplace |
+| `GET /api/marketplace/use_cases` | Lista casos de uso |
+| `POST /api/marketplace/upload_use_case` | Subir caso de uso |
+
+### Hardware & Models (8 endpoints)
+| Endpoint | Función |
+|---|---|
+| `GET /api/hardware/system` | Info del sistema (RAM, CPU, chip) |
+| `GET /api/hardware/ssds` | SSDs detectados |
+| `GET /api/hardware/token_rates` | Velocidades estimadas por modelo |
+| `GET /api/hardware/cable_warning` | Warning si cable USB 2.0 lento |
+| `GET /api/models/system_info` | Info detallada del sistema |
+| `GET /api/models/recommend` | Recomendación de modelo por RAM |
+| `GET /api/models/catalog` | Catálogo de modelos disponibles |
+| `POST /api/models/optimize` | Optimizar parámetros de un modelo |
+
+### Federación epistémica (6 endpoints)
+| Endpoint | Función |
+|---|---|
+| `POST /federation/epistemic/validate` | Validar claim con peer |
+| `GET /federation/epistemic/knowledge/{hash}` | Recuperar knowledge por hash |
+| `POST /federation/epistemic/register` | Registrar peer |
+| `GET /federation/epistemic/peers` | Lista de peers |
+| `GET /federation/epistemic/stats` | Stats de federación |
+| `POST /federation/epistemic/request_validation` | Solicitar validación |
+
+### Cuarentena (4 endpoints)
+| Endpoint | Función |
+|---|---|
+| `GET /api/quarantine` | Knowledge en cuarentena |
+| `GET /api/quarantine/stats` | Stats de cuarentena |
+| `POST /api/quarantine/{id}/promote` | Promover knowledge validado |
+| `POST /api/quarantine/{id}/reject` | Rechazar knowledge |
+
+### Mentor digital (3 endpoints)
+| Endpoint | Función |
+|---|---|
+| `GET /api/mentor` | Configuración del mentor |
+| `POST /api/mentor` | Actualizar mentor |
+| `GET /api/mentor/stats` | Stats del mentor |
+
+### Resource Discovery, Model Bus, Planner, Embodiment, Seed Mode (19 endpoints)
+- `GET/POST /api/resources/*` — grafo de recursos disponibles
+- `GET/POST /api/modelbus/*` — bus universal de backends (lazy-init Sprint 5.7.3)
+- `POST /api/planner/plan`, `GET /api/planner/stats`, `GET /api/planner/recommend` — planificador metabólico (lazy-init Sprint 5.7.3)
+- `POST/GET /api/embodiment/*` — composer de encarnaciones
+- `GET/POST /api/seed/*` — modo semilla portátil
+
+### PWA (1 endpoint)
+| Endpoint | Función |
+|---|---|
+| `GET /manifest.json` | Manifest para instalación como app móvil |
+
 **Líneas de código:** ~41.000 LOC Python + ~16.300 LOC tests
 
 ### Roadmap resumido
@@ -408,6 +580,9 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 | ✅ | Sprint 5.5 — ModelDownloader | Descarga IQ2_M de HuggingFace + Modelfile + registro Ollama |
 | ✅ | Sprint 5.6 — ModelProfileRouter | Asignación de 4 modelos a 5 niveles ACD |
 | ✅ | Sprint 5.7 — ACD Routing Wiring | L3_MAXIMUM + conexión al bucle V5 + bootstrap + zoe-setup |
+| ✅ | Sprint 5.7.1 — Quickstart Audit | 9 bugs reales arreglados (cwd, retry Ollama, repo privado, etc.) |
+| ✅ | Sprint 5.7.2 — Hot-swap fix + Dashboard endpoints | Bug speaker.llm arreglado + 3 endpoints /api/router/* |
+| ✅ | Sprint 5.7.3 — Dashboard audit completo | cwd dinámico + lazy-init ModelBus/Planner + 71 endpoints verificados 200 OK |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)

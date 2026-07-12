@@ -716,10 +716,13 @@ class DashboardServer:
         }
         
         # 1. Schema validation (via scaffold CLI)
+        # Sprint 5.7.3 FIX: cwd dinámico (antes hardcoded a /home/z/my-project/... → no funcionaba en producción)
+        from pathlib import Path as _Path
+        _zoe_root = _Path(__file__).resolve().parent.parent  # zoe-sco/ (donde está setup.py)
         try:
             cmd = [sys.executable, "-m", "zoe.capsules.scaffold", "validate", "--name", name]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15,
-                                  cwd="/home/z/my-project/zoe-analysis/repo")
+                                  cwd=str(_zoe_root))
             if proc.returncode == 0:
                 result["checks"].append({"name": "schema", "status": "pass", "output": proc.stdout[:500]})
             else:
@@ -848,8 +851,11 @@ class DashboardServer:
         if use_cases:
             cmd.extend(["--use-cases", use_cases])
 
+        # Sprint 5.7.3 FIX: cwd dinámico (antes hardcoded → no funcionaba en producción)
+        from pathlib import Path as _Path
+        _zoe_root = _Path(__file__).resolve().parent.parent
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd="/home/z/my-project/zoe-analysis/repo")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=str(_zoe_root))
             if result.returncode == 0:
                 return web.json_response({
                     "success": True,
@@ -1210,28 +1216,39 @@ class DashboardServer:
     # Fase 7B: Model Bus handlers
     # ============================================================
 
+    def _get_model_bus(self):
+        """Sprint 5.7.3 — Lazy-init del ModelBus (antes devolvía error 500)."""
+        if not hasattr(self, '_model_bus') or self._model_bus is None:
+            try:
+                from zoe.peripherals.model_bus import ModelBus
+                self._model_bus = ModelBus()
+            except Exception as e:
+                logger.debug(f"ModelBus init failed: {e}")
+                self._model_bus = None
+        return self._model_bus
+
     async def _handle_modelbus_list(self, request) -> Any:
         """GET /api/modelbus — lista backends del ModelBus."""
         from aiohttp import web
-        bus = getattr(self, '_model_bus', None)
+        bus = self._get_model_bus()
         if not bus:
-            return web.json_response({"error": "model_bus not initialized", "backends": []})
+            return web.json_response({"error": "model_bus not available", "backends": []})
         return web.json_response({"backends": bus.list_backends()})
 
     async def _handle_modelbus_stats(self, request) -> Any:
         """GET /api/modelbus/stats — estadísticas del ModelBus."""
         from aiohttp import web
-        bus = getattr(self, '_model_bus', None)
+        bus = self._get_model_bus()
         if not bus:
-            return web.json_response({"error": "model_bus not initialized"})
+            return web.json_response({"error": "model_bus not available"})
         return web.json_response(bus.get_stats())
 
     async def _handle_modelbus_select(self, request) -> Any:
         """POST /api/modelbus/select — selecciona backend óptimo."""
         from aiohttp import web
-        bus = getattr(self, '_model_bus', None)
+        bus = self._get_model_bus()
         if not bus:
-            return web.json_response({"error": "model_bus not initialized"})
+            return web.json_response({"error": "model_bus not available"})
         data = await request.json()
         selected = bus.select_backend(
             acd_level=data.get("acd_level"),
@@ -1246,12 +1263,24 @@ class DashboardServer:
     # Fase 7C: Resource Planner handlers
     # ============================================================
 
+    def _get_resource_planner(self):
+        """Sprint 5.7.3 — Lazy-init del ResourcePlanner (antes devolvía error 500)."""
+        if not hasattr(self, '_resource_planner') or self._resource_planner is None:
+            try:
+                from zoe.core.resource_planner import ResourcePlanner
+                self._resource_planner = ResourcePlanner()
+            except Exception as e:
+                logger.debug(f"ResourcePlanner init failed: {e}")
+                self._resource_planner = None
+        return self._resource_planner
+
     async def _handle_planner_plan(self, request) -> Any:
         """POST /api/planner/plan — genera un plan de ejecución."""
         from aiohttp import web
-        from zoe.core.resource_planner import ResourcePlanner
         data = await request.json()
-        planner = ResourcePlanner()
+        planner = self._get_resource_planner()
+        if not planner:
+            return web.json_response({"error": "planner not available"})
         plan = planner.plan(
             acd_level=data.get("acd_level", "L2_STANDARD"),
             metabolic_state=data.get("metabolic_state", "awake"),
@@ -1263,9 +1292,9 @@ class DashboardServer:
     async def _handle_planner_stats(self, request) -> Any:
         """GET /api/planner/stats — estadísticas del planner."""
         from aiohttp import web
-        planner = getattr(self, '_resource_planner', None)
+        planner = self._get_resource_planner()
         if not planner:
-            return web.json_response({"error": "planner not initialized"})
+            return web.json_response({"error": "planner not available"})
         return web.json_response(planner.get_stats())
 
     async def _handle_planner_recommend(self, request) -> Any:

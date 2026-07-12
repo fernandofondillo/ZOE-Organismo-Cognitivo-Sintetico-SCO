@@ -59,10 +59,10 @@ class TestNewCapsulesV12:
         assert meta.domain
         assert meta.provenance
 
-    def test_total_capsules_now_12(self):
-        """Debe haber 12 cápsulas registradas."""
+    def test_total_capsules_now_15(self):
+        """Debe haber 15 cápsulas registradas (Sprint 5.7.3: actualizado de 12 a 15)."""
         all_caps = self.registry.list_all()
-        assert len(all_caps) == 12
+        assert len(all_caps) == 15
 
     def test_pharmacy_interactions_has_content(self):
         """pharmacy_interactions tiene entradas semánticas."""
@@ -270,19 +270,22 @@ class TestLearnerEpistemicIntegration:
 
 class TestCapsuleManagerV12:
 
-    def test_load_all_12_capsules(self):
-        """Carga las 12 cápsulas sin organismo (standalone)."""
+    def test_load_all_15_capsules(self):
+        """Carga las 15 cápsulas sin organismo (standalone). Sprint 5.7.3: actualizado de 12 a 15."""
         manager = CapsuleManager(organism=None)
         # Cargar primero las que no tienen dependencias, luego las dependientes
         order = [
-            "basic_psychology",           # no deps
-            "communication_skills",       # no deps
+            "zoe_basal_knowledge",         # no deps (cápsula basal)
             "base_ethics",                # no deps
             "vigilance_devops_knowledge", # no deps
             "research_methodology",       # no deps
             "federation_b2b_skills",      # no deps
             "pharmacy_interactions",      # no deps
             "ia_heredable_legal",         # no deps
+            "language_patterns",          # no deps (Sprint 3)
+            "multimodal_perception",      # no deps (Sprint 2)
+            "basic_psychology",           # no deps
+            "communication_skills",       # no deps
             "elder_care_knowledge",       # depends on basic_psychology
             "elder_care_skills",          # depends on elder_care_knowledge
             "company_loneliness_knowledge",  # depends on basic_psychology + communication_skills
@@ -297,7 +300,7 @@ class TestCapsuleManagerV12:
         for name, ok, _ in results:
             assert ok, f"Failed to load {name}"
         
-        assert len(manager.list_loaded()) == 12
+        assert len(manager.list_loaded()) == 15
 
     def test_load_pharmacy_increases_memory_entries(self):
         """Cargar pharmacy_interactions inyecta entries."""
