@@ -164,6 +164,18 @@ class CognitiveLoopV5(CognitiveLoopV4):
 
         level = classification.level
 
+        # 1a. Sprint 5.10 C8 — Detección de idioma (cacheado por sesión)
+        detected_language = None
+        if hasattr(self, '_language_detector') and self._language_detector:
+            try:
+                from .language_detector import LanguageDetector, LANGUAGE_PROFILES
+                detected_language = self._language_detector.detect(user_input)
+                # Guardar el system prompt del idioma detectado para el Speaker
+                if detected_language and detected_language in LANGUAGE_PROFILES:
+                    self._current_system_prompt = LANGUAGE_PROFILES[detected_language].system_prompt_base
+            except Exception as e:
+                logger.debug(f"Language detection failed: {e}")
+
         # 1b. Sprint 5.7 — Routing ACD→modelo (hot-swap del LLM)
         # Si hay ModelProfileRouter configurado, preguntarle qué modelo usar
         # para este nivel ACD. Solo para L1+ (L0_REFLEX no toca LLM).
@@ -283,6 +295,8 @@ class CognitiveLoopV5(CognitiveLoopV4):
             "trajectory_hash": trajectory_hash,
             "cost": level.cost,
             "confidence": level.default_confidence,
+            # Sprint 5.10 C8 — idioma detectado
+            "language": detected_language.value if detected_language else None,
         }
 
     async def _process_l0(

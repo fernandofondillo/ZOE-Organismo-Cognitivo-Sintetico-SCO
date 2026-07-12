@@ -227,6 +227,10 @@ class ZoeChat:
         depth_classifier = DepthClassifier()
         cognitive_cache = CognitiveCache(max_size=100, ttl_seconds=300)
 
+        # Sprint 5.10 C8 — LanguageDetector para detección automática de idioma
+        from .core.language_detector import LanguageDetector
+        language_detector = LanguageDetector()
+
         # Sprint 5.7 — ACD Model Routing (si --model auto o backend ollama con auto)
         model_profile_router = None
         active_profile = None
@@ -287,6 +291,9 @@ class ZoeChat:
             model_profile_router=model_profile_router,
             active_profile=active_profile,
         )
+
+        # Sprint 5.10 C8 — Inyectar LanguageDetector en el bucle
+        loop._language_detector = language_detector
 
         # Guardar referencias
         self.loop = loop
@@ -378,6 +385,25 @@ class ZoeChat:
         # Callback para pensamientos autónomos
         async def on_thought(thought):
             self._thoughts_while_idle.append(thought)
+
+            # Sprint 5.10 C6 — Mentor evalúa cada pensamiento autónomo
+            if hasattr(self, 'mentor') and self.mentor:
+                try:
+                    thought_content = getattr(thought, 'content', str(thought))
+                    intervention = self.mentor.evaluate_thought(thought_content)
+                    if intervention:
+                        # El mentor intervino: registrar como pensamiento separado
+                        mentor_msg = intervention.get("message", "")
+                        if mentor_msg:
+                            self._thoughts_while_idle.append({
+                                "content": f"[Mentor] {mentor_msg}",
+                                "trigger": "mentor_intervention",
+                                "severity": intervention.get("severity", "medium"),
+                                "type": intervention.get("type", "unknown"),
+                            })
+                            logger.info(f"Mentor intervention: {intervention.get('type')} ({intervention.get('severity')})")
+                except Exception as e:
+                    logger.debug(f"Mentor evaluation failed: {e}")
 
         loop.on_thought_callback = on_thought
 
