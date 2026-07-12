@@ -981,6 +981,20 @@ def main():
 
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")
 
+    # Sprint 5.9 — Logging a archivo rotado
+    import logging.handlers
+    _log_dir = os.path.dirname(args.db_path) if args.db_path else "zoe_data"
+    os.makedirs(_log_dir, exist_ok=True)
+    _file_handler = logging.handlers.RotatingFileHandler(
+        os.path.join(_log_dir, "zoe.log"),
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    _file_handler.setLevel(logging.INFO)
+    _file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logging.getLogger().addHandler(_file_handler)
+
     # Sprint 5.8 — Guardar configuración para la próxima sesión
     _config_path.parent.mkdir(parents=True, exist_ok=True)
     _new_config = {

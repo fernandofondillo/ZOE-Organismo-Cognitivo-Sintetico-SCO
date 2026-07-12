@@ -53,6 +53,8 @@ class DashboardServer:
         db_path: str = None,
         api_key: str = None,
         base_url: str = None,
+        host: str = "127.0.0.1",  # Sprint 5.9 — seguro por defecto
+        auth_token: str = None,   # Sprint 5.9 — auth opcional
     ):
         self.backend = backend
         self.model = model
@@ -61,6 +63,9 @@ class DashboardServer:
         self.db_path = db_path or "zoe_data/dashboard_memory.db"
         self.api_key = api_key
         self.base_url = base_url
+        # Sprint 5.9 — seguridad
+        self.host = host
+        self.auth_token = auth_token
 
         self.chat = None
         self.ws_clients: Set = set()
@@ -88,7 +93,21 @@ class DashboardServer:
         """Inicia el servidor HTTP + WebSocket."""
         from aiohttp import web, WSMsgType
 
-        app = web.Application(client_max_size=10 * 1024 * 1024)  # 10MB for file uploads
+        # Sprint 5.9 — Middleware de autenticación (opcional)
+        @web.middleware
+        async def auth_middleware(request, handler):
+            if self.auth_token:
+                auth_header = request.headers.get("Authorization", "")
+                # También aceptar query param ?token= para WebSocket
+                query_token = request.query.get("token", "")
+                if auth_header != f"Bearer {self.auth_token}" and query_token != self.auth_token:
+                    return web.json_response({"error": "unauthorized"}, status=401)
+            return await handler(request)
+
+        app = web.Application(
+            client_max_size=10 * 1024 * 1024,  # 10MB for file uploads
+            middlewares=[auth_middleware] if self.auth_token else [],
+        )
 
         # Routes
         app.router.add_get("/", self._handle_index)
@@ -194,7 +213,8 @@ class DashboardServer:
         self._app = app
         self._runner = web.AppRunner(app)
         await self._runner.setup()
-        site = web.TCPSite(self._runner, "0.0.0.0", self.port)
+        # Sprint 5.9 — bind a self.host (127.0.0.1 por defecto, 0.0.0.0 con --host)
+        site = web.TCPSite(self._runner, self.host, self.port)
         await site.start()
 
         # Start background broadcaster (sends state updates to WS clients)
@@ -2808,6 +2828,8 @@ async def run_dashboard(
     db_path: str = None,
     api_key: str = None,
     base_url: str = None,
+    host: str = "127.0.0.1",  # Sprint 5.9
+    auth_token: str = None,   # Sprint 5.9
 ):
     """Ejecuta el dashboard web."""
     server = DashboardServer(
@@ -2818,6 +2840,8 @@ async def run_dashboard(
         db_path=db_path,
         api_key=api_key,
         base_url=base_url,
+        host=host,
+        auth_token=auth_token,
     )
 
     await server.initialize()
@@ -2863,6 +2887,11 @@ def main():
     parser.add_argument("--db-path", default="zoe_data/dashboard_memory.db")
     parser.add_argument("--api-key", help="API key para backends cloud")
     parser.add_argument("--base-url", help="URL base para APIs compatibles")
+    # Sprint 5.9 — seguridad
+    parser.add_argument("--host", default="127.0.0.1",
+        help="Host to bind (default: 127.0.0.1 — use 0.0.0.0 to expose to network)")
+    parser.add_argument("--auth-token", default=None,
+        help="Token required for all requests (Bearer token)")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -2876,6 +2905,8 @@ def main():
             db_path=args.db_path,
             api_key=args.api_key,
             base_url=args.base_url,
+            host=args.host,
+            auth_token=args.auth_token,
         ))
     except KeyboardInterrupt:
         print("\nAdiós.")
