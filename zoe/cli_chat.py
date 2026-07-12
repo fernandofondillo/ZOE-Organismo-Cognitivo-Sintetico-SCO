@@ -143,6 +143,8 @@ class ZoeChat:
                 "He aprendido algo nuevo. Lo he firmado en mi trayectoria.",
                 "Mi identidad persiste. Sigo siendo Zoe en cada interacción.",
             ])
+        # Si backend == 'pattern', la factory ya devolvió un PatternPeripheral.
+        # Si backend == 'ollama' y model == 'auto', se configurará el router ACD más abajo.
 
         # Componentes
         state = InternalState()
@@ -203,6 +205,33 @@ class ZoeChat:
         depth_classifier = DepthClassifier()
         cognitive_cache = CognitiveCache(max_size=100, ttl_seconds=300)
 
+        # Sprint 5.7 — ACD Model Routing (si --model auto o backend ollama con auto)
+        model_profile_router = None
+        active_profile = None
+        if self.backend == "ollama" and self.model == "auto":
+            try:
+                from .core.model_profile_router import ModelProfileRouter
+                models_dir = os.environ.get("OLLAMA_MODELS", "models")
+                model_profile_router = ModelProfileRouter()
+                installed = model_profile_router.detect_installed_models(models_dir)
+                active_profile = model_profile_router.create_optimal_profile(installed)
+                self._router = model_profile_router  # para stats y UI
+                print(f"  ✅ ACD Router activo — {len(installed)} modelo(s) IQ2_M detectado(s) en {models_dir}")
+                if active_profile:
+                    print(f"  📋 Perfil: {active_profile.name}")
+                    for acd_lvl, assignment in active_profile.assignments.items():
+                        print(f"     {acd_lvl:14s} → {assignment.model_tag}")
+                if not installed:
+                    print(f"  ⚠️  Sin modelos IQ2_M en {models_dir}. El router usará PatternSpeaker para todo.")
+                    print(f"     Ejecuta: python -m zoe.core.model_downloader --download-setup balanced")
+            except Exception as e:
+                print(f"  ⚠️  ACD Router desactivado: {e}")
+                model_profile_router = None
+                # Sin router: ollama necesita un modelo concreto; fallback a qwen2.5:3b
+                self.llm = create_llm_peripheral({
+                    "backend": "ollama", "model": "qwen2.5:3b"
+                })
+
         loop = CognitiveLoopV5(
             senses=senses,
             world_model=world_model,
@@ -232,6 +261,9 @@ class ZoeChat:
             # Fase 5
             depth_classifier=depth_classifier,
             cognitive_cache=cognitive_cache,
+            # Sprint 5.7 — routing ACD→modelo
+            model_profile_router=model_profile_router,
+            active_profile=active_profile,
         )
 
         # Guardar referencias
@@ -862,11 +894,14 @@ def main():
     parser = argparse.ArgumentParser(description="ZOE v1.0 — Chat CLI")
     parser.add_argument(
         "--backend",
-        choices=["mock", "zai", "ollama", "openai_compatible", "anthropic"],
+        choices=["mock", "zai", "ollama", "openai_compatible", "anthropic", "pattern"],
         default="mock",
-        help="Backend LLM (default: mock)",
+        help="Backend LLM (default: mock). 'pattern' = PatternSpeaker sin LLM.",
     )
-    parser.add_argument("--model", help="Modelo específico del backend")
+    parser.add_argument(
+        "--model",
+        help="Modelo específico del backend. Usa 'auto' para routing automático por nivel ACD (requiere modelos IQ2_M en SSD).",
+    )
     parser.add_argument("--use-case", help="Caso de uso YAML a cargar")
     parser.add_argument("--db-path", default="zoe_data/chat_memory.db", help="Ruta de memoria")
     parser.add_argument("--api-key", help="API key para backends cloud (OpenAI, Anthropic, DeepSeek, etc.)")

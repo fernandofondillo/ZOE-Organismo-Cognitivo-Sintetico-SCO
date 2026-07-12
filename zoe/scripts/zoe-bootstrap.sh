@@ -324,7 +324,7 @@ else
 fi
 
 # ============================================================================
-# PASO 5: Descargar modelos optimizados al SSD
+# PASO 5: Descargar modelos IQ2_M optimizados al SSD
 # ============================================================================
 print_step "5/8" "Descargar modelos de IA al SSD"
 
@@ -337,58 +337,75 @@ export OLLAMA_MODELS="$MODELS_DIR"
 if [ "$OLLAMA_RUNNING" = true ]; then
     
     echo ""
-    echo -e "  ${BOLD}ZOE puede usar diferentes modelos según el tipo de pregunta:${NC}"
-    echo -e "  ${CYAN}L0/L1${NC} (rápido):     Gemma 2 9B (3.5GB, 15-25 t/s) ⚡"
-    echo -e "  ${CYAN}L2${NC} (estándar):    Qwen 2.5 7B (4.5GB, 12-18 t/s) ✅"
-    echo -e "  ${CYAN}L3${NC} (profundo):    Qwen 2.5 14B (8GB, 4-8 t/s) 📖"
+    echo -e "  ${BOLD}ZOE V1.8 — Modelos IQ2_M optimizados (HuggingFace)${NC}"
+    echo -e "  ${CYAN}ACD Router${NC} asigna cada modelo al nivel cognitivo correcto:"
     echo ""
-    echo "  Puedes elegir qué modelos descargar:"
-    echo "    [1] Solo Gemma 2 9B (3.5GB) — mínimo, ultra rápido"
-    echo "    [2] Gemma 2 9B + Qwen 2.5 7B (8GB) — equilibrado"
-    echo "    [3] Gemma 2 9B + Qwen 2.5 14B (11.5GB) — completo"
-    echo "    [4] No descargar modelos ahora (usar PatternSpeaker)"
-    echo "    [5] Saltar — ya tengo modelos"
+    echo -e "    ${GREEN}L0/L1${NC} (rápido)      → Gemma 2 9B IQ2_M   (3.5GB, 15-25 t/s) ⚡"
+    echo -e "    ${GREEN}L2${NC}     (estándar)   → Agents-A1 MoE IQ2_M (11.7GB, 5-10 t/s) ✅"
+    echo -e "    ${GREEN}L3${NC}     (profundo)   → QwQ-32B IQ2_M       (12.5GB, 3-6 t/s) 🧠"
+    echo -e "    ${GREEN}L3 máx${NC} (calidad)    → Qwen 2.5 72B IQ2_M  (25GB, 1-3 t/s)   🎯"
     echo ""
-    echo -n "  Elige [1-5]: "
+    echo "  Setups preseleccionados:"
+    echo "    [1] Minimal    — Solo Gemma 9B (3.5GB) — ultra rápido, básico"
+    echo "    [2] Balanced   — Gemma + QwQ-32B (16GB) — equilibrado ⭐ recomendado para 8GB RAM"
+    echo "    [3] Complete   — Gemma + Agents-A1 + QwQ (28GB) — cobertura completa"
+    echo "    [4] Maximum    — Los 4 modelos (53GB) — espectro completo (SSD 1TB)"
+    echo "    [5] No descargar — usar PatternSpeaker (sin IA)"
+    echo "    [6] Saltar — ya tengo modelos IQ2_M"
+    echo ""
+    echo -n "  Elige [1-6] (default 2): "
     read model_choice
-    
-    download_model() {
-        local name=$1
-        local size=$2
-        if ! ollama list 2>/dev/null | grep -q "$name"; then
-            echo -e "  📥 Descargando $name ($size)..."
-            ollama pull "$name" 2>&1 | tail -1
-            print_ok "$name descargado"
-        else
-            print_ok "$name ya está instalado"
-        fi
-    }
+    model_choice=${model_choice:-2}
     
     case $model_choice in
         1)
-            download_model "gemma2:9b" "5.5GB"
+            SETUP="minimal"
             ;;
         2)
-            download_model "gemma2:9b" "5.5GB"
-            download_model "qwen2.5:7b" "4.5GB"
+            SETUP="balanced"
             ;;
         3)
-            download_model "gemma2:9b" "5.5GB"
-            download_model "qwen2.5:14b" "8GB"
+            SETUP="complete"
             ;;
         4)
-            print_info "Sin modelos. ZOE usará PatternSpeaker (funciona sin IA)."
+            SETUP="maximum"
             ;;
         5)
+            SETUP=""
+            print_info "Sin modelos. ZOE usará PatternSpeaker (funciona sin IA)."
+            ;;
+        6)
+            SETUP=""
             print_info "Saltando descarga de modelos."
             ;;
         *)
-            print_info "Opción no válida. ZOE usará PatternSpeaker."
+            SETUP="balanced"
+            print_info "Opción no válida — usando 'balanced' por defecto."
             ;;
     esac
+    
+    if [ -n "$SETUP" ]; then
+        print_info "Descargando setup '$SETUP' vía ModelDownloader (HuggingFace IQ2_M)..."
+        print_info "Los modelos se guardan en: $MODELS_DIR"
+        print_info "Cada modelo se registra en Ollama con su Modelfile optimizado."
+        echo ""
+        
+        "$ZOE_HOME/venv/bin/python" -m zoe.core.model_downloader \
+            --download-setup "$SETUP" \
+            --models-dir "$MODELS_DIR"
+        
+        if [ $? -eq 0 ]; then
+            print_ok "Setup '$SETUP' descargado y registrado en Ollama"
+        else
+            print_warn "Algunos modelos fallaron. Puedes reintentar más tarde con:"
+            echo "    $ZOE_HOME/venv/bin/python -m zoe.core.model_downloader --download-setup $SETUP --models-dir $MODELS_DIR"
+        fi
+    fi
 else
     print_info "Ollama no está corriendo. Saltando descarga de modelos."
     print_info "ZOE funcionará con PatternSpeaker (sin IA, patrones + memoria)."
+    print_info "Cuando tengas Ollama, ejecuta:"
+    echo "    $ZOE_HOME/venv/bin/python -m zoe.core.model_downloader --download-setup balanced --models-dir $MODELS_DIR"
 fi
 
 # ============================================================================
@@ -443,14 +460,19 @@ cd "\$ZOE_HOME/zoe"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat.command"
     
-    # ZOE-Chat-Ollama
+    # ZOE-Chat-Ollama (ACD Router — usa --model auto para routing por nivel cognitivo)
     cat > "$ZOE_HOME/ZOE-Chat-Ollama.command" << EOF
 #!/bin/bash
 ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 export OLLAMA_MODELS="\$ZOE_HOME/models"
+# Iniciar Ollama si no está corriendo
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    ollama serve &> /dev/null &
+    sleep 3
+fi
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model qwen2.5:7b
+"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model auto
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat-Ollama.command"
     
@@ -464,14 +486,18 @@ cd "\$ZOE_HOME/zoe"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard.command"
     
-    # ZOE-Dashboard-Ollama
+    # ZOE-Dashboard-Ollama (ACD Router — routing automático por nivel cognitivo)
     cat > "$ZOE_HOME/ZOE-Dashboard-Ollama.command" << EOF
 #!/bin/bash
 ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 export OLLAMA_MODELS="\$ZOE_HOME/models"
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    ollama serve &> /dev/null &
+    sleep 3
+fi
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model qwen2.5:7b
+"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model auto
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard-Ollama.command"
     
@@ -480,7 +506,7 @@ EOF
 # --- Linux ---
 elif [ "$PLATFORM" = "Linux" ]; then
     
-    # ZOE-Chat
+    # ZOE-Chat (PatternSpeaker — sin IA)
     cat > "$ZOE_HOME/ZOE-Chat.sh" << EOF
 #!/bin/bash
 ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
@@ -490,7 +516,22 @@ cd "\$ZOE_HOME/zoe"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat.sh"
     
-    # ZOE-Dashboard
+    # ZOE-Chat-Ollama (ACD Router)
+    cat > "$ZOE_HOME/ZOE-Chat-Ollama.sh" << EOF
+#!/bin/bash
+ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+$LOAD_ENV
+export OLLAMA_MODELS="\$ZOE_HOME/models"
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    ollama serve &> /dev/null &
+    sleep 3
+fi
+cd "\$ZOE_HOME/zoe"
+"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model auto
+EOF
+    chmod +x "$ZOE_HOME/ZOE-Chat-Ollama.sh"
+    
+    # ZOE-Dashboard (PatternSpeaker — sin IA)
     cat > "$ZOE_HOME/ZOE-Dashboard.sh" << EOF
 #!/bin/bash
 ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
@@ -500,7 +541,22 @@ cd "\$ZOE_HOME/zoe"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard.sh"
     
-    print_ok "2 scripts .sh creados en $ZOE_HOME"
+    # ZOE-Dashboard-Ollama (ACD Router)
+    cat > "$ZOE_HOME/ZOE-Dashboard-Ollama.sh" << EOF
+#!/bin/bash
+ZOE_HOME="$(cd "$(dirname "\$0")" && pwd)"
+$LOAD_ENV
+export OLLAMA_MODELS="\$ZOE_HOME/models"
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    ollama serve &> /dev/null &
+    sleep 3
+fi
+cd "\$ZOE_HOME/zoe"
+"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model auto
+EOF
+    chmod +x "$ZOE_HOME/ZOE-Dashboard-Ollama.sh"
+    
+    print_ok "4 scripts .sh creados en $ZOE_HOME"
 fi
 
 # ============================================================================
@@ -540,18 +596,23 @@ fi
 echo ""
 echo -e "  ${BOLD}Cómo usar ZOE:${NC}"
 echo ""
-echo -e "  ${CYAN}Opción 1: CLI (terminal)${NC}"
-echo "    Doble clic en ZOE-Chat.command (macOS)"
+echo -e "  ${CYAN}Opción 1: Sin IA (PatternSpeaker, gratis, offline)${NC}"
+echo "    Doble clic en ZOE-Chat.command (macOS) / ZOE-Chat.sh (Linux)"
 echo "    O: $ZOE_HOME/venv/bin/python -m zoe.cli_chat --backend pattern"
 echo ""
-echo -e "  ${CYAN}Opción 2: Dashboard web${NC}"
-echo "    Doble clic en ZOE-Dashboard.command (macOS)"
+echo -e "  ${CYAN}Opción 2: Con IA local (ACD Router, 4 modelos IQ2_M)${NC}"
+echo "    Doble clic en ZOE-Chat-Ollama.command (macOS) / .sh (Linux)"
+echo "    O: $ZOE_HOME/venv/bin/python -m zoe.cli_chat --backend ollama --model auto"
+echo "    ZOE elegirá automáticamente el modelo óptimo para cada pregunta:"
+echo "      • 'Hola' → Gemma 9B (instantáneo)"
+echo "      • 'Resume esto' → Agents-A1 MoE (rápido)"
+echo "      • 'Analiza las causas' → QwQ-32B (razonamiento)"
+echo "      • 'Compara jurídicamente' → Qwen 72B (máxima calidad)"
+echo ""
+echo -e "  ${CYAN}Opción 3: Dashboard web${NC}"
+echo "    Doble clic en ZOE-Dashboard.command / .sh"
 echo "    O: $ZOE_HOME/venv/bin/python -m zoe.web_dashboard --backend pattern"
 echo "    → Abre http://localhost:8642 en tu navegador"
-echo ""
-echo -e "  ${CYAN}Opción 3: Con IA (si instalaste Ollama)${NC}"
-echo "    Doble clic en ZOE-Chat-Ollama.command"
-echo "    O: $ZOE_HOME/venv/bin/python -m zoe.cli_chat --backend ollama --model qwen2.5:7b"
 echo ""
 echo -e "  ${CYAN}Consejos:${NC}"
 echo "    • Escribe /help dentro de ZOE para ver comandos"
@@ -559,6 +620,13 @@ echo "    • Escribe /capsules para ver cápsulas de conocimiento"
 echo "    • Escribe /capsule elder_care_knowledge para cargar una"
 echo "    • Escribe /quit para salir (guarda memoria automáticamente)"
 echo ""
+
+# Sprint 5.7 — Fix Gatekeeper quarantine en macOS (los .command recién creados disparan warning)
+if [ "$PLATFORM" = "Darwin" ]; then
+    print_info "Eliminando atributo quarantine de los .command (Gatekeeper)..."
+    xattr -dr com.apple.quarantine "$ZOE_HOME"/*.command 2>/dev/null || true
+    print_ok "Scripts .command listos para doble clic sin warning"
+fi
 
 # ¿Arrancar Dashboard ahora?
 echo -n "  ¿Arrancar Dashboard ahora? (s/N): "
@@ -570,10 +638,10 @@ if [ "$start_now" = "s" ] || [ "$start_now" = "S" ]; then
     print_info "Abre http://localhost:8642 en tu navegador"
     echo ""
     
-    # Determinar backend
+    # Determinar backend — Sprint 5.7: usar --model auto si hay Ollama
     if [ "$OLLAMA_RUNNING" = true ]; then
         BACKEND="ollama"
-        MODEL="--model qwen2.5:7b"
+        MODEL="--model auto"
     else
         BACKEND="pattern"
         MODEL=""

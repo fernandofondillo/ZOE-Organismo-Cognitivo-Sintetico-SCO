@@ -642,7 +642,19 @@ def create_llm_peripheral(config: Dict[str, Any]) -> LLMPeripheral:
         )
     elif backend == "zai":
         return ZAIPeripheral(model=config.get("model", "glm-4.6"))
-    elif backend == "mock":
+    elif backend in ("mock", "pattern"):
+        # 'pattern' usa PatternPeripheral (sin LLM, patrones + memoria)
+        # 'mock' conserva el comportamiento legacy con respuestas fijas
+        if backend == "pattern":
+            try:
+                from .pattern_speaker import PatternPeripheral
+                return PatternPeripheral(
+                    memory=config.get("memory"),
+                    language_profile=config.get("language_profile"),
+                )
+            except ImportError:
+                # Fallback a mock si pattern_speaker no está disponible
+                return MockPeripheral(responses=config.get("responses"))
         return MockPeripheral(responses=config.get("responses"))
     else:
         raise ValueError(f"Backend LLM desconocido: {backend}")

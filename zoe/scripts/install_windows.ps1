@@ -64,6 +64,68 @@ if ($drives.Count -eq 0) {
 }
 Write-Host "  Instalando en: $zoeHome" -ForegroundColor Green
 
+# --- 3b. Verificar formato del SSD ---
+Write-Host ""
+Write-Host "[3b/6] Verificar formato del SSD..." -ForegroundColor Yellow
+
+# Determinar la letra de unidad raíz (ej: D:\ a partir de D:\ZOE)
+$driveLetter = ($zoeHome -split ":")[0]
+if ($driveLetter -and $driveLetter -ne $env:USERPROFILE.Substring(0,1)) {
+    try {
+        $volume = Get-Volume -DriveLetter $driveLetter -ErrorAction Stop
+        $fsType = $volume.FileSystem
+        $fsLabel = $volume.FileSystemLabel
+
+        if ($fsType) {
+            Write-Host "  Formato detectado: $fsType" -ForegroundColor Cyan
+
+            $fsTypeLower = $fsType.ToLower()
+            if ($fsTypeLower -eq "fat32") {
+                Write-Host ""
+                Write-Host "  [PROBLEMA CRITICO] El SSD esta formateado en FAT32." -ForegroundColor Red
+                Write-Host "  FAT32 no permite archivos de mas de 4 GB." -ForegroundColor White
+                Write-Host "  Los modelos de IA de ZOE pesan entre 3.5 GB y 25 GB." -ForegroundColor White
+                Write-Host "  La descarga FALLARA con error 'Archivo demasiado grande'." -ForegroundColor White
+                Write-Host ""
+                Write-Host "  SOLUCION:" -ForegroundColor Yellow
+                Write-Host "  1. Abre 'Crear y formatear particiones del disco duro'" -ForegroundColor White
+                Write-Host "     (busca 'diskmgmt' en el menu Inicio)"
+                Write-Host "  2. Click derecho sobre el volumen del SSD > Formatear"
+                Write-Host "  3. Sistema de archivos: NTFS (solo Windows) o exFAT (Windows + Mac + Android)"
+                Write-Host "  4. ATENCION: Esto borrara todo el contenido del SSD"
+                Write-Host ""
+                Write-Host "  Tabla de formatos:" -ForegroundColor Cyan
+                Write-Host "  NTFS  -> Solo Windows. Velocidad optima en Windows. Mac lo lee pero no escribe sin drivers." -ForegroundColor Green
+                Write-Host "  exFAT -> Windows + Mac + Android + iPhone. Universal. Recomendado si usas varios dispositivos." -ForegroundColor Green
+                Write-Host "  FAT32 -> INUTIL. No permite archivos >4GB. Los modelos no caben." -ForegroundColor Red
+                Write-Host ""
+                $continueFat32 = Read-Host "  Continuar de todas formas (sin descargar modelos grandes)? (s/N)"
+                if ($continueFat32 -notmatch "^[sS]$") {
+                    Write-Host "  Instalacion cancelada. Formatea el SSD y vuelve a ejecutar este script." -ForegroundColor Cyan
+                    exit 0
+                }
+                Write-Host "  Continuando con FAT32. No se descargaran modelos >4GB." -ForegroundColor Yellow
+                $script:skipLargeModels = $true
+            } elseif ($fsTypeLower -eq "ntfs") {
+                Write-Host "  NTFS detectado. Formato optimo para Windows." -ForegroundColor Green
+                Write-Host "  Si planeas usar el SSD tambien en Mac o Android, considera exFAT." -ForegroundColor DarkGray
+            } elseif ($fsTypeLower -eq "exfat") {
+                Write-Host "  exFAT detectado. Compatible multiplataforma (Windows + Mac + Android + iPhone)." -ForegroundColor Green
+                Write-Host "  Formato recomendado si vas a mover el SSD entre dispositivos." -ForegroundColor DarkGray
+            } else {
+                Write-Host "  Formato: $fsType. Si tienes problemas con archivos grandes, formatea a NTFS o exFAT." -ForegroundColor DarkGray
+            }
+        } else {
+            Write-Host "  No se pudo detectar el formato del SSD." -ForegroundColor DarkGray
+            Write-Host "  Si tienes errores al descargar modelos, formatea a NTFS o exFAT." -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Host "  No se pudo consultar el volumen: $_" -ForegroundColor DarkGray
+    }
+} else {
+    Write-Host "  Instalacion local (no SSD externo). Deteccion de formato omitida." -ForegroundColor DarkGray
+}
+
 # --- 4. Crear directorio ---
 Write-Host ""
 Write-Host "[4/6] Creando directorio ZOE..." -ForegroundColor Yellow

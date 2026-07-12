@@ -54,15 +54,19 @@
 curl -fsSL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/zoe-bootstrap.sh | bash
 ```
 
-> ⚠️ **Formato del SSD**: el instalador detecta automáticamente el formato. Si tu SSD está en FAT32, te avisará de que no se pueden descargar modelos grandes (>4GB).
+> ⚠️ **Formato del SSD**: el instalador detecta automáticamente el formato (en macOS, Linux y Windows) y te avisa si está en FAT32 antes de descargar modelos grandes (>4GB).
 >
 > | Formato | Compatible con | Ideal para | Limitación |
 > |---|---|---|---|
 > | **APFS** | Mac, iPhone, iPad | Solo Apple — máxima velocidad mmap | Windows/Android no lo leen |
+> | **NTFS** | Solo Windows | Máxima velocidad en Windows | Mac lo lee pero no escribe sin drivers; Android no lo lee |
 > | **exFAT** | Mac, iPhone, Android, Windows | Multiplataforma — universal | Ninguna |
 > | ~~FAT32~~ | ~~Todos~~ | ~~Dispositivos antiguos~~ | ❌ No permite archivos >4GB (inútil para modelos) |
 >
-> **Recomendación:** APFS si solo usas Mac. exFAT si usas Mac + Windows/Android.
+> **Recomendación:**
+> - Solo Mac/iPhone → **APFS**
+> - Solo Windows → **NTFS**
+> - Mac + Windows + Android + iPhone → **exFAT** (universal, recomendado si vas a mover el SSD)
 
 El instalador te guía paso a paso:
 1. Detecta tu SSD automáticamente
@@ -86,7 +90,7 @@ zoe-chat --backend pattern          # funciona sin IA, sin Ollama, sin API
 zoe-dashboard --backend pattern     # Dashboard web en http://localhost:8642
 ```
 
-### Opción C — Con Ollama local (gratis, más potente)
+### Opción C — Con Ollama local + ACD Router (gratis, lo más potente) ⭐
 
 ```bash
 git clone https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO.git
@@ -94,11 +98,16 @@ cd ZOE-Organismo-Cognitivo-Sintetico-SCO
 pip install -e .
 
 # Instalar Ollama desde https://ollama.com
-ollama pull qwen2.5:3b              # 2GB, gratis
 
-zoe-chat --backend ollama --model qwen2.5:3b
-zoe-dashboard --backend ollama --model qwen2.5:3b
+# Descargar los 4 modelos IQ2_M optimizados (recomendado: balanced, 16GB)
+python -m zoe.core.model_downloader --download-setup balanced
+
+# Lanzar ZOE con routing automático por nivel cognitivo:
+zoe-chat --backend ollama --model auto
+# ZOE usará Gemma 9B para "Hola", QwQ-32B para análisis, Qwen 72B para comparativas críticas
 ```
+
+Setups disponibles: `minimal` (3.5GB) · `balanced` (16GB) ⭐ · `complete` (28GB) · `maximum` (53GB).
 
 ### Opción D — Con OpenAI GPT-4o (calidad máxima)
 
@@ -269,9 +278,11 @@ pytest + pytest-asyncio  # Tests
 | **50+ endpoints REST** | [API Reference](docs/REFERENCE/API_REFERENCE.md) |
 | **7 casos de uso** documentados | [Usage Guide §Casos de uso](docs/09_USAGE_GUIDE.md#casos-de-uso) |
 | **Multi-idioma** (ES, EN, FR, DE) | Sprint 1 — `LanguageDetector` |
-| **Windows nativo** + installer PowerShell | Sprint 1 — `install_windows.ps1` |
-| **PWA** (instalable como app móvil) | Sprint 1 — manifest + responsive CSS |
-| **Telegram bot** bridge | Sprint 1 — `telegram_bridge.py` |
+| **Windows nativo** + installer PowerShell + detección formato SSD | Sprint 1 — `install_windows.ps1` |
+| **PWA** (instalable como app móvil, Android + iOS) | Sprint 1 — manifest + responsive CSS |
+| **Telegram bot** bridge (Android, iPhone, Mac, Windows, Linux) | Sprint 1 — `telegram_bridge.py` |
+| **Android**: Telegram / PWA / Termux / SSD exFAT OTG | [Guía de Instalación §Escenario H](docs/17_USER_INSTALLATION_GUIDE.md#escenario-h-android-móvil-o-tablet-5-10-minutos) |
+| **iPhone/iPad**: Telegram / PWA Safari / SSD USB-C / archivo .zoe | [Guía de Instalación §Escenario I](docs/17_USER_INSTALLATION_GUIDE.md#escenario-i-iphone-o-ipad-5-minutos) |
 | **Multi-modal** (Visión VLM + Voz STT/TTS) | Sprint 2 — `multimodal.py` |
 | **Cápsula multimodal_perception** | Sprint 2 — 14ª cápsula |
 | **PatternSpeaker** (generación sin LLM) | Sprint 3 — `pattern_speaker.py` |
@@ -280,8 +291,11 @@ pytest + pytest-asyncio  # Tests
 | **ZoeRuntime** (ejecutar .zoe sin dependencias) | Sprint 3.5 — `zoe_runtime.py` |
 | **Cápsula language_patterns** | Sprint 3 — 15ª cápsula |
 | **Cognitive Optimization Layer** (.zmap + CPL + TPE) | Sprint 5 — `cognitive_optimization.py` |
+| **ACD Model Router** (4 modelos IQ2_M según nivel cognitivo) | Sprint 5.7 — `model_profile_router.py` + `model_downloader.py` |
+| **L3_MAXIMUM** (nivel crítico: jurídico/médico/comparativas) | Sprint 5.7 — `depth_classifier.py` |
+| **ModelDownloader CLI** (setups minimal/balanced/complete/maximum) | Sprint 5.7 — `python -m zoe.core.model_downloader --download-setup` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
-| **510 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+| **540+ tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
 ---
 
@@ -294,11 +308,33 @@ ZOE tiene un sistema inteligente (Cognitive Optimization Layer) que **usa la inf
 | Tu configuración | Pregunta simple (L0/L1) | Pregunta compleja (L2/L3) |
 |---|---|---|
 | **Sin LLM** (solo Python) | PatternSpeaker: instantáneo, gratis, offline | PatternSpeaker + destiladas + cápsulas: decente sin LLM |
-| **Ollama local** (gratis) | PatternSpeaker: no toca Ollama, ahorra RAM | CPL pre-carga modelo + .zmap optimiza capas + LLM responde |
+| **Ollama local + `--model auto`** ⭐ | ACD Router → Gemma 9B IQ2_M (instantáneo) | ACD Router → QwQ-32B / Qwen 72B según nivel cognitivo |
+| **Ollama local + modelo fijo** | PatternSpeaker: no toca Ollama, ahorra RAM | CPL pre-carga modelo + .zmap optimiza capas + LLM responde |
 | **Cloud API** (GPT-4o/Claude) | PatternSpeaker: no gasta API, ahorra €€ | CPL pre-construye contexto + API responde con máxima calidad |
 | **.zoe portátil** | PatternSpeaker: siempre disponible | PatternSpeaker + destiladas (si las hay) |
 
 **El usuario no configura nada.** ZOE detecta qué tiene disponible y elige la mejor opción automáticamente.
+
+### Sprint 5.7 — ACD Model Router (los 4 modelos IQ2_M)
+
+Con `--model auto`, ZOE usa **modelos distintos según el tipo de pregunta**. El clasificador ACD detecta el nivel cognitivo (L0/L1/L2/L3_DEEP/L3_MAXIMUM) y el router carga el modelo óptimo:
+
+| Input del usuario | Nivel ACD | Modelo cargado | Velocidad |
+|---|---|---|---|
+| "Hola" | L0_REFLEX | (sin LLM — tabla refleja) | <1ms |
+| "¿Qué hora es?" | L1_FAST | Gemma 2 9B IQ2_M (3.5GB) | 15-25 t/s ⚡ |
+| "Resume este artículo" | L2_STANDARD | Agents-A1 MoE IQ2_M (11.7GB) | 5-10 t/s ✅ |
+| "Analiza las causas de esta depresión" | L3_DEEP | QwQ-32B IQ2_M (12.5GB) | 3-6 t/s 🧠 |
+| "Compara 3 contratos jurídicamente" | L3_MAXIMUM | Qwen 2.5 72B IQ2_M (25GB) | 1-3 t/s 🎯 |
+
+**Setups preseleccionados** (instalables con un comando):
+
+| Setup | Modelos | Tamaño | Cobertura | Mínimo SSD |
+|---|---|---|---|---|
+| `minimal` | Solo Gemma 9B | 3.5 GB | L0/L1/L2 | 16 GB |
+| `balanced` ⭐ | Gemma + QwQ-32B | 16 GB | L0/L1 rápido + L3 profundo | 32 GB |
+| `complete` | Gemma + MoE + QwQ | 28 GB | L0/L1 + L2 + L3 | 64 GB |
+| `maximum` | Los 4 modelos | 53 GB | Todo el espectro | 128 GB (1TB sobra) |
 
 ### Ejemplo práctico
 
@@ -328,7 +364,7 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 50+
 **Idiomas:** 4 (ES, EN, FR, DE)
-**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil, Telegram, .zoe portable
+**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil (Android/iOS), Telegram (todas las plataformas), SSD portátil multiplataforma (exFAT), archivo .zoe, Android (Termux), iPhone/iPad (SSD USB-C / PWA Safari)
 **Líneas de código:** ~41.000 LOC Python + ~16.300 LOC tests
 
 ### Roadmap resumido
@@ -359,6 +395,9 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 | ✅ | Sprint 3.6 — Enhanced PatternSpeaker | Destilación + retrieval + dialog state (sin LLM, más capaz) |
 | ✅ | Sprint 4 — Voice-first mode | Conversación natural por voz + wake word + interrupción |
 | ✅ | Sprint 5 — Cognitive Optimization Layer | .zmap + Cognitive Prefetch Layer + Tensor Prediction Engine |
+| ✅ | Sprint 5.5 — ModelDownloader | Descarga IQ2_M de HuggingFace + Modelfile + registro Ollama |
+| ✅ | Sprint 5.6 — ModelProfileRouter | Asignación de 4 modelos a 5 niveles ACD |
+| ✅ | Sprint 5.7 — ACD Routing Wiring | L3_MAXIMUM + conexión al bucle V5 + bootstrap + zoe-setup |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)

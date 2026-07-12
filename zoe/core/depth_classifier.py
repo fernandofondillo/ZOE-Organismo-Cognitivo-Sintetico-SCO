@@ -37,20 +37,24 @@ class CognitiveLevel(str, Enum):
     L1_FAST = "L1_FAST"
     L2_STANDARD = "L2_STANDARD"
     L3_DEEP = "L3_DEEP"
+    L3_MAXIMUM = "L3_MAXIMUM"  # Sprint 5.7 — análisis crítico de máxima calidad
 
     @property
     def numeric(self) -> int:
-        return {"L0_REFLEX": 0, "L1_FAST": 1, "L2_STANDARD": 2, "L3_DEEP": 3}[self.value]
+        return {
+            "L0_REFLEX": 0, "L1_FAST": 1, "L2_STANDARD": 2,
+            "L3_DEEP": 3, "L3_MAXIMUM": 4,
+        }[self.value]
 
     @property
     def cost(self) -> float:
         """Coste cognitivo (4ta ley)."""
-        return {0: 0.05, 1: 0.10, 2: 0.30, 3: 0.60}[self.numeric]
+        return {0: 0.05, 1: 0.10, 2: 0.30, 3: 0.60, 4: 0.85}[self.numeric]
 
     @property
     def default_confidence(self) -> float:
         """Confianza típica del nivel (5ta ley)."""
-        return {0: 0.95, 1: 0.80, 2: 0.65, 3: 0.55}[self.numeric]
+        return {0: 0.95, 1: 0.80, 2: 0.65, 3: 0.55, 4: 0.50}[self.numeric]
 
 
 @dataclass
@@ -119,6 +123,37 @@ _L3_KEYWORDS = {
     "fiabilidad", "evidencia", "pruebas",
 }
 
+# L3_MAXIMUM (Sprint 5.7) — Indicadores de crítica de máxima calidad.
+# Piden comparar múltiples opciones con criterios formales, análisis jurídico/médico,
+# o tareas donde la precisión es crítica y el coste de error es alto.
+_L3_MAXIMUM_KEYWORDS = {
+    # Crítica jurídica / médica / financiera
+    "jurídicamente", "juridicamente", "legalmente", "médicamente", "medicamente",
+    "financialmente", "financieramente", "regulatorio", "compliance", "auditoría",
+    # Comparación múltiple con criterios
+    "compara estas", "compara estos", "compara los siguientes",
+    "compara las siguientes", "compara 3", "compara tres",
+    "evalúa críticamente", "evalua críticamente",
+    # Crítica de alta precisión
+    "criticamente", "críticamente", "con máximo rigor", "con maximo rigor",
+    "exhaustivamente", "en detalle máximo", "con precisión",
+    # Contextos donde error = daño
+    "diagnóstico diferencial", "diagnostico diferencial",
+    "análisis de riesgo", "analisis de riesgo",
+    "contrastes", "contrasta", "coteja",
+    # Multi-documento / multi-perspectiva
+    "multiples documentos", "múltiples documentos",
+    "todas las perspectivas", "todas las opciones",
+}
+
+# L3_MAXIMUM — Patrones estructurales (regex)
+_L3_MAXIMUM_PATTERNS = [
+    re.compile(r"\bcompara\b.+\b(documento|contrato|opción|opcion|caso|alternativa)", re.I),
+    re.compile(r"\bcompara\b\s+\d+\s+\b(contratos|documentos|opciones|alternativas|casos)", re.I),
+    re.compile(r"\b(diagnóstico|diagnostico)\b\s+\b(diferencial|diferencia)\b", re.I),
+    re.compile(r"\b(jurídico|juridico|médico|medico|financiero)\b.+\b(analysis|análisis|analisis|informe)\b", re.I),
+]
+
 # L1 — Indicadores de consulta factual (rápida)
 _L1_KEYWORDS = {
     "qué", "que", "quién", "quien", "cuál", "cual", "cuándo", "cuando",
@@ -168,7 +203,8 @@ class DepthClassifier:
         # Estadísticas
         self.classifications = 0
         self.level_distribution: Dict[str, int] = {
-            "L0_REFLEX": 0, "L1_FAST": 0, "L2_STANDARD": 0, "L3_DEEP": 0
+            "L0_REFLEX": 0, "L1_FAST": 0, "L2_STANDARD": 0,
+            "L3_DEEP": 0, "L3_MAXIMUM": 0,
         }
 
     def classify(self, text: str) -> ClassificationResult:
@@ -217,6 +253,21 @@ class DepthClassifier:
             score += min(0.4, 0.15 * len(l3_hits))
             reasons.append(f"l3_keywords:{l3_hits[:3]}")
 
+        # 3b. Detectar keywords L3_MAXIMUM (Sprint 5.7)
+        l3_max_hits = [kw for kw in _L3_MAXIMUM_KEYWORDS if kw in text_lower]
+        if l3_max_hits:
+            score += 0.3
+            reasons.append(f"l3_max_keywords:{l3_max_hits[:3]}")
+
+        # 3c. Patrones L3_MAXIMUM
+        l3_max_pattern_hit = False
+        for pattern in _L3_MAXIMUM_PATTERNS:
+            if pattern.search(text):
+                score += 0.25
+                reasons.append(f"l3_max_pattern:{pattern.pattern[:30]}")
+                l3_max_pattern_hit = True
+                break
+
         # 4. Patrones L3
         for pattern in _L3_PATTERNS:
             if pattern.search(text):
@@ -254,10 +305,21 @@ class DepthClassifier:
             reasons.append(f"l1_keywords:{l1_hits[:3]}")
 
         # ---- Decidir nivel ----
+        # Sprint 5.7: L3_MAXIMUM override — si hay keywords/patrones L3_MAXIMUM
+        # explícitos, escalar directamente a L3_MAXIMUM (prioridad más alta que L3_DEEP)
+        force_l3_max = bool(l3_max_hits) or l3_max_pattern_hit
         # Safety override: si contiene keyword L3 explícito, mínimo L3
         force_l3 = bool(l3_hits)
-        # Si texto largo + L3 keyword, forzar L3
-        if force_l3 and length > 80:
+
+        if force_l3_max and (length > 80 or l3_max_pattern_hit):
+            level = CognitiveLevel.L3_MAXIMUM
+            score = max(score, 0.85)
+            reasons.append("forced_l3_max:keyword+length" if length > 80 else "forced_l3_max:pattern")
+        elif force_l3_max:
+            level = CognitiveLevel.L3_MAXIMUM
+            score = max(score, 0.75)
+            reasons.append("forced_l3_max:keyword")
+        elif force_l3 and length > 80:
             level = CognitiveLevel.L3_DEEP
             score = max(score, 0.7)
             reasons.append("forced_l3:keyword+length")

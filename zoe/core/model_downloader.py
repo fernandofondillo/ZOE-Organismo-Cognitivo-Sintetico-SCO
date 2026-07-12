@@ -493,3 +493,154 @@ SYSTEM "Eres ZOE, un organismo cognitivo sintético."
                 if (self.models_dir / m.hf_filename).exists()
             ),
         }
+
+
+# ============================================================
+# CLI — Sprint 5.7 — Invocable desde bash / zoe-bootstrap.sh
+# ============================================================
+
+def _detect_ram_gb() -> float:
+    """Detecta RAM total del sistema en GB."""
+    import platform
+    try:
+        if platform.system() == "Darwin":
+            result = subprocess.run(
+                ["sysctl", "-n", "hw.memsize"],
+                capture_output=True, text=True, timeout=5,
+            )
+            return int(result.stdout.strip()) / (1024**3)
+        elif platform.system() == "Linux":
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal:"):
+                        return int(line.split()[1]) / (1024**2)
+        elif platform.system() == "Windows":
+            result = subprocess.run(
+                ["wmic", "ComputerSystem", "get", "TotalPhysicalMemory"],
+                capture_output=True, text=True, timeout=5,
+            )
+            return int(result.stdout.strip().split()[-1]) / (1024**3)
+    except Exception:
+        pass
+    return 8.0  # fallback conservador
+
+
+# Setups preseleccionados para el instalador (Sprint 5.7)
+SETUP_PRESETS = {
+    "minimal": {
+        "models": ["gemma-2-9b-iq2"],
+        "total_gb": 3.5,
+        "min_ram_gb": 4.0,
+        "description": "Solo Gemma 2 9B IQ2_M (3.5GB) — ultra rápido",
+    },
+    "balanced": {
+        "models": ["gemma-2-9b-iq2", "qwq-32b-iq2"],
+        "total_gb": 16.0,
+        "min_ram_gb": 8.0,
+        "description": "Gemma + QwQ-32B (16GB) — equilibrado para 8GB RAM",
+    },
+    "complete": {
+        "models": ["gemma-2-9b-iq2", "agents-a1-iq2", "qwq-32b-iq2"],
+        "total_gb": 27.7,
+        "min_ram_gb": 8.0,
+        "description": "Gemma + Agents-A1 MoE + QwQ-32B (28GB) — cobertura completa",
+    },
+    "maximum": {
+        "models": ["gemma-2-9b-iq2", "agents-a1-iq2", "qwq-32b-iq2", "qwen2.5:72b-iq2"],
+        "total_gb": 52.7,
+        "min_ram_gb": 8.0,
+        "description": "Los 4 modelos (53GB) — espectro completo para SSD 1TB",
+    },
+}
+
+
+def _main_cli():
+    """CLI invocable como: python -m zoe.core.model_downloader --download-setup balanced /path/to/models"""
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="ZOE Model Downloader — descarga modelos IQ2_M desde HuggingFace"
+    )
+    parser.add_argument(
+        "--download-setup",
+        choices=["minimal", "balanced", "complete", "maximum"],
+        help="Setup preseleccionado a descargar",
+    )
+    parser.add_argument(
+        "--models-dir",
+        default=os.environ.get("OLLAMA_MODELS", "models"),
+        help="Directorio donde guardar los .gguf (default: $OLLAMA_MODELS o ./models)",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="Lista modelos disponibles y sale",
+    )
+    parser.add_argument(
+        "--detect-installed",
+        action="store_true",
+        help="Detecta qué modelos IQ2_M hay instalados en --models-dir y sale",
+    )
+    args = parser.parse_args()
+
+    if args.list:
+        print(f"\n{'='*60}")
+        print(f"  Catálogo ZOE — Modelos IQ2_M optimizados (HuggingFace)")
+        print(f"{'='*60}\n")
+        for key, m in OPTIMIZED_MODELS.items():
+            local = Path(args.models_dir) / m.hf_filename
+            status = "✅ descargado" if local.exists() else "⬜ no descargado"
+            print(f"  {key:30s} {m.size_gb:5.1f}GB  {m.estimated_tokens_s:>8s} t/s  {status}")
+            print(f"     {m.display_name}")
+            print(f"     {m.description}\n")
+        return
+
+    if args.detect_installed:
+        d = ModelDownloader(models_dir=args.models_dir)
+        installed = []
+        for key, m in OPTIMIZED_MODELS.items():
+            local = Path(args.models_dir) / m.hf_filename
+            if local.exists():
+                installed.append(key)
+        print(json.dumps({"installed": installed, "models_dir": args.models_dir}))
+        return
+
+    if not args.download_setup:
+        parser.error("Especifica --download-setup, --list o --detect-installed")
+
+    setup = SETUP_PRESETS[args.download_setup]
+    ram = _detect_ram_gb()
+    print(f"\n{'='*60}")
+    print(f"  ZOE Model Downloader — Setup '{args.download_setup}'")
+    print(f"{'='*60}")
+    print(f"  RAM detectada: {ram:.1f} GB")
+    print(f"  Setup: {setup['description']}")
+    print(f"  Modelos: {', '.join(setup['models'])}")
+    print(f"  Tamaño total: {setup['total_gb']} GB")
+    print(f"  Directorio: {args.models_dir}\n")
+
+    if ram < setup["min_ram_gb"]:
+        print(f"  ⚠️  ADVERTENCIA: tu RAM ({ram:.1f}GB) es menor que el recomendado ({setup['min_ram_gb']}GB)")
+        print(f"     Los modelos funcionarán vía mmap (más lento pero funcional)\n")
+
+    Path(args.models_dir).mkdir(parents=True, exist_ok=True)
+    downloader = ModelDownloader(models_dir=args.models_dir)
+
+    success = 0
+    for i, key in enumerate(setup["models"], 1):
+        print(f"\n  [{i}/{len(setup['models'])}] Descargando {key}...")
+        ok = downloader.download_and_register(key)
+        if ok:
+            print(f"  ✅ {key} descargado y registrado en Ollama")
+            success += 1
+        else:
+            print(f"  ❌ {key} falló")
+
+    print(f"\n{'='*60}")
+    print(f"  RESUMEN: {success}/{len(setup['models'])} modelos instalados")
+    print(f"  ZOE puede usar: zoe-chat --backend ollama --model auto")
+    print(f"{'='*60}\n")
+
+
+if __name__ == "__main__":
+    import json
+    _main_cli()

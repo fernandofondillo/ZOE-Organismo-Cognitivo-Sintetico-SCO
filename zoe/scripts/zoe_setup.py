@@ -35,9 +35,10 @@ def ok(msg): print(f"  {C.GREEN}✅{C.END} {msg}")
 def warn(msg): print(f"  {C.YELLOW}⚠️ {C.END} {msg}")
 def err(msg): print(f"  {C.RED}❌{C.END} {msg}")
 def info(msg): print(f"  {C.BLUE}ℹ️{C.END} {msg}")
-def title(msg): print(f"\n{C.BOLD}{C.BLUE}{'='*60}{C.END}")
-print(f"{C.BOLD}{C.BLUE} {msg}{C.END}")
-print(f"{C.BOLD}{C.BLUE}{'='*60}{C.END}\n")
+def title(msg):
+    print(f"\n{C.BOLD}{C.BLUE}{'='*60}{C.END}")
+    print(f"{C.BOLD}{C.BLUE} {msg}{C.END}")
+    print(f"{C.BOLD}{C.BLUE}{'='*60}{C.END}\n")
 
 
 def check_python():
@@ -411,13 +412,69 @@ def print_installation_guide():
 """)
 
 
+def check_iq2_models(models_dir=None):
+    """Sprint 5.7 — Verifica qué modelos IQ2_M hay instalados."""
+    if models_dir is None:
+        models_dir = os.environ.get("OLLAMA_MODELS", "models")
+    try:
+        from zoe.core.model_downloader import OPTIMIZED_MODELS, SETUP_PRESETS
+        from pathlib import Path
+        installed = []
+        for key, m in OPTIMIZED_MODELS.items():
+            local = Path(models_dir) / m.hf_filename
+            if local.exists():
+                installed.append(key)
+        return installed, models_dir
+    except Exception:
+        return [], models_dir
+
+
+def recommend_iq2_setup(ram_gb, ssd_free_gb=None):
+    """Sprint 5.7 — Recomienda setup IQ2_M según RAM y SSD."""
+    if not isinstance(ram_gb, (int, float)) or ram_gb <= 0:
+        ram_gb = 8.0
+    # Setup según RAM y (si se sabe) SSD libre
+    if ssd_free_gb and ssd_free_gb >= 60:
+        return "maximum", "SSD con ≥60GB libre → los 4 modelos cubren todo el espectro"
+    if ram_gb >= 8 and (ssd_free_gb is None or ssd_free_gb >= 30):
+        return "complete", "8GB+ RAM y SSD con ≥30GB → 3 modelos (Gemma + MoE + QwQ)"
+    if ram_gb >= 8 and (ssd_free_gb is None or ssd_free_gb >= 18):
+        return "balanced", "8GB+ RAM → 2 modelos (Gemma + QwQ-32B), equilibrado"
+    return "minimal", "RAM limitada → solo Gemma 9B IQ2_M (3.5GB)"
+
+
 def main():
     parser = argparse.ArgumentParser(description="ZOE Setup — guía interactiva")
     parser.add_argument("--check", action="store_true",
                        help="Solo verificar, no instalar")
     parser.add_argument("--install", action="store_true",
                        help="Instalar dependencias que falten")
+    parser.add_argument("--install-iq2-models", metavar="SETUP",
+                       choices=["minimal", "balanced", "complete", "maximum"],
+                       help="Descarga e instala un setup de modelos IQ2_M")
+    parser.add_argument("--models-dir",
+                       default=None,
+                       help="Directorio donde guardar los .gguf (default: $OLLAMA_MODELS o ./models)")
     args = parser.parse_args()
+
+    # Sprint 5.7 — atajo: --install-iq2-models
+    if args.install_iq2_models:
+        models_dir = args.models_dir or os.environ.get("OLLAMA_MODELS", "models")
+        title(f"INSTALAR MODELOS IQ2_M — setup '{args.install_iq2_models}'")
+        try:
+            from zoe.core.model_downloader import _main_cli
+            import sys as _sys
+            _sys.argv = [
+                "model_downloader",
+                "--download-setup", args.install_iq2_models,
+                "--models-dir", models_dir,
+            ]
+            _main_cli()
+        except Exception as e:
+            err(f"Error instalando modelos: {e}")
+            info("Ejecuta manualmente: python -m zoe.core.model_downloader --download-setup "
+                 f"{args.install_iq2_models} --models-dir {models_dir}")
+        return
 
     title("ZOE SETUP — Detección y guía")
     
@@ -440,6 +497,22 @@ def main():
     api_keys = check_api_keys()
     zoe_ok = check_zoe_installed()
     has_data = check_zoe_data()
+    
+    # 2b. Sprint 5.7 — Verificar modelos IQ2_M
+    print(f"\n{C.BOLD}Verificando modelos IQ2_M...{C.END}\n")
+    installed_iq2, models_dir = check_iq2_models()
+    if installed_iq2:
+        ok(f"Modelos IQ2_M instalados en {models_dir}: {', '.join(installed_iq2)}")
+        # Recomendar ZOE con --model auto
+        print(f"\n  {C.GREEN}→ Para activar routing automático por nivel cognitivo:{C.END}")
+        print(f"    zoe-chat --backend ollama --model auto")
+    else:
+        info(f"No hay modelos IQ2_M en {models_dir}")
+        setup, reason = recommend_iq2_setup(plat['ram_gb'])
+        print(f"  Setup recomendado: {C.BOLD}{setup}{C.END} ({reason})")
+        print(f"\n  {C.BOLD}Para instalar:{C.END}")
+        print(f"    zoe-setup --install-iq2-models {setup}")
+        print(f"    (o: python -m zoe.core.model_downloader --download-setup {setup})")
     
     # 3. Instalar ZOE si no está
     if not zoe_ok and python_ok and pip_ok:
@@ -486,11 +559,16 @@ def main():
     print(f"""
 {C.GREEN}ZOE está preparada.{C.END}
 
-{C.BOLD}Comando más simple para empezar:{C.END}
+{C.BOLD}Comando más simple para empezar (sin IA, gratis, offline):{C.END}
   zoe-chat --backend pattern
 
-{C.BOLD}Para máxima calidad (si tienes Ollama):{C.END}
-  zoe-chat --backend ollama --model qwen2.5:3b
+{C.BOLD}Con IA local + routing automático (recomendado):{C.END}
+  zoe-chat --backend ollama --model auto
+  (ZOE elegirá Gemma/Agents-A1/QwQ/Qwen72B según el tipo de pregunta)
+
+{C.BOLD}Para instalar modelos IQ2_M optimizados:{C.END}
+  zoe-setup --install-iq2-models balanced
+  (setups: minimal | balanced | complete | maximum)
 
 {C.BOLD}Dashboard web:{C.END}
   zoe-dashboard --backend pattern

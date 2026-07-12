@@ -94,6 +94,9 @@ class CognitiveLoopV5(CognitiveLoopV4):
         # Fase 5 componentes (opcionales)
         depth_classifier: Optional[DepthClassifier] = None,
         cognitive_cache: Optional[CognitiveCache] = None,
+        # Sprint 5.7: routing ACD→modelo
+        model_profile_router: Optional[Any] = None,
+        active_profile: Optional[Any] = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -102,17 +105,27 @@ class CognitiveLoopV5(CognitiveLoopV4):
         self.depth_classifier = depth_classifier
         self.cognitive_cache = cognitive_cache
 
-        # Estadísticas Fase 5
+        # Sprint 5.7 — ModelProfileRouter (ACD → modelo IQ2_M)
+        self.model_profile_router = model_profile_router
+        self._active_profile = active_profile
+        self._router_swaps: int = 0
+        self._router_skips: int = 0
+        self._last_routed_tag: Optional[str] = None
+
+        # Estadísticas Fase 5 + Sprint 5.7
         self.acd_classifications: int = 0
         self.acd_level_counts: Dict[str, int] = {
-            "L0_REFLEX": 0, "L1_FAST": 0, "L2_STANDARD": 0, "L3_DEEP": 0,
+            "L0_REFLEX": 0, "L1_FAST": 0, "L2_STANDARD": 0,
+            "L3_DEEP": 0, "L3_MAXIMUM": 0,
         }
         self.acd_cache_hits: int = 0
         self.acd_responses_by_level: Dict[str, int] = {
-            "L0_REFLEX": 0, "L1_FAST": 0, "L2_STANDARD": 0, "L3_DEEP": 0,
+            "L0_REFLEX": 0, "L1_FAST": 0, "L2_STANDARD": 0,
+            "L3_DEEP": 0, "L3_MAXIMUM": 0,
         }
         self.acd_latency_by_level: Dict[str, List[float]] = {
-            "L0_REFLEX": [], "L1_FAST": [], "L2_STANDARD": [], "L3_DEEP": [],
+            "L0_REFLEX": [], "L1_FAST": [], "L2_STANDARD": [],
+            "L3_DEEP": [], "L3_MAXIMUM": [],
         }
 
         # Última clasificación (para auditoría)
@@ -151,6 +164,51 @@ class CognitiveLoopV5(CognitiveLoopV4):
 
         level = classification.level
 
+        # 1b. Sprint 5.7 — Routing ACD→modelo (hot-swap del LLM)
+        # Si hay ModelProfileRouter configurado, preguntarle qué modelo usar
+        # para este nivel ACD. Solo para L1+ (L0_REFLEX no toca LLM).
+        routed_tag: Optional[str] = None
+        if self.model_profile_router and level != CognitiveLevel.L0_REFLEX:
+            try:
+                assignment = self.model_profile_router.get_model_for_acd(
+                    acd_level=level.value,
+                    profile=self._active_profile,
+                )
+                if assignment and hasattr(assignment, "model_tag"):
+                    routed_tag = assignment.model_tag
+                    # Hot-swap del LLM en el speaker si el modelo cambió
+                    # y no es "pattern" (pattern se maneja aparte)
+                    if routed_tag and routed_tag != "pattern":
+                        # Buscar el speaker en los subagentes
+                        speaker = self._find_speaker()
+                        if speaker and hasattr(speaker, "llm_peripheral") and speaker.llm_peripheral:
+                            current_model = getattr(speaker.llm_peripheral, "model", None)
+                            if current_model != routed_tag:
+                                # Hot-swap mutando el modelo del OllamaPeripheral existente
+                                # (más rápido que crear uno nuevo; Ollama recarga solo si hace falta)
+                                try:
+                                    speaker.llm_peripheral.model = routed_tag
+                                    self._router_swaps += 1
+                                    self._last_routed_tag = routed_tag
+                                    logger.info(
+                                        f"ACD router: {level.value} → model '{routed_tag}' "
+                                        f"(was '{current_model}')"
+                                    )
+                                except Exception as e:
+                                    logger.debug(f"ACD router swap failed: {e}")
+                                    self._router_skips += 1
+                            else:
+                                self._router_skips += 1
+                    elif routed_tag == "pattern":
+                        # Pattern fallback — no swap, dejar que el speaker actual responda
+                        # (si el LLM actual es caro, podríamos apagarlo, pero mantener simple)
+                        self._router_skips += 1
+                else:
+                    self._router_skips += 1
+            except Exception as e:
+                logger.debug(f"ACD router error (non-fatal): {e}")
+                self._router_skips += 1
+
         # 2. Cache lookup
         cache_hit = False
         cached = None
@@ -171,6 +229,10 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 response, trajectory_hash = await self._process_l1(user_input, classification)
             elif level == CognitiveLevel.L2_STANDARD:
                 response, trajectory_hash = await self._process_l2(user_input, classification)
+            elif level == CognitiveLevel.L3_MAXIMUM:
+                # Sprint 5.7: L3_MAXIMUM usa el mismo pipeline que L3_DEEP
+                # pero el router (si está activo) habrá cargado el modelo 72B
+                response, trajectory_hash = await self._process_l3(user_input, classification)
             else:  # L3_DEEP
                 response, trajectory_hash = await self._process_l3(user_input, classification)
 
@@ -509,6 +571,21 @@ class CognitiveLoopV5(CognitiveLoopV4):
             if cls_name.startswith(name_prefix.lower()[:6]):
                 return agent
         return None
+
+    def _find_speaker(self) -> Optional[Any]:
+        """Sprint 5.7 — atajo para encontrar el Speaker."""
+        return self._find_subagent("speaker")
+
+    def get_router_stats(self) -> Dict[str, Any]:
+        """Sprint 5.7 — estadísticas del ModelProfileRouter."""
+        return {
+            "enabled": self.model_profile_router is not None,
+            "swaps": self._router_swaps,
+            "skips": self._router_skips,
+            "last_routed_tag": self._last_routed_tag,
+            "active_profile": getattr(self._active_profile, "name", None)
+                              if self._active_profile else None,
+        }
 
     async def _legacy_process(self, user_input: str) -> Dict[str, Any]:
         """Comportamiento legacy (sin ACD) — para compatibilidad."""
