@@ -183,6 +183,11 @@ class DashboardServer:
         app.router.add_get("/api/hardware/cable_warning", self._handle_hardware_cable_warning)
         app.router.add_get("/api/hardware/system", self._handle_hardware_system)
 
+        # Sprint 5.7.2 — ACD Model Router endpoints
+        app.router.add_get("/api/router/stats", self._handle_router_stats)
+        app.router.add_get("/api/router/installed", self._handle_router_installed)
+        app.router.add_get("/api/router/profile", self._handle_router_profile)
+
         # PWA manifest (Sprint 1.3)
         app.router.add_get("/manifest.json", self._handle_manifest)
 
@@ -1631,6 +1636,60 @@ class DashboardServer:
             "categories": ["productivity", "utilities"],
         }
         return web.json_response(manifest)
+
+    # ============================================================
+    # Sprint 5.7.2 — ACD Model Router endpoints
+    # ============================================================
+
+    async def _handle_router_stats(self, request) -> Any:
+        """GET /api/router/stats — estadísticas del ACD Model Router."""
+        from aiohttp import web
+        loop = self.chat.loop
+        if hasattr(loop, "get_router_stats"):
+            return web.json_response(loop.get_router_stats())
+        return web.json_response({"enabled": False, "error": "router not available"})
+
+    async def _handle_router_installed(self, request) -> Any:
+        """GET /api/router/installed — lista modelos IQ2_M instalados en el SSD."""
+        from aiohttp import web
+        import os
+        from pathlib import Path
+        try:
+            from .core.model_downloader import OPTIMIZED_MODELS
+            models_dir = os.environ.get("OLLAMA_MODELS", "models")
+            installed = []
+            for key, m in OPTIMIZED_MODELS.items():
+                local = Path(models_dir) / m.hf_filename
+                if local.exists():
+                    installed.append({
+                        "key": key,
+                        "display_name": m.display_name,
+                        "size_gb": m.size_gb,
+                        "quantization": m.quantization,
+                        "ollama_tag": m.ollama_tag,
+                        "path": str(local),
+                        "estimated_tokens_s": m.estimated_tokens_s,
+                    })
+            return web.json_response({
+                "models_dir": models_dir,
+                "installed_count": len(installed),
+                "installed": installed,
+                "available_catalog": len(OPTIMIZED_MODELS),
+            })
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_router_profile(self, request) -> Any:
+        """GET /api/router/profile — perfil activo del ModelProfileRouter."""
+        from aiohttp import web
+        loop = self.chat.loop
+        if hasattr(loop, "_active_profile") and loop._active_profile:
+            profile = loop._active_profile
+            return web.json_response(profile.to_dict())
+        return web.json_response({
+            "name": "none",
+            "description": "ACD Router no activo. Ejecuta con --model auto."
+        })
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""

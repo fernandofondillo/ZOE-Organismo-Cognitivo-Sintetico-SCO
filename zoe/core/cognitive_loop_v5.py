@@ -181,27 +181,31 @@ class CognitiveLoopV5(CognitiveLoopV4):
                     if routed_tag and routed_tag != "pattern":
                         # Buscar el speaker en los subagentes
                         speaker = self._find_speaker()
-                        if speaker and hasattr(speaker, "llm_peripheral") and speaker.llm_peripheral:
-                            current_model = getattr(speaker.llm_peripheral, "model", None)
-                            if current_model != routed_tag:
-                                # Hot-swap mutando el modelo del OllamaPeripheral existente
-                                # (más rápido que crear uno nuevo; Ollama recarga solo si hace falta)
-                                try:
-                                    speaker.llm_peripheral.model = routed_tag
-                                    self._router_swaps += 1
-                                    self._last_routed_tag = routed_tag
-                                    logger.info(
-                                        f"ACD router: {level.value} → model '{routed_tag}' "
-                                        f"(was '{current_model}')"
-                                    )
-                                except Exception as e:
-                                    logger.debug(f"ACD router swap failed: {e}")
+                        # Sprint 5.7.2 FIX: Speaker guarda el LLM en self.llm (no self.llm_peripheral)
+                        if speaker:
+                            llm_attr = getattr(speaker, "llm", None) or getattr(speaker, "llm_peripheral", None)
+                            if llm_attr:
+                                current_model = getattr(llm_attr, "model", None)
+                                if current_model != routed_tag:
+                                    # Hot-swap mutando el modelo del OllamaPeripheral existente
+                                    # (más rápido que crear uno nuevo; Ollama recarga solo si hace falta)
+                                    try:
+                                        llm_attr.model = routed_tag
+                                        self._router_swaps += 1
+                                        self._last_routed_tag = routed_tag
+                                        logger.info(
+                                            f"ACD router: {level.value} → model '{routed_tag}' "
+                                            f"(was '{current_model}')"
+                                        )
+                                    except Exception as e:
+                                        logger.debug(f"ACD router swap failed: {e}")
+                                        self._router_skips += 1
+                                else:
                                     self._router_skips += 1
                             else:
                                 self._router_skips += 1
                     elif routed_tag == "pattern":
                         # Pattern fallback — no swap, dejar que el speaker actual responda
-                        # (si el LLM actual es caro, podríamos apagarlo, pero mantener simple)
                         self._router_skips += 1
                 else:
                     self._router_skips += 1
@@ -660,5 +664,8 @@ class CognitiveLoopV5(CognitiveLoopV4):
             stats["depth_classifier_stats"] = self.depth_classifier.get_stats()
         if self.cognitive_cache:
             stats["cognitive_cache_stats"] = self.cognitive_cache.get_stats()
+
+        # Sprint 5.7.2 — Incluir stats del ACD Model Router en /stats
+        stats["acd_router_stats"] = self.get_router_stats()
 
         return stats
