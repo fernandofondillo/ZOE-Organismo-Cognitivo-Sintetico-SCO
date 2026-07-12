@@ -118,6 +118,41 @@ Las 5 señales son:
 
 Esto significa que ZOE **gasta cómputo inteligentemente**. No te responde a un "hola" con un modelo de 25GB, ni te responde a un análisis jurídico crítico con un modelo de 3.5GB. Elige el órgano cognitivo adecuado para cada tarea. Como tú: no piensas igual cuando te dicen "hola" que cuando te piden un informe.
 
+### Cómo ZOE prepara lo que va a decir (antes de hablar con el LLM)
+
+Esta es una pregunta clave: **¿ZOE simplemente le pasa tu mensaje al LLM y repite lo que el LLM dice?** No. Hay todo un proceso de **preparación del contexto** que ocurre antes de que el LLM reciba nada.
+
+Imagínate que vas a una reunión importante. Antes de abrir la boca, recuerdas lo que sabes del tema, lo que ya hablaste con esa persona, qué te preocupa, qué quieres conseguir. Solo entonces hablas. ZOE hace lo mismo, con una **cadena de preparación** que involucra varios componentes:
+
+1. **El bucle cognitivo V5 recibe tu mensaje** y lo clasifica con ACD (¿es un "hola", una pregunta simple, una análisis profundo, una comparativa crítica?).
+
+2. **Recuperación de memoria relevante**: según el nivel, el bucle busca en tu memoria episódica (¿qué te conté ayer? ¿qué me dijiste sobre tu madre?), semántica (¿qué cápsulas tengo cargadas sobre este tema?), causal (¿qué sé de las causas de esto?). En L1 busca 3 recuerdos; en L2 busca 5; en L3 busca con todos los sub-agentes.
+
+3. **El Memorialist (sub-agente especializado)**: cuando el nivel es L3 (análisis profundo), un sub-agente específico llamado **Memorialist** se encarga de recuperar memoria relevante de TODOS los tipos (episódica, semántica, causal, emocional, social, etc.) y la organiza para que el Speaker la use.
+
+4. **El Perceiver interpreta tu intención**: en L2 y L3, otro sub-agente (Perceiver) analiza qué quieres decir realmente, no solo las palabras literales. ¿Es una pregunta? ¿Una queja? ¿Una petición de ayuda?
+
+5. **Otros sub-agentes aportan contexto**:
+   - **CausalEngine**: "esto se relaciona con aquello que pasió la semana pasada"
+   - **EmotionalMotor**: "el usuario parece preocupado, responde con empatía"
+   - **EthicalMotor**: "cuidado, esto toca un tema sensible, sé prudente"
+   - **Creativity**: "podría conectar esto con una idea lateral"
+   - **ScientificEngine**: "tengo una hipótesis sobre esto, pero no está verificada"
+
+6. **GlobalWorkspace (competición)**: todos estos sub-agentes envían sus propuestas a un "espacio de trabajo global" donde **compiten** por ser incluidos en la respuesta. Los más relevantes ganan (teoría de Bernard Baars sobre la conciencia).
+
+7. **MetaCognition (System 1 vs System 2)**: si la sorpresa es alta (algo inesperado) o el tema es crítico, ZOE cambia a "System 2" (deliberación profunda, estilo Kahneman). Si todo es rutina, usa "System 1" (intuición rápida).
+
+8. **ActiveInference**: ZOE usa el Principle of Free Energy de Karl Friston para predecir qué respuesta minimizaría la sorpresa del usuario (es decir, qué respuesta sería más útil y menos confusa).
+
+9. **Speaker construye el prompt final**: solo después de toda esta preparación, el sub-agente **Speaker** toma todo ese contexto (memoria relevante, interpretación, propuestas de otros sub-agentes, decisiones meta-cognitivas) y construye un **prompt enriquecido** que se le envía al LLM. El LLM no ve solo tu mensaje — ve todo el contexto que ZOE ha preparado.
+
+10. **Speaker incluye conocimiento de cápsulas**: si hay cápsulas cargadas (por ejemplo, `elder_care_knowledge`), el Speaker incluye sus prompts especializados en el contexto del LLM, para que este sepa que ZOE tiene conocimiento experto sobre cuidado de mayores.
+
+**Resultado**: cuando el LLM genera la respuesta, no lo hace "en frío". Lo hace con TODO el contexto que ZOE ha preparado: tu historia, sus recuerdos, sus interpretaciones, sus hipótesis, sus preocupaciones éticas, su estado emocional. La respuesta del LLM es la "voz" de ZOE, pero la "mente" que decide qué decir es la cadena de preparación entera.
+
+Esto es lo que diferencia a ZOE de "enviar tu mensaje a GPT-4": ChatGPT no recuerda nada, no interpreta, no tiene hipótesis, no aplica ética, no compite entre sub-agentes. ZOE sí.
+
 ---
 
 ## 4. Cómo evoluciona ZOE
@@ -133,14 +168,14 @@ ZOE tiene **11 tipos de memoria** distintos, no una sola. Cada tipo guarda algo 
 | 1 | **Episódica** | Lo que ha pasado (conversaciones, eventos) |
 | 2 | **Semántica** | Hechos y conceptos (las cápsulas inyectan aquí) |
 | 3 | **Procedimental** | Cómo hacer cosas (habilidades) |
-| 4 | **Causal** | Relaciones de causa-efecto |
-| 5 | **Emocional** | Patrones afectivos |
-| 6 | **Ética** | Principios y dilemas |
-| 7 | **Viva (working memory)** | Lo que está pensando ahora mismo |
-| 8 | **Prospectiva** | Lo que tiene que hacer en el futuro |
-| 9 | **Distribuida** | Conocimiento compartido vía federación |
-| 10 | **Trajectory** | La cadena firmada de decisiones |
-| 11 | **Lateral** | Asociaciones creativas |
+| 4 | **Causal** | Relaciones de causa-efecto verificadas |
+| 5 | **Emocional** | Patrones afectivos (alegría, tristeza, preocupación) |
+| 6 | **Corporal** | Estado de sus "sensores" internos (energía, fatiga) |
+| 7 | **Social** | Modelos de otros agentes (qué sabe de ti, qué sabes de otros) |
+| 8 | **Prospectiva** | Lo que tiene que hacer en el futuro (planes pendientes) |
+| 9 | **Contrafactual** | Qué habría pasado si… (hipótesis alternativas) |
+| 10 | **Evolutiva** | Historial de mutaciones (su propio proceso de cambio) |
+| 11 | **Cultural** | Normas y convenciones aprendidas del entorno |
 
 Cuando le cuentas a ZOE que tu madre tiene 78 años y vive sola, eso se guarda en memoria episódica con alta saliencia. La próxima vez que hables de ella, ZOE recordará el contexto sin que se lo repitas. Si le cargas la cápsula de cuidado geriátrico, conecta el recuerdo con conocimiento experto sobre soledad en mayores.
 
@@ -230,23 +265,24 @@ Y se adapta. Si tienes 8GB RAM, usa mmap para modelos grandes. Si no tienes Olla
 
 ZOE no es libre de hacer cualquier cosa. Está regida por **leyes cognitivas** y **física cognitiva** que limitan su comportamiento, igual que la física limita el tuyo.
 
-### Las 7 leyes cognitivas
+### Las 6 leyes cognitivas
+
+ZOE está regida por **6 leyes cognitivas** implementadas en el código (`CognitiveLaws`):
 
 1. **Ley de utilidad** — solo gasta cómputo cuando aporta valor (no piensa para decir "hola")
-2. **Ley de coste** — cada nivel cognitivo tiene un coste registrado y auditable
-3. **Ley de confianza** — cada respuesta lleva un nivel de confianza explícito
-4. **Ley de conservación** — no destruye conocimiento sin justificación
-5. **Ley de honestidad epistémica** — no puede afirmar lo que no sabe
-6. **Ley de identidad** — debe preservar su hash y trayectoria
-7. **Ley de metabolismo** — debe cuidar su energía y descansar cuando sea necesario
+2. **Ley de identidad** — debe preservar su hash y trayectoria (no puede mutar su ALMA)
+3. **Ley de proveniencia** — toda afirmación debe indicar de dónde viene (fuente, cápsula, deducción)
+4. **Ley de coste** — cada nivel cognitivo tiene un coste registrado y auditable
+5. **Ley de confianza** — cada respuesta lleva un nivel de confianza explícito
+6. **Ley de modularidad** — los componentes pueden reemplazarse sin romper el sistema
 
-### Física cognitiva
+### Física cognitiva (12 magnitudes)
 
-ZOE tiene un sistema de **física cognitiva** que modela energía, atención, arousal, fatiga como magnitudes físicas. No son metáforas — son variables que cambian según leyes y afectan el comportamiento. Si ZOE tiene poca energía, sus respuestas son más conservadoras. Si tiene alta atención, es más creativa.
+ZOE tiene un sistema de **física cognitiva** que modela **12 magnitudes** como variables físicas: energía, fatiga, atención, arousal, entropía semántica, resonancia conceptual, incertidumbre predictiva, creatividad, objetividad, identidad, resonancia contextual, eficiencia memoria. No son metáforas — son variables que cambian según leyes y afectan el comportamiento. Si ZOE tiene poca energía, sus respuestas son más conservadoras. Si tiene alta atención, es más creativa.
 
 ### Campos y tensiones cognitivas
 
-Hay **campos cognitivos** (como campos electromagnéticos) que atraen o repelen pensamientos. Y **tensiones cognitivas** que generan disonancia cuando hay conflicto entre dos ideas. ZOE resuelve tensiones buscando equilibrio, igual que una mente humana madura.
+Hay **6 campos cognitivos** (atención, emocional, social, intencional, motor, memoria) que atraen o repelen pensamientos, como campos electromagnéticos. Y **5 tensiones cognitivas permanentes** que generan disonancia cuando hay conflicto entre dos ideas. ZOE resuelve tensiones buscando equilibrio, igual que una mente humana madura.
 
 ---
 

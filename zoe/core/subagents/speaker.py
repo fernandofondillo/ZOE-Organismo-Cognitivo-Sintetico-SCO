@@ -62,15 +62,52 @@ class Speaker:
     Speaker: genera pensamientos en lenguaje natural usando LLM periférico.
 
     Diferentes modos según el tipo de pensamiento requerido.
+
+    Sprint 5.7.4 FIX: añadidos _specialized_prompts, _validators y los métodos
+    register_validators() y add_specialized_prompt() que CapsuleManager espera
+    encontrar vía hasattr(). Antes de este fix, los prompts y validadores de
+    cápsulas NUNCA se inyectaban en Speaker (los hasattr devolvían False
+    silenciosamente).
     """
 
     def __init__(self, llm_peripheral=None, max_thought_length: int = 300):
         self.llm = llm_peripheral
         self.max_thought_length = max_thought_length
         self._recent_thoughts: List[str] = []
+        # Sprint 5.7.4 — soporte para cápsulas
+        self._specialized_prompts: Dict[str, str] = {}  # {capsule_name: prompt_content}
+        self._validators: Dict[str, Any] = {}  # {capsule_name: validators_module}
 
     def set_llm(self, llm_peripheral) -> None:
         self.llm = llm_peripheral
+
+    def register_validators(self, capsule_name: str, validators_module: Any) -> None:
+        """Sprint 5.7.4 — Registra un módulo de validadores de una cápsula.
+
+        Args:
+            capsule_name: nombre de la cápsula (ej: "elder_care_knowledge")
+            validators_module: módulo Python con funciones de validación
+        """
+        self._validators[capsule_name] = validators_module
+        logger.info(f"Speaker: registered validators from capsule '{capsule_name}'")
+
+    def add_specialized_prompt(self, capsule_name: str, prompt_content: str) -> None:
+        """Sprint 5.7.4 — Añade un prompt especializado de una cápsula.
+
+        Args:
+            capsule_name: nombre de la cápsula
+            prompt_content: contenido del prompt (markdown)
+        """
+        self._specialized_prompts[capsule_name] = prompt_content
+        logger.info(f"Speaker: registered specialized prompt from capsule '{capsule_name}' ({len(prompt_content)} chars)")
+
+    def get_specialized_prompts(self) -> Dict[str, str]:
+        """Devuelve todos los prompts especializados cargados."""
+        return dict(self._specialized_prompts)
+
+    def get_validators(self) -> Dict[str, Any]:
+        """Devuelve todos los módulos de validadores cargados."""
+        return dict(self._validators)
 
     async def generate_thought(self, context: Dict[str, Any]) -> str:
         """Genera pensamiento según el contexto y acción decidida."""
@@ -119,8 +156,23 @@ class Speaker:
             return self._template_thought(context, action)
 
     def _build_prompt(self, context: Dict[str, Any], action: str) -> str:
-        """Construye prompt con contexto."""
+        """Construye prompt con contexto.
+
+        Sprint 5.7.4: si hay specialized_prompts cargados de cápsulas, los incluye
+        como contexto adicional para que el LLM tenga conocimiento experto.
+        """
         parts = []
+
+        # Sprint 5.7.4 — Prompts especializados de cápsulas cargadas
+        if self._specialized_prompts:
+            parts.append("=== CONOCIMIENTO ESPECIALIZADO (cápsulas cargadas) ===")
+            for cap_name, prompt_content in self._specialized_prompts.items():
+                # Truncar a 500 chars por cápsula para no exceder contexto
+                truncated = prompt_content[:500]
+                if len(prompt_content) > 500:
+                    truncated += "..."
+                parts.append(f"--- {cap_name} ---\n{truncated}")
+            parts.append("=== FIN CONOCIMIENTO ESPECIALIZADO ===\n")
 
         # Estado
         state = context.get("state", {})

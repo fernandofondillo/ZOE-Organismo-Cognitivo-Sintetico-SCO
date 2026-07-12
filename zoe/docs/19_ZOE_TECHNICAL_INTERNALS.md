@@ -2,9 +2,9 @@
 
 > **Este documento describe las entrañas completas del proyecto ZOE.** Está dirigido a arquitectos, CTOs, desarrolladores senior e investigadores que necesitan entender el sistema a nivel de código para mejorarlo, contribuir o tomar decisiones de arquitectura.
 >
-> **Versión:** V1.8.0 — Julio 2026 (Sprint 5.7.3)
-> **LOC totales:** ~80.000 (Python ~62.000 + docs ~18.000 + scripts)
-> **Tests:** 526 tests en 54 archivos, 18.551 LOC
+> **Versión:** V1.8.0 — Julio 2026 (Sprint 5.7.4)
+> **LOC totales:** ~80.000 (Python ~52.000 con tests + docs ~20.000 + scripts ~2.500)
+> **Tests:** 1.413 tests en 54 archivos, 18.551 LOC de tests
 > **Python:** 3.10+
 > **Licencia:** Apache 2.0
 >
@@ -747,18 +747,18 @@ Directorio: `core/subagents/` (1.168 LOC, 5 archivos)
 
 | # | Sub-agente | Archivo | LOC | Rol |
 |---|---|---|---|---|
-| 1 | `Perceiver` | `perceiver.py` | 84 | Interpreta observaciones |
-| 2 | `Forecaster` | `forecaster.py` | 65 | Predice siguiente estado |
-| 3 | `Speaker` | `speaker.py` | 236 | Genera output verbal (usa LLM) |
-| 4 | `Critic` | `critic.py` | 180 | Evalúa acciones propuestas |
-| 5 | `Memorialist` | `phase2_subagents.py:30` | — | Decide qué recordar |
-| 6 | `Learner` | `phase2_subagents.py:95` | — | Extrae patrones |
-| 7 | `Curator` | `phase2_subagents.py:170` | — | Cuida calidad del conocimiento |
-| 8 | `Creativity` | `phase2_subagents.py:240` | — | Genera ideas nuevas |
-| 9 | `CausalEngine` | `phase2_subagents.py:310` | — | Razona causa-efecto |
-| 10 | `EmotionalMotor` | `phase2_subagents.py:380` | — | Color emocional |
-| 11 | `EthicalMotor` | `phase2_subagents.py:450` | — | Principios éticos |
-| 12 | `ScientificEngine` | `phase2_subagents.py:520` | — | Método científico |
+| 1 | `Perceiver` | `perceiver.py:15` | 84 | Interpreta observaciones |
+| 2 | `Forecaster` | `forecaster.py:15` | 65 | Predice siguiente estado |
+| 3 | `Speaker` | `speaker.py:60` | 236 | Genera output verbal (usa LLM) |
+| 4 | `Critic` | `critic.py:51` | 180 | Evalúa acciones propuestas |
+| 5 | `Memorialist` | `phase2_subagents.py:31` | — | Decide qué recordar (recupera memoria relevante) |
+| 6 | `Learner` | `phase2_subagents.py:79` | — | Extrae patrones (con EpistemicValidator) |
+| 7 | `Curator` | `phase2_subagents.py:232` | — | Cuida calidad del conocimiento |
+| 8 | `Creativity` | `phase2_subagents.py:367` | — | Genera ideas nuevas |
+| 9 | `CausalEngine` | `phase2_subagents.py:405` | — | Razona causa-efecto |
+| 10 | `EmotionalMotor` | `phase2_subagents.py:439` | — | Color emocional |
+| 11 | `EthicalMotor` | `phase2_subagents.py:480` | — | Principios éticos |
+| 12 | `ScientificEngine` | `phase2_subagents.py:549` | — | Método científico |
 
 ### 10.2 API común
 
@@ -773,7 +773,7 @@ El `context` dict típico incluye: `observations, surprise, prediction, relevant
 
 ### 10.3 Speaker — el agente que usa el LLM
 
-`Speaker` (`speaker.py:67`) tiene:
+`Speaker` (`speaker.py:60`) tiene:
 
 ```python
 class Speaker:
@@ -781,11 +781,19 @@ class Speaker:
         self.llm = llm_peripheral  # ← ATENCIÓN: atributo 'llm', no 'llm_peripheral'
         self.max_thought_length = max_thought_length
         self._recent_thoughts: List[str] = []
-        self._specialized_prompts: Dict[str, str] = {}  # de cápsulas
-        self._validators: Dict[str, ModuleType] = {}    # de cápsulas
+        # Sprint 5.7.4 — soporte para cápsulas
+        self._specialized_prompts: Dict[str, str] = {}  # {capsule_name: prompt_content}
+        self._validators: Dict[str, Any] = {}  # {capsule_name: validators_module}
 
     def set_llm(self, llm_peripheral) -> None:
         self.llm = llm_peripheral
+
+    # Sprint 5.7.4 — métodos que CapsuleManager espera encontrar vía hasattr()
+    def register_validators(self, capsule_name: str, validators_module: Any) -> None:
+        self._validators[capsule_name] = validators_module
+
+    def add_specialized_prompt(self, capsule_name: str, prompt_content: str) -> None:
+        self._specialized_prompts[capsule_name] = prompt_content
 
     async def generate_thought(self, context: Dict) -> str:
         prompt = self._build_prompt(context, action)
@@ -800,11 +808,15 @@ class Speaker:
         return thought
 ```
 
+**`_build_prompt` (Sprint 5.7.4)**: ahora incluye los `_specialized_prompts` de las cápsulas cargadas al inicio del prompt, truncados a 500 chars por cápsula, para que el LLM tenga contexto experto.
+
 **Punto crítico (Sprint 5.7.2 fix):** el atributo se llama `self.llm`, NO `self.llm_peripheral`. El ACD Router en `cognitive_loop_v5.py:184` busca el atributo correcto:
 
 ```python
 llm_attr = getattr(speaker, "llm", None) or getattr(speaker, "llm_peripheral", None)
 ```
+
+**Sprint 5.7.4 FIX (bug crítico):** antes de este sprint, `Speaker` NO tenía `register_validators()` ni `add_specialized_prompt()`. El `CapsuleManager` usaba `hasattr(speaker, 'register_validators')` que siempre devolvía `False` → los validadores y prompts de cápsulas NUNCA se inyectaban en Speaker. Tras el fix, los métodos existen y los prompts especializados se incluyen en `_build_prompt`.
 
 ### 10.4 GlobalWorkspace — competencia de propuestas
 
@@ -1259,30 +1271,31 @@ Handlers: `/start, /help, /stats, /sleep, /wake`, texto, VOICE (transcribe con W
 
 ### 16.1 Tests por módulo (LOC)
 
-| Test | LOC | Valida |
-|---|---|---|
-| `test_full_system_integration.py` | 817 | Integración end-to-end |
-| `test_phase6_capsules.py` | 721 | Carga/descarga/inyección de cápsulas |
-| `test_phase6a_epistemic.py` | 647 | EpistemicValidator + KnowledgeQuarantine |
-| `test_phase7e_seed_mode.py` | 627 | Seed mode (zoe-packager) |
-| `test_phase5_acd.py` | 605 | ACD + CognitiveLoopV5 + cache |
-| `test_integration_phase0_0_5.py` | 598 | Bucle V05 con 7 componentes |
-| `test_phase7d_embodiment_composer.py` | 597 | Embodiment composer |
-| `test_phase6b_marketplace.py` | 577 | Marketplace de cápsulas |
-| `test_phase6a_curator_integration.py` | 525 | Curator con cuarentena |
-| `test_sprint5_7_2_quickstart_audit.py` | 499 | Audit del quickstart |
-| `test_phase3_4_5.py` | 483 | Fases 3, 4, 5 integradas |
-| `test_sprint5_cognitive_optimization.py` | 470 | ZMAP prefetching |
-| `test_phase7b_model_bus.py` | 462 | ModelBus con 6 estrategias |
-| `test_phase4.py` | 444 | CognitiveLoopV4 + Federation + Config |
-| `test_sprint5_5_model_downloader.py` | 438 | ModelDownloader + 9 modelos |
-| `test_loop_v3.py` | 413 | CognitiveLoopV3 con 12 sub-agentes |
-| `test_phase7c_resource_planner.py` | 396 | ResourcePlanner |
-| `test_sprint5_7_acd_routing.py` | 392 | Hot-swap de modelos por ACD |
-| `test_sprint4_voice_first.py` | 389 | VoiceFirstMode |
-| `test_phase7g_hardware_endpoints.py` | 380 | Endpoints hardware |
+| Test | LOC | Tests | Valida |
+|---|---|---|---|
+| `test_full_system_integration.py` | 817 | 51 | Integración end-to-end |
+| `test_phase6_capsules.py` | 721 | 52 | Carga/descarga/inyección de cápsulas |
+| `test_phase6a_epistemic.py` | 647 | 41 | EpistemicValidator + KnowledgeQuarantine |
+| `test_phase7e_seed_mode.py` | 627 | 46 | Seed mode (zoe-packager) |
+| `test_phase5_acd.py` | 605 | 44 | ACD + CognitiveLoopV5 + cache |
+| `test_integration_phase0_0_5.py` | 598 | — | Bucle V05 con 7 componentes |
+| `test_phase7d_embodiment_composer.py` | 597 | 43 | Embodiment composer |
+| `test_phase6b_marketplace.py` | 577 | 36 | Marketplace de cápsulas |
+| `test_phase6a_curator_integration.py` | 525 | 19 | Curator con cuarentena |
+| `test_sprint5_7_2_quickstart_audit.py` | 499 | 42 | Audit del quickstart |
+| `test_phase3_4_5.py` | 483 | 29 | Fases 3, 4, 5 integradas |
+| `test_sprint5_cognitive_optimization.py` | 470 | 38 | ZMAP prefetching |
+| `test_phase7b_model_bus.py` | 462 | 37 | ModelBus con 6 estrategias |
+| `test_phase4.py` | 444 | 29 | CognitiveLoopV4 + Federation + Config |
+| `test_sprint5_5_model_downloader.py` | 438 | 46 | ModelDownloader + 9 modelos |
+| `test_loop_v3.py` | 413 | 20 | CognitiveLoopV3 con 12 sub-agentes |
+| `test_phase7c_resource_planner.py` | 396 | — | ResourcePlanner |
+| `test_sprint5_7_acd_routing.py` | 392 | 33 | Hot-swap de modelos por ACD |
+| `test_sprint4_voice_first.py` | 389 | 37 | VoiceFirstMode |
+| `test_phase7g_hardware_endpoints.py` | 380 | 38 | Endpoints hardware |
+| `test_sprint5_7_4_speaker_capsule_fix.py` | — | 22 | Sprint 5.7.4: Speaker + cápsulas |
 
-**Total:** 54 archivos, 18.551 LOC, 526 tests.
+**Total:** 54 archivos, 18.551 LOC, **1.413 tests** (contados con `rg -c "def test_" zoe/tests/`).
 
 ### 16.2 Tests críticos que validan la arquitectura
 
@@ -1290,25 +1303,28 @@ Handlers: `/start, /help, /stats, /sleep, /wake`, texto, VOICE (transcribe con W
 - `test_trajectory_ontogenetic.py` (20 tests): cadena verificable, rollback añade mutación (no elimina), OntogeneticMotorV2 mutaciones arquitecturales
 - `test_cognitive_laws.py` (15 tests): 6 leyes, violations registrado, modularity replacement
 - `test_phase5_acd.py:604-605`: `assert issubclass(CognitiveLoopV5, CognitiveLoopV4)` — backward compat
-- `test_sprint5_7_acd_routing.py:136` (`TestCognitiveLoopV5Router`): valida hot-swap del LLM
-- `test_phase6_capsules.py` (721 LOC): validación de schema, dependencias circulares, topological sort, inyección en componentes
+- `test_sprint5_7_acd_routing.py` (`TestCognitiveLoopV5Router`): valida hot-swap del LLM
+- `test_sprint5_7_4_speaker_capsule_fix.py` (22 tests): valida que Speaker tiene register_validators y add_specialized_prompt
+- `test_phase6_capsules.py` (52 tests): validación de schema, dependencias circulares, topological sort, inyección en componentes
 
-### 16.3 Cobertura por módulo
+### 16.3 Cobertura por módulo (estimada)
 
-| Módulo | Tests | Cobertura |
+| Módulo | Tests aprox. | Cobertura |
 |---|---|---|
-| ALMA (identity, trajectory, ontogenetic) | 59 tests | Alta |
-| Memory (11 tipos, SQLite, consolidation) | 42 tests | Alta |
-| Metabolism | 17 tests | Media |
-| CognitiveLoop V05/V3/V4/V5 | 89 tests | Alta |
-| DepthClassifier + ACD | 44 tests | Alta |
-| ModelDownloader + Router | 42 tests | Alta |
-| Capsules (loader, manager, registry) | 86 tests | Alta |
-| LLM peripherals (6 backends) | 12 tests | Media |
-| ModelBus | 32 tests | Alta |
-| Epistemic validation + quarantine | 51 tests | Alta |
-| Dashboard endpoints | 12 tests | Media |
-| Sprint 5.7.x (router, audit) | 75 tests | Alta |
+| ALMA (identity, trajectory, ontogenetic) | ~39 tests | Alta |
+| Memory (11 tipos, SQLite, consolidation) | ~42 tests | Alta |
+| Metabolism | ~17 tests | Media |
+| CognitiveLoop V05/V3/V4/V5 | ~179 tests | Alta |
+| DepthClassifier + ACD | ~77 tests | Alta |
+| ModelDownloader + Router | ~148 tests | Alta |
+| Capsules (loader, manager, registry) | ~107 tests | Alta |
+| LLM peripherals (6 backends) | ~12 tests | Media |
+| ModelBus | ~37 tests | Alta |
+| Epistemic validation + quarantine | ~60 tests | Alta |
+| Dashboard endpoints | ~12 tests | Media |
+| Speaker (Sprint 5.7.4) | ~22 tests | Alta |
+
+**Cobertura global**: no medida formalmente (sin `.coveragerc` ni `pytest-cov` configurado). Estimación qualitativa: ~70% basada en presencia de tests para cada módulo crítico.
 
 ---
 
@@ -1560,16 +1576,93 @@ Handlers: `/start, /help, /stats, /sleep, /wake`, texto, VOICE (transcribe con W
 
 | Métrica | Valor | Estado |
 |---|---|---|
-| Tests | 526 (525 pasan, 1 obsoleto arreglado en 5.7.3) | ✅ |
-| Cobertura | ~70% estimada | 🟡 |
-| LOC | ~80.000 | ✅ |
-| Deuda técnica | 10 items identificados | 🟡 |
-| Documentación | 18 docs + REFERENCE/ | ✅ |
-| Endpoints REST | 71 (todos 200 OK) | ✅ |
+| Tests | 1.413 en 54 archivos (18.551 LOC de tests) | ✅ |
+| Cobertura | ~70% estimada (no medida formalmente) | 🟡 |
+| LOC Python | ~52.000 (con tests) / ~33.000 (sin tests) | ✅ |
+| LOC Docs | ~20.000 | ✅ |
+| LOC Scripts | ~2.500 | ✅ |
+| Endpoints REST | 71 (todos verificados 200 OK en Sprint 5.7.3) | ✅ |
 | Cápsulas | 15 operativas | ✅ |
 | Modelos IQ2_M | 9 en catálogo, 4 setups | ✅ |
-| Backends LLM | 6 (Mock, Ollama, OpenAI, Anthropic, ZAI, Pattern) | ✅ |
+| Backends LLM | 6 en factory (+ EnhancedPatternPeripheral) | ✅ |
+| Sub-agentes | 12 (Society of Mind) | ✅ |
+| Tipos de memoria | 11 | ✅ |
+| Niveles ACD | 5 (L0-L3_MAXIMUM) | ✅ |
+| Tipos de mutación | 18 (11 V1 + 7 V2 arquitecturales) | ✅ |
 | Plataformas | macOS, Linux, Windows, Docker, K8s, PWA, Telegram | ✅ |
+
+### 20.4 Sprint 5.7.4 — Fix Speaker + cápsulas
+
+**Bug crítico resuelto**: `Speaker` no implementaba `register_validators()` ni `add_specialized_prompt()`, pero `CapsuleManager` las llamaba vía `hasattr()` defensive-checks que siempre devolvían `False`. Los validadores y prompts de cápsulas **NUNCA se inyectaban en Speaker**.
+
+**Fix aplicado** (commit `pending`):
+- `Speaker.__init__` ahora inicializa `_specialized_prompts` y `_validators`
+- `Speaker.register_validators(capsule_name, validators_module)` — registra módulo de validadores
+- `Speaker.add_specialized_prompt(capsule_name, prompt_content)` — registra prompt especializado
+- `Speaker._build_prompt` ahora incluye los specialized_prompts al inicio del prompt (truncados a 500 chars por cápsula)
+- `Learner.register_validators(capsule_name, validators_module)` — también añadido
+- 22 tests nuevos en `test_sprint5_7_4_speaker_capsule_fix.py` (todos pasan)
+
+**Sin deconstruir**: Speaker sigue teniendo `set_llm`, `generate_thought`, `_build_prompt`, `_sanitize`, `_template_thought`, `generate_streaming` intactos. Solo se añadieron métodos y atributos nuevos.
+
+---
+
+## 21. Trayectoria completa de Fases y Sprints
+
+### 21.1 Fases (V1.0 → V1.6.0)
+
+| Fase | Versión | Fecha | Entregable principal | Archivos clave |
+|---|---|---|---|---|
+| **0** | V1.0 | Mayo 2026 | Bucle cognitivo V0 (observe-predict-evaluate-decide-act), 4 sub-agentes | `cognitive_loop.py` (343 LOC) |
+| **0.5** | V1.0 | Mayo 2026 | 6 leyes + 12 física + 6 campos + 5 tensiones + LivingMemory + IntentionalityMotor + PhylogeneticMotor | `cognitive_loop_v05.py` (597 LOC), `cognitive_laws.py`, `cognitive_physics.py`, `cognitive_fields.py`, `cognitive_tensions.py`, `intentionality_motor.py`, `phylogenetic_motor.py` |
+| **1** | V1.1 | Junio 2026 | ALMA (IdentityVault + TrajectoryChain + OntogeneticMotor) + 11 Memory Types + Metabolism | `alma/identity_vault.py`, `alma/trajectory_chain.py`, `alma/ontogenetic_motor.py`, `metabolism/metabolism.py`, `memory/memory_types.py` |
+| **2** | V1.2 | Junio 2026 | 12 sub-agentes + GlobalWorkspace + MetaCognition + ActiveInference + WorldModelV2 | `core/subagents/phase2_subagents.py` (602 LOC), `global_workspace.py`, `meta_cognition.py`, `active_inference.py`, `world_model_v2.py` |
+| **3** | V1.3 | Junio 2026 | CognitiveLoopV3 + SQLite persistencia + OntogeneticMotorV2 | `cognitive_loop_v3.py` (563 LOC), `alma/ontogenetic_motor_v2.py`, `memory/persistent_store.py` |
+| **4** | V1.4 | Junio 2026 | CognitiveLoopV4 + Federation + Graceful Shutdown + 7 use cases YAML | `cognitive_loop_v4.py` (254 LOC), `core/federation.py` (448 LOC), `use_cases/*.yaml` |
+| **5** | V1.5 | Junio 2026 | CognitiveLoopV5 + DepthClassifier (4 niveles L0-L3) + CognitiveCache + Streaming | `cognitive_loop_v5.py` (671 LOC), `depth_classifier.py`, `cognitive_cache.py` |
+| **6A** | V1.6 | Junio 2026 | EpistemicValidator + KnowledgeQuarantine + CrossValidator + EpistemicFederation | `core/epistemic_validator.py`, `core/knowledge_quarantine.py`, `core/cross_validator.py`, `core/epistemic_federation.py`, `core/epistemic_federation_server.py` |
+| **6B** | V1.6 | Junio 2026 | 13 cápsulas + CapsuleLoader + CapsuleRegistry + CapsuleManager + Marketplace + Scaffold CLI | `capsules/`, `core/capsule_manager.py`, `marketplace/core.py`, `capsules/scaffold.py` |
+| **6C** | V1.6 | Junio 2026 | Tutor Mentor Digital (MentorAgent configurable) | `core/mentor.py` (280 LOC) |
+| **7F** | V1.6 | Junio 2026 | ModelOptimizer (mmap para 70B en 8GB) | `core/model_optimizer.py` (547 LOC) |
+| **7A** | V1.6 | Julio 2026 | ResourceDiscoverySense + ResourceGraph | `peripherals/resource_discovery.py` (489 LOC) |
+| **7B** | V1.6 | Julio 2026 | ModelBus (ACD-aware, multi-LLM, fallback) | `peripherals/model_bus.py` (577 LOC) |
+| **7C** | V1.6 | Julio 2026 | ResourcePlanner (ACD + metabolismo + sensible) | `core/resource_planner.py` (383 LOC) |
+| **7D** | V1.6 | Julio 2026 | EmbodimentComposer (boot sequence 7A→7B→7C→7D) | `core/embodiment_composer.py` (771 LOC) |
+| **7E** | V1.6 | Julio 2026 | ZOE Seed Mode (semilla portátil) | `core/seed_mode.py` (876 LOC) |
+| **7G** | V1.6 | Julio 2026 | P-cores + IQ2_M + flash-attn + SSDs + endpoints hardware | `core/model_optimizer.py` + 4 endpoints `/api/hardware/*` |
+
+### 21.2 Sprints V1.7.0 (Julio 2026)
+
+| Sprint | Entregable | Tests nuevos | Commit |
+|---|---|---|---|
+| **1** | Multi-idioma (ES/EN/FR/DE) + Windows nativo + PWA + Telegram bridge | 56 | `7fc3d07` |
+| **2** | Multi-modal (VLM + Whisper STT + Piper TTS) + cápsula multimodal_perception | 29 | `b9ebd66` |
+| **3** | Formato .zoe (PatternSpeaker + ZoePackager) + cápsula language_patterns | 35 | `810bf77` |
+| **3.5** | ZoeRuntime (ejecutar .zoe sin dependencias) | 32 | `7c3a897` |
+| **3.6** | Enhanced PatternSpeaker (destilación + retrieval + dialog state) | 30 | `7c3a897` |
+| **4** | Voice-first mode (Hey ZOE, interrupción, VAD, wake word) | 37 | `e2a637d` |
+
+### 21.3 Sprints V1.8.0 (Julio 2026)
+
+| Sprint | Entregable | Tests nuevos | Commit |
+|---|---|---|---|
+| **5** | Cognitive Optimization Layer (ZMAP + Cognitive Prefetch Layer + Tensor Prediction Engine) | 38 | `249462c` |
+| **5.5** | ModelDownloader (descarga IQ2_M de HuggingFace + Modelfile + registro Ollama) | 46 | `162272c` |
+| **5.6** | ModelProfileRouter (4 modelos → 5 niveles ACD) + 4 modelos al catálogo (QwQ, Coder, Gemma, Agents-A1) | 27 | `d2276a1`, `8954e9b` |
+| **5.7** | ACD Routing Wiring: L3_MAXIMUM + conexión al bucle V5 + bootstrap + zoe-setup | 33 | `55389d9` |
+| **5.7.1** | Quickstart Audit: 9 bugs reales arreglados (cwd, retry Ollama, repo privado, xattr, etc.) | 0 (auditoría) | `30e96ec` |
+| **5.7.2** | Hot-swap fix (speaker.llm no llm_peripheral) + 3 endpoints `/api/router/*` + get_stats incluye acd_router_stats | 42 | `57e4472` |
+| **5.7.3** | Dashboard audit completo: cwd dinámico en validate/create cápsulas + lazy-init ModelBus/ResourcePlanner + 71 endpoints verificados 200 OK + test cápsulas 12→15 | 0 (auditoría) | `6e79d08` |
+| **5.7.4** | Fix Speaker: register_validators + add_specialized_prompt + _build_prompt incluye cápsulas + Learner.register_validators | 22 | (este commit) |
+
+### 21.4 Documentación (Sprints docs)
+
+| Doc | Fecha | Líneas | Commit |
+|---|---|---|---|
+| `18_ZOE_EXPLICACION_NO_TECNICOS.md` | Julio 2026 | ~500 | `1bb7b55` |
+| `19_ZOE_TECHNICAL_INTERNALS.md` | Julio 2026 | ~1.700 | `9c1d2d4` |
+| `18` actualizado (Sprint 5.7.4) | Julio 2026 | +50 | (este commit) |
+| `19` actualizado (Sprint 5.7.4) | Julio 2026 | +100 | (este commit) |
 
 ---
 

@@ -95,11 +95,23 @@ class Learner:
         self.validation_accepted = 0
         self.validation_quarantined = 0
         self.validation_rejected = 0
+        # Sprint 5.7.4 — validadores de cápsulas
+        self._capsule_validators: Dict[str, Any] = {}
 
     def set_epistemic_validator(self, validator, quarantine=None) -> None:
         """Inyecta el EpistemicValidator (lo llama CapsuleManager al inicializar)."""
         self._validator = validator
         self._quarantine = quarantine
+
+    def register_validators(self, capsule_name: str, validators_module: Any) -> None:
+        """Sprint 5.7.4 — Registra un módulo de validadores de una cápsula.
+
+        Args:
+            capsule_name: nombre de la cápsula
+            validators_module: módulo Python con funciones de validación
+        """
+        self._capsule_validators[capsule_name] = validators_module
+        logger.info(f"Learner: registered validators from capsule '{capsule_name}'")
 
     def propose_learning(
         self,
