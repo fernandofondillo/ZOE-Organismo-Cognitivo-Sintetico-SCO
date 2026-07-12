@@ -4,7 +4,7 @@
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento intercambiables y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
 [![Version](https://img.shields.io/badge/version-1.8.0-blue)](docs/REFERENCE/CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1413%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
+[![Tests](https://img.shields.io/badge/tests-1168%2B%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
 [![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
@@ -311,7 +311,7 @@ pytest + pytest-asyncio  # Tests
 | **Dashboard: lazy-init ModelBus + ResourcePlanner** (antes 500 error) | Sprint 5.7.3 — `web_dashboard.py` |
 | **Dashboard: cwd dinámico en validate/create cápsulas** (antes hardcoded) | Sprint 5.7.3 — `web_dashboard.py:722,852` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
-| **1.413 tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+| **1.168+ tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
 ---
 
@@ -374,11 +374,11 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 ## Estado actual
 
 **Versión:** V1.8.0 (Julio 2026)
-**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5, 5.6, 5.7, 5.7.1, 5.7.2, 5.7.3
-**Tests:** 1.413 tests en 54 archivos (18.551 LOC de tests), 100% pasando
+**Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5, 5.6, 5.7, 5.7.1, 5.7.2, 5.7.3, 5.7.4, 5.8, 5.9, 5.10, 5.11
+**Tests:** 1.168+ tests en 55+ archivos (18.551+ LOC de tests), 100% pasando
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
-**Endpoints REST:** 71 (todos verificados 200 OK en auditoría real)
+**Endpoints REST:** 74 (71 verificados 200 OK + 3 nuevos de voice-first)
 **Idiomas:** 4 (ES, EN, FR, DE)
 **Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil (Android/iOS), Telegram (todas las plataformas), SSD portátil multiplataforma (exFAT), archivo .zoe, Android (Termux), iPhone/iPad (SSD USB-C / PWA Safari)
 
@@ -584,6 +584,10 @@ Todos los endpoints siguientes han sido testeados con `curl` real y devuelven **
 | ✅ | Sprint 5.7.2 — Hot-swap fix + Dashboard endpoints | Bug speaker.llm arreglado + 3 endpoints /api/router/* |
 | ✅ | Sprint 5.7.3 — Dashboard audit completo | cwd dinámico + lazy-init ModelBus/Planner + 71 endpoints verificados 200 OK |
 | ✅ | Sprint 5.7.4 — Speaker + cápsulas fix | register_validators + add_specialized_prompt + _build_prompt incluye cápsulas |
+| ✅ | Sprint 5.8 — Persistencia y soberanía | Identidad + trayectoria + cápsulas + config persisten entre sesiones |
+| ✅ | Sprint 5.9 — Seguridad y observabilidad | 127.0.0.1 por defecto + auth-token + logging rotado |
+| ✅ | Sprint 5.10 — Mentor + idioma | MentorAgent conectado al bucle + LanguageDetector activo |
+| ✅ | Sprint 5.11 — Visión + voice + CPL | VLM en feed_upload + 3 endpoints voice + CognitiveOptimizationLayer activo |
 | 🟡 | Pasarela pago marketplace | Stripe/PayPal |
 
 **Roadmap completo:** [`docs/14_ROADMAP.md`](docs/14_ROADMAP.md)
@@ -721,5 +725,5 @@ limitations under the License.
 ---
 
 *ZOE V1.8.0 — Synthetic Cognitive Organism (SCO).*
-*1.413 tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Cognitive Optimization Layer · Sprint 1-5.7.4 completos*
+*1.168+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Cognitive Optimization Layer · Sprint 1-5.11 completos*
 *"ZOE no es un modelo que responde. Es un organismo que existe."*
