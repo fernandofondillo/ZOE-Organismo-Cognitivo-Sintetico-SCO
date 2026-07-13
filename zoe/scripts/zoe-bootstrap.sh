@@ -534,6 +534,17 @@ fi
 # ============================================================================
 print_step "5/8" "Descargar modelos de IA al SSD"
 
+# Detectar RAM para seleccion inteligente de L4_REFLECTION
+RAM_GB=0
+if [ "$PLATFORM" = "Darwin" ]; then
+    RAM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
+    RAM_GB=$((RAM_BYTES / 1024 / 1024 / 1024))
+elif [ "$PLATFORM" = "Linux" ]; then
+    RAM_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+    RAM_GB=$((RAM_KB / 1024 / 1024))
+fi
+print_info "RAM detectada: ${RAM_GB} GB"
+
 MODELS_DIR="$ZOE_HOME/models/ollama"
 mkdir -p "$MODELS_DIR"
 
@@ -550,20 +561,23 @@ if [ "$OLLAMA_RUNNING" = true ]; then
     echo -e "    ${GREEN}L2${NC}     (estandar)       -> Agents-A1 MoE IQ2_M  (11.7GB, 5-10 t/s)"
     echo -e "    ${GREEN}L3${NC}     (profundo)       -> QwQ-32B IQ2_M        (12.5GB, 3-6 t/s)"
     echo -e "    ${GREEN}L3 max${NC} (calidad)        -> Qwen 2.5 72B IQ2_M   (25GB, 1-3 t/s)"
-    echo -e "    ${GREEN}L4${NC}     (reflexion)*     -> DeepSeek-R1 32B Q4   (18GB, 2-4 t/s)"
+    echo -e "    ${GREEN}L4${NC}     (reflexion)*     -> DeepSeek-R1 32B      (12.5-18GB, 2-4 t/s)"
     echo ""
-    echo -e "  *Nota: L4_REFLECTION se activa automaticamente durante SLEEPING."
-    echo -e "         Requiere 16GB RAM o mas."
+    echo -e "    * L4_REFLECTION se adapta automaticamente a tu RAM:"
+    echo -e "      - 8GB  RAM -> IQ2_M  (12.5GB, ~93% calidad, sin swap)"
+    echo -e "      - 16GB RAM -> Q4_K_M (18GB, ~98% calidad)"
     echo ""
     echo "  Setups preseleccionados:"
-    echo "    [1] Minimal    -- Solo Gemma 9B (3.5GB) -- ultra rapido, basico"
-    echo "    [2] Balanced   -- Gemma + QwQ-32B (16GB) -- equilibrado (recomendado para 8GB RAM)"
-    echo "    [3] Complete   -- Gemma + Agents-A1 + QwQ (28GB) -- cobertura completa"
-    echo "    [4] Maximum    -- Los 4 modelos (53GB) -- espectro completo (SSD 1TB)"
-    echo "    [5] No descargar -- usar PatternSpeaker (sin IA)"
-    echo "    [6] Saltar -- ya tengo modelos IQ2_M"
+    echo "    [1] Minimal       -- Solo Gemma 9B (3.5GB) -- ultra rapido, basico"
+    echo "    [2] Balanced      -- Gemma + QwQ-32B (16GB) -- equilibrado (recomendado para 8GB RAM)"
+    echo "    [3] Complete      -- Gemma + Agents-A1 + QwQ (28GB) -- cobertura completa"
+    echo "    [4] Maximum       -- Los 4 modelos (53GB) -- espectro completo (SSD 1TB)"
+    echo "    [5] Reflexion     -- Espectro + L4 IQ2_M  (41GB) -- para Mac 8GB"
+    echo "    [6] Reflexion Pro -- Espectro + L4 Q4_K_M (46GB) -- solo 16GB RAM"
+    echo "    [7] No descargar  -- usar PatternSpeaker (sin IA)"
+    echo "    [8] Saltar        -- ya tengo modelos IQ2_M"
     echo ""
-    echo -n "  Elige [1-6] (default 2): "
+    echo -n "  Elige [1-8] (default 2): "
     read model_choice
     model_choice=${model_choice:-2}
     
@@ -581,10 +595,22 @@ if [ "$OLLAMA_RUNNING" = true ]; then
             SETUP="maximum"
             ;;
         5)
+            SETUP="reflection"
+            ;;
+        6)
+            if [ "$RAM_GB" -ge 16 ]; then
+                SETUP="reflection-16gb"
+            else
+                print_warn "Reflexion Pro requiere 16GB RAM. Tienes ${RAM_GB}GB."
+                print_info "Usando Reflexion estandar (IQ2_M) en su lugar."
+                SETUP="reflection"
+            fi
+            ;;
+        7)
             SETUP=""
             print_info "Sin modelos. ZOE usara PatternSpeaker (funciona sin IA)."
             ;;
-        6)
+        8)
             SETUP=""
             print_info "Saltando descarga de modelos."
             ;;
@@ -593,6 +619,17 @@ if [ "$OLLAMA_RUNNING" = true ]; then
             print_info "Opcion no valida -- usando 'balanced' por defecto."
             ;;
     esac
+
+    # Mensaje de seleccion automatica L4_REFLECTION
+    if [ "$SETUP" = "reflection" ] || [ "$SETUP" = "reflection-16gb" ]; then
+        if [ "$RAM_GB" -ge 16 ]; then
+            print_ok "L4_REFLECTION: DeepSeek-R1 Q4_K_M (maxima calidad, 16GB+ RAM detectada)"
+        else
+            print_ok "L4_REFLECTION: DeepSeek-R1 IQ2_M (optimizado para 8GB RAM, sin swap)"
+            print_info "Con 8GB RAM, la reflexion usa IQ2_M (~93% calidad) para evitar swap."
+            print_info "Si actualizas a 16GB RAM, reinstala con: --download-setup reflection-16gb"
+        fi
+    fi
     
     if [ -n "$SETUP" ]; then
         # Sprint 5.7.1 -- Verificar espacio libre en SSD antes de descargar
@@ -602,6 +639,8 @@ if [ "$OLLAMA_RUNNING" = true ]; then
             balanced) NEEDED_GB=20 ;;
             complete) NEEDED_GB=35 ;;
             maximum)  NEEDED_GB=65 ;;
+            reflection) NEEDED_GB=50 ;;
+            reflection-16gb) NEEDED_GB=56 ;;
             *)        NEEDED_GB=20 ;;
         esac
         
