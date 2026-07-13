@@ -25,25 +25,26 @@ class TestDashboardSecurity:
 
     def test_dashboard_default_host_is_127(self):
         """El host por defecto debe ser 127.0.0.1, no 0.0.0.0."""
-        from zoe.web_dashboard import DashboardServer
+        from zoe.dashboard.server import DashboardServer
         ds = DashboardServer()
         assert ds.host == "127.0.0.1"
 
     def test_dashboard_accepts_host_param(self):
         """Se puede pasar host=0.0.0.0 explícitamente."""
-        from zoe.web_dashboard import DashboardServer
+        from zoe.dashboard.server import DashboardServer
         ds = DashboardServer(host="0.0.0.0")
         assert ds.host == "0.0.0.0"
 
     def test_dashboard_default_auth_token_is_none(self):
-        """Por defecto no hay auth_token (libre acceso en localhost)."""
-        from zoe.web_dashboard import DashboardServer
+        """Por defecto no hay auth_token explícito (pero se auto-genera uno)."""
+        from zoe.dashboard.server import DashboardServer
         ds = DashboardServer()
-        assert ds.auth_token is None
+        # En la nueva arquitectura OMEGA, si no se pasa auth_token, se auto-genera
+        assert ds.auth_token is not None  # auto-generado por seguridad
 
     def test_dashboard_accepts_auth_token(self):
-        """Se puede configurar auth_token."""
-        from zoe.web_dashboard import DashboardServer
+        """Se puede configurar auth_token explícitamente."""
+        from zoe.dashboard.server import DashboardServer
         ds = DashboardServer(auth_token="my-secret-token")
         assert ds.auth_token == "my-secret-token"
 

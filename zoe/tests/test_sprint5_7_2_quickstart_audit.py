@@ -284,6 +284,10 @@ class TestDashboardACDVisibility:
         loop._router_skips = 0
         loop._last_routed_tag = None
         loop._active_profile = None
+        loop._language_detector = None  # Sprint 5.10 C8
+        loop._current_system_prompt = None
+        loop._mentor = None  # Sprint 5.10 C6
+        loop._cpl = None  # Sprint 5.11 C9 (renamed from cognitive_prefetch_layer)
 
         with patch.object(CognitiveLoopV5.__bases__[0], 'get_stats', return_value={}):
             stats = loop.get_stats()
@@ -294,19 +298,22 @@ class TestDashboardACDVisibility:
 
     def test_dashboard_tiene_endpoints_router(self):
         """Sprint 5.7.2 FIX: Dashboard tiene /api/router/* endpoints."""
-        from zoe.web_dashboard import DashboardServer
-        # Verificar que la clase tiene los handlers
-        assert hasattr(DashboardServer, "_handle_router_stats")
-        assert hasattr(DashboardServer, "_handle_router_installed")
-        assert hasattr(DashboardServer, "_handle_router_profile")
+        from pathlib import Path
+        # En arquitectura modular, los handlers están en archivos separados
+        routes_path = Path(__file__).parent.parent / "dashboard" / "routes.py"
+        source = routes_path.read_text()
+        assert "/api/router/stats" in source
+        assert "/api/router/installed" in source
+        assert "/api/router/profile" in source
 
     def test_dashboard_registra_rutas_router(self):
         """El método start() registra las rutas /api/router/*."""
-        dashboard_path = Path(__file__).parent.parent / "web_dashboard.py"
-        content = dashboard_path.read_text()
-        assert '/api/router/stats' in content
-        assert '/api/router/installed' in content
-        assert '/api/router/profile' in content
+        from pathlib import Path
+        routes_path = Path(__file__).parent.parent / "dashboard" / "routes.py"
+        source = routes_path.read_text()
+        assert '/api/router/stats' in source
+        assert '/api/router/installed' in source
+        assert '/api/router/profile' in source
 
 
 # ============================================================

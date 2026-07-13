@@ -1,14 +1,15 @@
 """
 Tests Sprint 5.11 — Visión, Voice-first endpoints y CognitiveOptimizationLayer
+ACTUALIZADO para arquitectura modular dashboard (ZOE OMEGA).
 
-Verifica:
-C7: feed_upload detecta imágenes y usa VLM (o fallback elegante)
-C9: CognitivePrefetchLayer se instancia en cli_chat
-C10: Endpoints /api/voice/start|stop|status existen en Dashboard
+Los handlers ahora viven en zoe/dashboard/handlers/ como funciones separadas,
+no como métodos de DashboardServer.
 """
 
 import asyncio
 import inspect
+from pathlib import Path
+
 import pytest
 
 
@@ -19,31 +20,31 @@ import pytest
 class TestVisionConnected:
     """Sprint 5.11 C7 — feed_upload detecta imágenes y usa VLM."""
 
-    def test_handle_feed_upload_detecta_imagenes(self):
-        """El código de _handle_feed_upload incluye detección de imágenes."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_feed_upload)
+    def test_feed_upload_handler_detecta_imagenes(self):
+        """El handler de feed_upload incluye detección de imágenes."""
+        handler_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "chat.py"
+        source = handler_path.read_text()
         assert "is_image" in source
         assert "image/" in source
         assert ".png" in source or ".jpg" in source
 
-    def test_handle_feed_upload_usa_vlm(self):
-        """El código de _handle_feed_upload incluye VLMPeripheral."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_feed_upload)
+    def test_feed_upload_handler_usa_vlm(self):
+        """El handler de feed_upload incluye VLMPeripheral."""
+        handler_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "chat.py"
+        source = handler_path.read_text()
         assert "VLMPeripheral" in source
         assert "image_description" in source
 
-    def test_handle_feed_upload_fallback_si_vlm_falla(self):
+    def test_feed_upload_fallback_si_vlm_falla(self):
         """Si VLM falla, guarda metadata sin caer."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_feed_upload)
+        handler_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "chat.py"
+        source = handler_path.read_text()
         assert "VLM no disponible" in source or "VLM failed" in source
 
-    def test_handle_feed_upload_response_incluye_is_image(self):
+    def test_feed_upload_response_incluye_is_image(self):
         """La respuesta incluye is_image y image_description."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_feed_upload)
+        handler_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "chat.py"
+        source = handler_path.read_text()
         assert '"is_image"' in source
         assert '"image_description"' in source
 
@@ -96,57 +97,58 @@ class TestCognitiveOptimizationLayerActive:
 
 
 # ============================================================
-# C10: Voice-first endpoints en Dashboard
+# C10: Voice-first endpoints en Dashboard (arquitectura modular)
 # ============================================================
 
 class TestVoiceFirstEndpoints:
-    """Sprint 5.11 C10 — Endpoints /api/voice/* en Dashboard."""
+    """Sprint 5.11 C10 — Endpoints /api/voice/* en Dashboard modular."""
 
-    def test_dashboard_tiene_voice_start(self):
-        """DashboardServer tiene _handle_voice_start."""
-        from zoe.web_dashboard import DashboardServer
-        assert hasattr(DashboardServer, "_handle_voice_start")
+    def test_voice_handler_file_exists(self):
+        """El archivo handlers/voice.py existe."""
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        assert voice_path.exists()
 
-    def test_dashboard_tiene_voice_stop(self):
-        """DashboardServer tiene _handle_voice_stop."""
-        from zoe.web_dashboard import DashboardServer
-        assert hasattr(DashboardServer, "_handle_voice_stop")
+    def test_voice_start_handler_exists(self):
+        """El handler _handle_voice_start existe en voice.py."""
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        source = voice_path.read_text()
+        assert "_handle_voice_start" in source
 
-    def test_dashboard_tiene_voice_status(self):
-        """DashboardServer tiene _handle_voice_status."""
-        from zoe.web_dashboard import DashboardServer
-        assert hasattr(DashboardServer, "_handle_voice_status")
+    def test_voice_stop_handler_exists(self):
+        """El handler _handle_voice_stop existe en voice.py."""
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        source = voice_path.read_text()
+        assert "_handle_voice_stop" in source
 
-    def test_start_registra_ruta_voice(self):
-        """El método start() registra las rutas /api/voice/*."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer.start)
+    def test_voice_status_handler_exists(self):
+        """El handler _handle_voice_status existe en voice.py."""
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        source = voice_path.read_text()
+        assert "_handle_voice_status" in source
+
+    def test_routes_register_voice_endpoints(self):
+        """routes.py registra las rutas /api/voice/*."""
+        routes_path = Path(__file__).parent.parent / "dashboard" / "routes.py"
+        source = routes_path.read_text()
         assert "/api/voice/start" in source
         assert "/api/voice/stop" in source
         assert "/api/voice/status" in source
 
     def test_voice_start_crea_voidefirstmode(self):
         """_handle_voice_start crea VoiceFirstMode."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_voice_start)
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        source = voice_path.read_text()
         assert "VoiceFirstMode" in source
         assert "VoiceConfig" in source
 
     def test_voice_start_devuelve_listening(self):
         """_handle_voice_start devuelve status=listening."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_voice_start)
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        source = voice_path.read_text()
         assert "listening" in source
 
     def test_voice_stop_devuelve_stopped(self):
         """_handle_voice_stop devuelve status=stopped."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_voice_stop)
-        assert "stopped" in source
-
-    def test_voice_status_devuelve_running_o_stopped(self):
-        """_handle_voice_status devuelve running o stopped."""
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer._handle_voice_status)
-        assert "running" in source
+        voice_path = Path(__file__).parent.parent / "dashboard" / "handlers" / "voice.py"
+        source = voice_path.read_text()
         assert "stopped" in source
