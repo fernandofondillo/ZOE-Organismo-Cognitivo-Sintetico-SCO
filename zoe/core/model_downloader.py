@@ -566,16 +566,10 @@ SETUP_PRESETS = {
         "description": "Los 4 modelos (53GB) — espectro completo para SSD 1TB",
     },
     "reflection": {
-        "models": ["gemma-2-9b-iq2", "agents-a1-iq2", "qwq-32b-iq2", "deepseek-r1:32b-iq2"],
-        "total_gb": 40.7,
-        "min_ram_gb": 8.0,
-        "description": "Espectro completo + L4_REFLECTION IQ2_M (41GB) — Optimizado para Mac 8GB RAM",
-    },
-    "reflection-16gb": {
         "models": ["gemma-2-9b-iq2", "agents-a1-iq2", "qwq-32b-iq2", "deepseek-r1:32b-q4km"],
         "total_gb": 46.2,
         "min_ram_gb": 16.0,
-        "description": "Espectro completo + L4_REFLECTION Q4_K_M (46GB) — Máxima calidad, requiere 16GB RAM",
+        "description": "Espectro completo + L4_REFLECTION (46GB) — Requiere 16GB RAM o SSD con swap",
     },
 }
 
@@ -588,7 +582,7 @@ def _main_cli():
     )
     parser.add_argument(
         "--download-setup",
-        choices=["minimal", "balanced", "complete", "maximum", "reflection", "reflection-16gb"],
+        choices=["minimal", "balanced", "complete", "maximum", "reflection"],
         help="Setup preseleccionado a descargar",
     )
     parser.add_argument(
@@ -633,22 +627,10 @@ def _main_cli():
     if not args.download_setup:
         parser.error("Especifica --download-setup, --list o --detect-installed")
 
-    setup_name = args.download_setup
+    setup = SETUP_PRESETS[args.download_setup]
     ram = _detect_ram_gb()
-
-    # Auto-seleccionar reflection segun RAM disponible
-    if setup_name == "reflection":
-        if ram >= 16.0:
-            setup_name = "reflection-16gb"
-            print(f"\n  RAM detectada: {ram:.1f} GB")
-            print(f"  L4_REFLECTION: Usando Q4_K_M automaticamente (16GB+ detectada)")
-        else:
-            print(f"\n  RAM detectada: {ram:.1f} GB")
-            print(f"  L4_REFLECTION: Usando IQ2_M automaticamente (8GB+ detectada)")
-
-    setup = SETUP_PRESETS[setup_name]
     print(f"\n{'='*60}")
-    print(f"  ZOE Model Downloader — Setup '{setup_name}'")
+    print(f"  ZOE Model Downloader — Setup '{args.download_setup}'")
     print(f"{'='*60}")
     print(f"  RAM detectada: {ram:.1f} GB")
     print(f"  Setup: {setup['description']}")
