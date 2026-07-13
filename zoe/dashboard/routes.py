@@ -73,11 +73,6 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
         _handle_health, _handle_ready, _handle_live, _handle_metrics,
     )
     from .handlers.llm import _handle_llm_switch
-    from .handlers.providers import (
-        _handle_providers_config_get, _handle_providers_config_post,
-        _handle_providers_status, _handle_providers_models,
-        _handle_ollama_pull, _handle_providers_reset_budget,
-    )
     from .handlers.reflection import (
         _handle_reflections_list, _handle_reflections_metrics, _handle_reflections_config,
     )
@@ -103,13 +98,6 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
     app.router.add_post("/sleep", bind(_handle_sleep))
     app.router.add_post("/wake", bind(_handle_wake))
     app.router.add_post("/llm", bind(_handle_llm_switch))
-    # Providers / API Keys / LLM Configuration
-    app.router.add_get("/api/providers/config", bind(_handle_providers_config_get))
-    app.router.add_post("/api/providers/config", bind(_handle_providers_config_post))
-    app.router.add_get("/api/providers/status", bind(_handle_providers_status))
-    app.router.add_get("/api/providers/models", bind(_handle_providers_models))
-    app.router.add_post("/api/providers/ollama/pull", bind(_handle_ollama_pull))
-    app.router.add_post("/api/providers/budget/reset", bind(_handle_providers_reset_budget))
     app.router.add_get("/history", bind(_handle_history))
     app.router.add_get("/federation", bind(_handle_federation))
     # Capsules

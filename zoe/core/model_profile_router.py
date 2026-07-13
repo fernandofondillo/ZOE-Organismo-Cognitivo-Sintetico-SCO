@@ -134,9 +134,9 @@ class ModelProfileRouter:
             "fallback": "qwq-32b-iq2",
         },
         "L4_REFLECTION": {
-            "preferred": "deepseek-r1:32b-q4km",
-            "reason": "DeepSeek-R1-Distill-Qwen-32B Q4_K_M (~18GB). Calidad máxima para razonamiento paso a paso. Reflexión autónoma durante SLEEPING. NO para interacción en tiempo real — solo para ReflectionEngine.",
-            "fallback": "deepseek-r1:32b-iq2",
+            "preferred": "deepseek-r1:32b-iq2",
+            "reason": "Razonamiento profundo paso a paso (destilado de DeepSeek-R1). Para reflexión autónoma durante SLEEPING. No para interacción en tiempo real.",
+            "fallback": "qwq-32b-iq2",
         },
     }
     
@@ -147,7 +147,7 @@ class ModelProfileRouter:
         "L2_STANDARD": ["agents-a1-iq2", "qwen2.5:32b-iq2", "deepseek-r1:32b-iq2", "gemma-2-9b-iq2", "pattern"],
         "L3_DEEP": ["qwq-32b-iq2", "deepseek-r1:32b-iq2", "qwen2.5:32b-iq2", "agents-a1-iq2", "pattern"],
         "L3_MAXIMUM": ["qwen2.5:72b-iq2", "llama3.1:70b-iq2", "qwq-32b-iq2", "deepseek-r1:32b-iq2", "qwen2.5:32b-iq2", "pattern"],
-        "L4_REFLECTION": ["deepseek-r1:32b-q4km", "deepseek-r1:32b-iq2", "qwq-32b-iq2", "qwen2.5:32b-iq2"],
+        "L4_REFLECTION": ["deepseek-r1:32b-iq2", "qwq-32b-iq2", "qwen2.5:32b-iq2"],
     }
     
     def __init__(self):

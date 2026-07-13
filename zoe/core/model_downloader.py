@@ -144,24 +144,6 @@ OPTIMIZED_MODELS: Dict[str, OptimizedModel] = {
         estimated_tokens_s="3-6",
         description="DeepSeek R1 destilado a 32B. Especializado en razonamiento.",
     ),
-    # ZOE v2.1.1 — DeepSeek-R1-Distill-Qwen-32B Q4_K_M para ReflectionEngine
-    # Cuantización Q4_K_M: mayor calidad que IQ2_M, ~18GB
-    # Recomendado para: MacBook Air M3 16GB+ o SSD Crucial X9 1TB
-    # Uso: Reflexión autónoma durante SLEEPING (L4_REFLECTION)
-    "deepseek-r1:32b-q4km": OptimizedModel(
-        name="deepseek-r1:32b-q4km",
-        display_name="DeepSeek R1 32B (Q4_K_M) — Reflexión v2.1",
-        params_b=32.0,
-        quantization="Q4_K_M",
-        size_gb=18.0,
-        source=ModelSource.HUGGINGFACE_MRADERMACHER,
-        hf_repo="mradermacher/DeepSeek-R1-Distill-Qwen-32B-GGUF",
-        hf_filename="DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf",
-        ollama_tag="deepseek-r1-32b-q4km",
-        recommended_ram_gb=16.0,
-        estimated_tokens_s="2-4",
-        description="DeepSeek R1 32B Q4_K_M. Calidad máxima para reflexión autónoma. ~18GB. Requiere 16GB RAM o SSD con swap. Ideal para L4_REFLECTION.",
-    ),
     "qwq-32b-iq2": OptimizedModel(
         name="qwq-32b-iq2",
         display_name="QwQ-32B (IQ2_M) — Rey del Razonamiento",

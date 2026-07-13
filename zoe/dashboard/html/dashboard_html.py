@@ -70,47 +70,38 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 .chat-input button:hover { background: #651fff; }
 .chat-input button:disabled { background: #3a3a4a; cursor: not-allowed; }
 
-/* Thinking indicator */
+/* ZOE v2.1.1 — Indicador de pensando */
 .thinking-indicator {
   display: none;
-  align-self: flex-start;
-  padding: 10px 15px;
-  margin: 4px 0;
-  color: #888;
-  font-style: italic;
+  padding: 8px 16px;
+  background: #1a0a2e;
+  border-top: 1px solid #3a1a5a;
+  color: #b39ddb;
   font-size: 13px;
-  background: #1a1a24;
-  border: 1px solid #2a2a3a;
-  border-radius: 12px;
+  font-style: italic;
+  align-items: center;
+  gap: 8px;
   animation: thinkingFadeIn 0.3s ease;
 }
 .thinking-indicator.active {
-  display: block;
+  display: flex;
 }
-@keyframes thinkingFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.thinking-dots {
-  display: inline-block;
-  width: 24px;
-  text-align: left;
-}
+.thinking-icon { font-size: 16px; }
+.thinking-text { color: #b39ddb; }
 .thinking-dots span {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #7c4dff;
-  margin: 0 2px;
   animation: thinkingBounce 1.4s infinite ease-in-out both;
 }
 .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
 .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
 .thinking-dots span:nth-child(3) { animation-delay: 0s; }
 @keyframes thinkingBounce {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+  0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+@keyframes thinkingFadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Thoughts */
@@ -226,7 +217,6 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
       <button class="action-btn" onclick="showCapsules()">&#128230; Capsulas</button>
       <button class="action-btn" onclick="showQuarantine()">&#128274; Cuarentena</button>
       <button class="action-btn" onclick="showMarketplace()">&#127978; Marketplace</button>
-      <button class="action-btn" onclick="showProvidersConfig()">&#9881;&#65039; Proveedores LLM</button>
     </div>
 
     <div class="fed-section">
@@ -238,10 +228,12 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
   <!-- CENTER PANEL: Chat -->
   <div class="panel-center">
     <div class="chat-header">Conversacion con ZOE</div>
-    <div class="chat-messages" id="chatMessages">
-      <div class="thinking-indicator" id="thinkingIndicator">
-        ZOE esta pensando<div class="thinking-dots"><span></span><span></span><span></span></div>
-      </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <!-- ZOE v2.1.1 — Indicador de pensando -->
+    <div class="thinking-indicator" id="thinkingIndicator">
+      <span class="thinking-icon">&#129302;</span>
+      <span class="thinking-text">ZOE está pensando</span>
+      <span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span>
     </div>
     <div class="chat-input">
       <input type="text" id="chatInput" placeholder="Escribe a ZOE..." onkeypress="if(event.key==='Enter')sendMessage()">
@@ -278,12 +270,13 @@ function connectWS() {
 
 function handleMessage(data) {
   if (data.type === 'chat_response') {
-    showThinking(false);
     const meta = data.acd_level
       ? ` <span class="acd-badge acd-${data.acd_level.toLowerCase()}">${data.acd_level}</span>`
         + `<span class="acd-meta">${data.latency_ms.toFixed(0)}ms${data.cache_hit ? ' &#128190;' : ''}</span>`
       : '';
     addMessage('zoe', data.content, data.timestamp, meta);
+    // ZOE v2.1.1 — Ocultar indicador de pensando
+    hideThinking();
     document.getElementById('sendBtn').disabled = false;
   } else if (data.type === 'state_update') {
     updateState(data);
@@ -327,24 +320,21 @@ function sendMessage() {
   if (!msg || !ws || ws.readyState !== 1) return;
 
   addMessage('user', msg, Date.now()/1000);
+  // ZOE v2.1.1 — Mostrar indicador de pensando
+  showThinking();
   ws.send(JSON.stringify({ type: 'chat', message: msg }));
   input.value = '';
   document.getElementById('sendBtn').disabled = true;
-  showThinking(true);
 }
 
-function showThinking(show) {
-  const ind = document.getElementById('thinkingIndicator');
-  if (!ind) return;
-  if (show) {
-    ind.classList.add('active');
-    // Mover al final del contenedor para que aparezca despues del ultimo mensaje
-    const container = document.getElementById('chatMessages');
-    container.appendChild(ind);
-    ind.scrollIntoView({ behavior: 'smooth' });
-  } else {
-    ind.classList.remove('active');
-  }
+// ZOE v2.1.1 — Indicador de pensando
+function showThinking() {
+  const indicator = document.getElementById('thinkingIndicator');
+  if (indicator) indicator.classList.add('active');
+}
+function hideThinking() {
+  const indicator = document.getElementById('thinkingIndicator');
+  if (indicator) indicator.classList.remove('active');
 }
 
 function addMessage(role, content, ts, meta) {
@@ -932,233 +922,7 @@ async function uploadUseCaseToMarketplace() {
   }
 }
 
-// ============================================================
-// Proveedores LLM Configuration
-// ============================================================
-
-function showProvidersConfig() {
-  document.getElementById('providersModal').style.display = 'flex';
-  loadProvidersConfig();
-}
-
-function hideProvidersConfig() {
-  document.getElementById('providersModal').style.display = 'none';
-}
-
-async function loadProvidersConfig() {
-  try {
-    // Cargar config
-    const configR = await fetch('/api/providers/config');
-    const configD = await configR.json();
-
-    // Cargar status (incluye ollama models + budget)
-    const statusR = await fetch('/api/providers/status');
-    const statusD = await statusR.json();
-
-    // Aplicar config a los campos
-    const providers = configD.providers || {};
-
-    // OpenAI
-    if (providers.openai) {
-      document.getElementById('provEnabledOpenAI').checked = providers.openai.enabled;
-      if (providers.openai.api_key) document.getElementById('provApiKeyOpenAI').placeholder = providers.openai.api_key;
-      document.getElementById('provModelOpenAI').value = providers.openai.model || 'gpt-4o';
-      toggleProviderUI('openai');
-    }
-    // Anthropic
-    if (providers.anthropic) {
-      document.getElementById('provEnabledAnthropic').checked = providers.anthropic.enabled;
-      if (providers.anthropic.api_key) document.getElementById('provApiKeyAnthropic').placeholder = providers.anthropic.api_key;
-      document.getElementById('provModelAnthropic').value = providers.anthropic.model || 'claude-sonnet';
-      toggleProviderUI('anthropic');
-    }
-    // DeepSeek
-    if (providers.deepseek) {
-      document.getElementById('provEnabledDeepSeek').checked = providers.deepseek.enabled;
-      if (providers.deepseek.api_key) document.getElementById('provApiKeyDeepSeek').placeholder = providers.deepseek.api_key;
-      toggleProviderUI('deepseek');
-    }
-
-    // Backend mode
-    const backendMode = configD.backend?.mode || 'auto';
-    document.getElementById('backendMode').value = backendMode;
-    updateBackendDescription();
-
-    // Budget
-    const budget = configD.budget || {};
-    document.getElementById('budgetDailyLimit').value = budget.daily_limit_usd || 10.0;
-
-    // Aplicar status
-    applyProvidersStatus(statusD);
-
-  } catch (e) {
-    console.error('Error cargando configuracion de proveedores:', e);
-  }
-}
-
-function applyProvidersStatus(status) {
-  // Ollama status
-  const ollamaStatus = status.ollama || {};
-  const badge = document.getElementById('ollamaStatusBadge');
-  if (ollamaStatus.running) {
-    badge.textContent = 'Activo - ' + (ollamaStatus.model_count || 0) + ' modelos';
-    badge.className = 'prov-status-badge prov-status-on';
-  } else {
-    badge.textContent = ollamaStatus.error || 'Inactivo';
-    badge.className = 'prov-status-badge prov-status-off';
-  }
-
-  // Lista de modelos instalados
-  const modelsList = document.getElementById('ollamaModelsList');
-  const installed = ollamaStatus.installed_models || [];
-  const defaultModel = ollamaStatus.default_model || '';
-
-  // Actualizar select de modelo por defecto
-  const defaultSelect = document.getElementById('ollamaDefaultModel');
-  defaultSelect.innerHTML = installed.length === 0
-    ? '<option value="">No hay modelos instalados</option>'
-    : installed.map(m => `<option value="${m.name}" ${m.name === defaultModel ? 'selected' : ''}>${m.name} (${m.size})</option>`).join('');
-
-  // Render lista visual
-  if (installed.length === 0) {
-    modelsList.innerHTML = '<div style="color:#666;padding:10px;">No hay modelos instalados. Descarga uno desde el menu de arriba.</div>';
-  } else {
-    modelsList.innerHTML = installed.map(m => `
-      <div class="ollama-model-item">
-        <div>
-          <span class="ollama-model-name">${m.name}</span>
-          ${m.name === defaultModel ? '<span class="ollama-model-default">default</span>' : ''}
-        </div>
-        <span class="ollama-model-size">${m.size}</span>
-      </div>
-    `).join('');
-  }
-
-  // Budget bar
-  const budget = status.budget || {};
-  const spent = budget.spent_today_usd || 0;
-  const limit = budget.daily_limit_usd || 10;
-  const pct = budget.usage_percent || 0;
-  document.getElementById('budgetLabel').textContent = `Gastado hoy: $${spent.toFixed(2)} / $${limit.toFixed(2)}`;
-  document.getElementById('budgetPercent').textContent = pct.toFixed(0) + '%';
-  document.getElementById('budgetProgressBar').style.width = Math.min(pct, 100) + '%';
-
-  const alertBox = document.getElementById('budgetAlert');
-  if (budget.alert_active) {
-    alertBox.style.display = 'block';
-    document.getElementById('budgetAlertThreshold').textContent = Math.round((budget.alert_threshold || 0.8) * 100);
-  } else {
-    alertBox.style.display = 'none';
-  }
-}
-
-function toggleProviderUI(provider) {
-  const enabled = document.getElementById('provEnabled' + provider.charAt(0).toUpperCase() + provider.slice(1)).checked;
-  const body = document.getElementById('provBody' + provider.charAt(0).toUpperCase() + provider.slice(1));
-  if (enabled) {
-    body.classList.remove('disabled');
-  } else {
-    body.classList.add('disabled');
-  }
-}
-
-function updateBackendDescription() {
-  const mode = document.getElementById('backendMode').value;
-  const descriptions = {
-    auto: 'Adaptive Cognitive Depth: elige automaticamente el backend segun la complejidad de la consulta. Las consultas simples van a Ollama, las complejas a cloud.',
-    local: 'Usa siempre modelos locales via Ollama. Sin coste, pero puede ser mas lento para tareas complejas. Requiere que Ollama este instalado y ejecutandose.',
-    cloud: 'Usa siempre proveedores cloud (OpenAI, Anthropic, DeepSeek). Maxima calidad y velocidad, pero con coste por token. Requiere API keys configuradas.',
-    mixed: 'Intenta primero el modelo local (Ollama). Si no responde o la calidad es insuficiente, hace fallback automatico a cloud. Balance coste/calidad.',
-  };
-  document.getElementById('backendDescription').textContent = descriptions[mode] || '';
-}
-
-async function saveProvidersConfig() {
-  try {
-    const config = {
-      providers: {
-        openai: {
-          enabled: document.getElementById('provEnabledOpenAI').checked,
-          api_key: document.getElementById('provApiKeyOpenAI').value,
-          model: document.getElementById('provModelOpenAI').value,
-        },
-        anthropic: {
-          enabled: document.getElementById('provEnabledAnthropic').checked,
-          api_key: document.getElementById('provApiKeyAnthropic').value,
-          model: document.getElementById('provModelAnthropic').value,
-        },
-        deepseek: {
-          enabled: document.getElementById('provEnabledDeepSeek').checked,
-          api_key: document.getElementById('provApiKeyDeepSeek').value,
-        },
-      },
-      backend: {
-        mode: document.getElementById('backendMode').value,
-      },
-      ollama: {
-        default_model: document.getElementById('ollamaDefaultModel').value,
-      },
-      budget: {
-        daily_limit_usd: parseFloat(document.getElementById('budgetDailyLimit').value) || 10.0,
-      },
-    };
-
-    const r = await fetch('/api/providers/config', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(config),
-    });
-    const d = await r.json();
-    if (d.success) {
-      addMessage('zoe', '&#9881;&#65039; Configuracion de proveedores guardada correctamente.', Date.now()/1000);
-      hideProvidersConfig();
-    } else {
-      alert('Error guardando: ' + (d.error || 'desconocido'));
-    }
-  } catch (e) {
-    console.error('saveProvidersConfig error:', e);
-    alert('Error: ' + e);
-  }
-}
-
-async function downloadOllamaModel() {
-  const model = document.getElementById('ollamaDownloadSelect').value;
-  if (!model) { alert('Selecciona un modelo'); return; }
-
-  try {
-    const r = await fetch('/api/providers/ollama/pull', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({model}),
-    });
-    const d = await r.json();
-    if (d.success) {
-      addMessage('zoe', `&#128421;&#65039; Descarga de modelo '${model}' iniciada. Puede tardar varios minutos dependiendo de tu conexion.`, Date.now()/1000);
-    } else {
-      alert('Error: ' + (d.error || 'desconocido'));
-    }
-  } catch (e) {
-    console.error('downloadOllamaModel error:', e);
-    alert('Error: ' + e);
-  }
-}
-
-async function resetBudget() {
-  try {
-    const r = await fetch('/api/providers/budget/reset', {method: 'POST'});
-    const d = await r.json();
-    if (d.success) {
-      addMessage('zoe', '&#128176; Contador de presupuesto diario reseteado.', Date.now()/1000);
-      loadProvidersConfig();
-    }
-  } catch (e) {
-    console.error('resetBudget error:', e);
-  }
-}
-
-// ============================================================
 // Init
-// ============================================================
 connectWS();
 // Set initial LLM select
 document.getElementById('llmSelect').value = 'mock';
@@ -1288,344 +1052,6 @@ document.getElementById('llmSelect').value = 'mock';
     <div id="quarantinePending" style="background:#0a0a12;border-radius:6px;padding:8px;"></div>
   </div>
 </div>
-
-<!-- Modal Proveedores LLM -->
-<div id="providersModal" class="providers-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;">
-  <div class="providers-modal-content" style="background:#0d0d14;border:1px solid #2a2a3a;border-radius:8px;width:92%;max-width:900px;max-height:90vh;overflow-y:auto;padding:24px;color:#e0e0e0;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h2 style="margin:0;font-size:20px;color:#7c4dff;">&#9881;&#65039; Configuracion de Proveedores LLM</h2>
-      <button onclick="hideProvidersConfig()" style="background:none;border:none;color:#888;font-size:24px;cursor:pointer;">&times;</button>
-    </div>
-
-    <!-- Seccion: Proveedores Cloud -->
-    <div class="prov-section">
-      <h3 class="prov-section-title">&#9729;&#65039; Proveedores Cloud</h3>
-
-      <!-- OpenAI -->
-      <div class="prov-card" id="provCardOpenAI">
-        <div class="prov-header">
-          <span class="prov-name">OpenAI</span>
-          <label class="prov-toggle">
-            <input type="checkbox" id="provEnabledOpenAI" onchange="toggleProviderUI('openai')">
-            <span class="prov-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="prov-body" id="provBodyOpenAI">
-          <div class="prov-field">
-            <label>API Key</label>
-            <input type="password" id="provApiKeyOpenAI" placeholder="sk-...">
-          </div>
-          <div class="prov-field">
-            <label>Modelo</label>
-            <select id="provModelOpenAI">
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4o-mini">GPT-4o Mini</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Anthropic -->
-      <div class="prov-card" id="provCardAnthropic">
-        <div class="prov-header">
-          <span class="prov-name">Anthropic</span>
-          <label class="prov-toggle">
-            <input type="checkbox" id="provEnabledAnthropic" onchange="toggleProviderUI('anthropic')">
-            <span class="prov-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="prov-body" id="provBodyAnthropic">
-          <div class="prov-field">
-            <label>API Key</label>
-            <input type="password" id="provApiKeyAnthropic" placeholder="sk-ant-...">
-          </div>
-          <div class="prov-field">
-            <label>Modelo</label>
-            <select id="provModelAnthropic">
-              <option value="claude-sonnet">Claude Sonnet</option>
-              <option value="claude-haiku">Claude Haiku</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- DeepSeek -->
-      <div class="prov-card" id="provCardDeepSeek">
-        <div class="prov-header">
-          <span class="prov-name">DeepSeek</span>
-          <label class="prov-toggle">
-            <input type="checkbox" id="provEnabledDeepSeek" onchange="toggleProviderUI('deepseek')">
-            <span class="prov-toggle-slider"></span>
-          </label>
-        </div>
-        <div class="prov-body" id="provBodyDeepSeek">
-          <div class="prov-field">
-            <label>API Key</label>
-            <input type="password" id="provApiKeyDeepSeek" placeholder="sk-...">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Seccion: Ollama (Modelos Locales) -->
-    <div class="prov-section">
-      <h3 class="prov-section-title">&#128421;&#65039; Modelos Locales (Ollama)</h3>
-      <div class="prov-card">
-        <div class="prov-header">
-          <span class="prov-name">Ollama</span>
-          <span id="ollamaStatusBadge" class="prov-status-badge prov-status-off">Verificando...</span>
-        </div>
-        <div class="prov-body">
-          <div class="prov-field">
-            <label>Modelo por defecto</label>
-            <select id="ollamaDefaultModel">
-              <option value="">Cargando...</option>
-            </select>
-          </div>
-          <div id="ollamaModelsList" style="max-height:200px;overflow-y:auto;background:#0a0a12;border-radius:6px;padding:8px;margin-top:10px;">
-            <div style="color:#666;padding:10px;">Cargando modelos...</div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:12px;">
-            <select id="ollamaDownloadSelect" style="flex:1;background:#1a1a24;border:1px solid #2a2a3a;color:#e0e0e0;padding:8px;border-radius:4px;">
-              <option value="">Selecciona un modelo para descargar...</option>
-              <option value="qwen2.5:3b">qwen2.5:3b (rapido, 2GB)</option>
-              <option value="qwen2.5:7b">qwen2.5:7b (equilibrado, 4.5GB)</option>
-              <option value="qwen2.5:14b">qwen2.5:14b (potente, 9GB)</option>
-              <option value="llama3.2:3b">llama3.2:3b (Meta, 2GB)</option>
-              <option value="llama3.1:8b">llama3.1:8b (Meta, 4.9GB)</option>
-              <option value="phi4:14b">phi4:14b (Microsoft, 9GB)</option>
-              <option value="mistral:7b">mistral:7b (Mistral AI, 4.1GB)</option>
-              <option value="codellama:7b">codellama:7b (Meta, 3.8GB)</option>
-              <option value="deepseek-coder:6.7b">deepseek-coder:6.7b (DeepSeek, 3.8GB)</option>
-              <option value="gemma2:9b">gemma2:9b (Google, 5.4GB)</option>
-            </select>
-            <button onclick="downloadOllamaModel()" class="prov-btn prov-btn-primary">&#11015; Descargar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Seccion: Presupuesto Cloud -->
-    <div class="prov-section">
-      <h3 class="prov-section-title">&#128176; Presupuesto Cloud</h3>
-      <div class="prov-card">
-        <div class="prov-body">
-          <div class="prov-field">
-            <label>Limite diario (USD)</label>
-            <input type="number" id="budgetDailyLimit" value="10.00" step="0.01" min="0">
-          </div>
-          <div style="margin-top:12px;">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:4px;">
-              <span id="budgetLabel">Gastado hoy: $0.00 / $10.00</span>
-              <span id="budgetPercent">0%</span>
-            </div>
-            <div class="prov-progress-bg">
-              <div class="prov-progress-fill" id="budgetProgressBar" style="width:0%"></div>
-            </div>
-            <div id="budgetAlert" style="display:none;margin-top:8px;padding:8px 12px;background:#3e1c1c;border:1px solid #c62828;border-radius:6px;color:#ef9a9a;font-size:12px;">
-              &#9888;&#65039; Has alcanzado el <span id="budgetAlertThreshold">80</span>% de tu presupuesto diario.
-            </div>
-          </div>
-          <button onclick="resetBudget()" class="prov-btn prov-btn-secondary" style="margin-top:12px;">&#128260; Resetear contador diario</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Seccion: Backend Activo -->
-    <div class="prov-section">
-      <h3 class="prov-section-title">&#9881;&#65039; Backend Activo</h3>
-      <div class="prov-card">
-        <div class="prov-body">
-          <div class="prov-field">
-            <label>Modo de operacion</label>
-            <select id="backendMode" onchange="updateBackendDescription()">
-              <option value="auto">Auto (ACD)</option>
-              <option value="local">Local (Ollama)</option>
-              <option value="cloud">Cloud (API)</option>
-              <option value="mixed">Mixto</option>
-            </select>
-          </div>
-          <div id="backendDescription" style="margin-top:10px;padding:10px;background:#0a0a12;border-radius:6px;font-size:12px;color:#aaa;line-height:1.5;">
-            Adaptive Cognitive Depth: elige automaticamente el backend segun la complejidad de la consulta.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid #2a2a3a;">
-      <button onclick="hideProvidersConfig()" class="prov-btn prov-btn-secondary">Cancelar</button>
-      <button onclick="saveProvidersConfig()" class="prov-btn prov-btn-primary">&#128190; Guardar configuracion</button>
-    </div>
-  </div>
-</div>
-
-<style>
-/* Providers Modal Styles */
-.providers-modal { font-family: 'Segoe UI', system-ui, sans-serif; }
-.prov-section { margin-bottom: 20px; }
-.prov-section-title {
-  font-size: 13px;
-  color: #7c4dff;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #2a2a3a;
-}
-.prov-card {
-  background: #12121a;
-  border: 1px solid #2a2a3a;
-  border-radius: 8px;
-  padding: 14px;
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
-}
-.prov-card:hover { border-color: #3a3a4a; }
-.prov-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.prov-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #e0e0e0;
-}
-.prov-body { display: block; }
-.prov-body.disabled { opacity: 0.4; pointer-events: none; }
-.prov-field {
-  margin-bottom: 10px;
-}
-.prov-field label {
-  display: block;
-  font-size: 11px;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-.prov-field input[type="password"],
-.prov-field input[type="text"],
-.prov-field input[type="number"],
-.prov-field select {
-  width: 100%;
-  background: #1a1a24;
-  border: 1px solid #2a2a3a;
-  color: #e0e0e0;
-  padding: 8px 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-}
-.prov-field input:focus,
-.prov-field select:focus { border-color: #7c4dff; }
-
-/* Toggle Switch */
-.prov-toggle {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-  cursor: pointer;
-}
-.prov-toggle input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.prov-toggle-slider {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #3a3a4a;
-  border-radius: 24px;
-  transition: background 0.3s;
-}
-.prov-toggle-slider::before {
-  content: "";
-  position: absolute;
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background: #e0e0e0;
-  border-radius: 50%;
-  transition: transform 0.3s;
-}
-.prov-toggle input:checked + .prov-toggle-slider { background: #7c4dff; }
-.prov-toggle input:checked + .prov-toggle-slider::before { transform: translateX(20px); }
-
-/* Status badges */
-.prov-status-badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-.prov-status-on { background: #1b5e20; color: #a5d6a7; }
-.prov-status-off { background: #3a3a4a; color: #888; }
-.prov-status-error { background: #c62828; color: #ef9a9a; }
-
-/* Progress bar */
-.prov-progress-bg {
-  height: 8px;
-  background: #1a1a24;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.prov-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
-  border-radius: 4px;
-  transition: width 0.5s ease;
-}
-
-/* Buttons */
-.prov-btn {
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  transition: background 0.2s;
-  font-family: inherit;
-}
-.prov-btn-primary { background: #7c4dff; color: white; }
-.prov-btn-primary:hover { background: #651fff; }
-.prov-btn-secondary { background: #2a2a3a; color: #e0e0e0; border: 1px solid #3a3a4a; }
-.prov-btn-secondary:hover { background: #3a3a4a; }
-
-/* Ollama model list */
-.ollama-model-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
-  border-bottom: 1px solid #1a1a24;
-  font-size: 12px;
-}
-.ollama-model-name { color: #e0e0e0; font-weight: 500; }
-.ollama-model-size { color: #888; font-size: 10px; }
-.ollama-model-default {
-  font-size: 9px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: #7c4dff;
-  color: white;
-  margin-left: 6px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .providers-modal-content { width: 96%; padding: 16px; }
-}
-</style>
 
 <!-- Modal Marketplace (Fase 6B) -->
 <div id="marketplaceModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;">

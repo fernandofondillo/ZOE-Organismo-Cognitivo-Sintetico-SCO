@@ -56,13 +56,12 @@ class ReflectionConfig:
     daily_cloud_budget: float = 1.0
 
     # --- Modelo ---
-    # ZOE v2.1.1 — DeepSeek-R1-Distill-Qwen-32B Q4_K_M para reflexión autónoma.
-    # ~18GB, calidad máxima para razonamiento paso a paso durante SLEEPING.
-    # Descarga: python -m zoe.core.model_downloader --model deepseek-r1:32b-q4km
-    # Requiere: 16GB RAM o SSD con swap. Fallback a qwq-32b-iq2 si no cabe.
-    model_tag: str = "deepseek-r1:32b-q4km"
-    # Fallback si el primario Q4_K_M no está disponible (RAM insuficiente)
-    model_fallback_tag: str = "qwq-32b-iq2"
+    # Tag del modelo vía OllamaPeripheral existente.
+    # Opciones: "deepseek-r1:32b-iq2" (si cabe), "qwq-32b-iq2" (ya instalado),
+    #           "qwen2.5:14b-iq2" (más pequeño, recomendado para 8GB)
+    model_tag: str = "qwq-32b-iq2"
+    # Fallback si el primario no está disponible
+    model_fallback_tag: str = "qwen2.5:14b-iq2"
 
 
 @dataclass
