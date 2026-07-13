@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"></a>
+  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.1-blue?style=flat-square" alt="Version"></a>
   <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1668%2B-brightgreen?style=flat-square" alt="Tests"></a>
   <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=github" alt="CI"></a>
   <a href="Dockerfile"><img src="https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker" alt="Docker"></a>
@@ -71,7 +71,7 @@ El instalador detecta automáticamente tu SSD, verifica Python, descarga ZOE, y 
 
 ### Qué es ZOE en términos técnicos
 
-ZOE es un **framework Python de ~68,000 LOC** que implementa una arquitectura cognitiva completa organizada en 4 capas, con **1,668+ tests** automatizados, **81 endpoints REST**, 15 cápsulas de conocimiento con contenido real, y soporte para despliegue en Docker, Kubernetes o SSD portátil. Incluye el **ReflectionEngine v2.1** para reflexión autónoma durante SLEEPING con gestión inteligente de presupuesto cloud.
+ZOE es un **framework Python de ~72,000 LOC** que implementa una arquitectura cognitiva completa organizada en 4 capas, con **1,700+ tests** automatizados, **84 endpoints REST**, 15 cápsulas de conocimiento con contenido real, y soporte para despliegue en Docker, Kubernetes o SSD portátil. Incluye el **ReflectionEngine v2.1** para reflexión autónoma durante SLEEPING con gestión inteligente de presupuesto cloud.
 
 > **Documentación técnica completa:** [`docs/19_ZOE_TECHNICAL_INTERNALS.md`](zoe/docs/19_ZOE_TECHNICAL_INTERNALS.md)
 
@@ -197,7 +197,7 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 | Métrica | Valor |
 |---------|-------|
 | Archivos Python | 205 |
-| Líneas de código | ~68,000 |
+| Líneas de código | ~72,000 |
 | Tests | 1,668+ (99.93% pass) |
 | Archivos de test | 61 |
 | LOC de tests | ~26,000 |
@@ -379,7 +379,7 @@ Licensed under the Apache License, Version 2.0.
 
 <p align="center">
   <b>ZOE v2.0.0-rc1 — Synthetic Cognitive Organism</b><br>
-  1,668+ tests · 205 archivos Python · 15 cápsulas · 81 endpoints · 6 backends LLM · 4 idiomas<br>
+  1,700+ tests · 210 archivos Python · 15 cápsulas · 84 endpoints · 6 backends LLM · 4 idiomas<br>
   Docker · Kubernetes · SSD portátil · 100% offline<br>
   <i>"ZOE no es un modelo que responde. Es un organismo que existe."</i>
 </p>
