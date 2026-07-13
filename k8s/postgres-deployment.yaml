@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zoe-postgres
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/version: "15"
+spec:
+  serviceName: zoe-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoe-postgres
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zoe-postgres
+        app.kubernetes.io/component: database
+        app.kubernetes.io/version: "15"
+    spec:
+      serviceAccountName: zoe-sa
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999  # postgres user
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: zoe-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: zoe-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: zoe-config
+                  key: POSTGRES_DB
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - zoe
+                - -d
+                - zoe
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - zoe
+                - -d
+                - zoe
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 3
+          startupProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - zoe
+                - -d
+                - zoe
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - "pg_ctl stop -D /var/lib/postgresql/data/pgdata -m fast"
+
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: zoe-postgres-data
+
+      terminationGracePeriodSeconds: 120

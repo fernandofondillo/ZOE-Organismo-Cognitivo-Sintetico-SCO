@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zoe-config
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: config
+data:
+  # Configuracion de entorno
+  ZOE_ENV: "production"
+  ZOE_LOG_LEVEL: "INFO"
+
+  # Backend de persistencia: sqlite (default) o postgres
+  ZOE_STORAGE_TYPE: "postgres"
+  ZOE_DB_PATH: "/data/zoe/memory.db"
+
+  # PostgreSQL (se usan secrets para password)
+  POSTGRES_HOST: "zoe-postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "zoe"
+  POSTGRES_USER: "zoe"
+  POSTGRES_MIN_POOL: "2"
+  POSTGRES_MAX_POOL: "10"
+
+  # Ollama
+  OLLAMA_HOST: "http://zoe-ollama:11434"
+  OLLAMA_MODEL: "llama3.2"
+
+  # API Endpoints (health checks)
+  ZOE_HEALTH_PORT: "8080"
+
+  # Production config YAML embebido
+  production.yaml: |
+    organism:
+      name: "Zoe"
+      environment: "production"
+      log_level: "INFO"
+
+    storage:
+      type: "postgres"
+      db_path: "/data/zoe/memory.db"
+
+    ollama:
+      host: "http://zoe-ollama:11434"
+      model: "llama3.2"
+      timeout: 120
+
+    server:
+      port: 8642
+      health_port: 8080
+      host: "0.0.0.0"
+
+    memory:
+      max_entries: 10000
+      consolidation_interval: 3600
+      auto_save_interval: 50
+
+    federation:
+      enabled: false
+      heartbeat_interval: 30
+
+    security:
+      enable_auth: true
+      enable_rate_limit: true
+      rate_limit_requests: 100
+      rate_limit_window: 60

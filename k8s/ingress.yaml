@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zoe
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Cert-Manager + Let's Encrypt
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+
+    # NGINX Ingress Controller
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "5"
+
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - zoe.example.com  # Cambiar por tu dominio
+      secretName: zoe-tls
+  rules:
+    - host: zoe.example.com  # Cambiar por tu dominio
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zoe
+                port:
+                  number: 8642
+
+---
+# Ejemplo con TLS wildcard (para subdominios)
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: zoe-wildcard
+#   namespace: zoe
+#   annotations:
+#     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+# spec:
+#   ingressClassName: nginx
+#   tls:
+#     - hosts:
+#         - "*.zoe.example.com"
+#       secretName: zoe-wildcard-tls
+#   rules:
+#     - host: "api.zoe.example.com"
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: zoe
+#                 port:
+#                   number: 8642

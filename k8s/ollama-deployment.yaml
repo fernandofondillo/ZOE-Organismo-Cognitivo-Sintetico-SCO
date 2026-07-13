@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zoe-ollama
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-ollama
+    app.kubernetes.io/component: llm
+    app.kubernetes.io/version: "latest"
+spec:
+  serviceName: zoe-ollama
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoe-ollama
+      app.kubernetes.io/component: llm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zoe-ollama
+        app.kubernetes.io/component: llm
+        app.kubernetes.io/version: "latest"
+    spec:
+      serviceAccountName: zoe-sa
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ollama
+              containerPort: 11434
+              protocol: TCP
+          env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0"
+            - name: OLLAMA_ORIGINS
+              value: "*"
+            - name: OLLAMA_KEEP_ALIVE
+              value: "24h"
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 2Gi
+            limits:
+              cpu: 4000m
+              memory: 8Gi
+              # Descomentar si el nodo tiene GPU
+              # nvidia.com/gpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: ollama
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: ollama
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /api/tags
+              port: ollama
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30  # 10 * 30 = 300s para descargar modelos
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: ollama-models
+              mountPath: /root/.ollama
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: ollama-models
+          persistentVolumeClaim:
+            claimName: zoe-ollama-models
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+
+      terminationGracePeriodSeconds: 60
+
+      # Tolerations para GPU (si se usa nodo GPU)
+      # tolerations:
+      #   - key: nvidia.com/gpu
+      #     operator: Exists
+      #     effect: NoSchedule

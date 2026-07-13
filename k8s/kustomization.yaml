@@ -1,0 +1,86 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: zoe
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - pvc.yaml
+  - rbac.yaml
+  - postgres-service.yaml
+  - postgres-deployment.yaml
+  - ollama-service.yaml
+  - ollama-deployment.yaml
+  - service.yaml
+  - deployment.yaml
+  - ingress.yaml
+  - networkpolicy.yaml
+
+# Labels comunes para todos los recursos
+commonLabels:
+  app.kubernetes.io/part-of: zoe-organism
+  app.kubernetes.io/managed-by: kustomize
+
+# Annotations comunes
+commonAnnotations:
+  org.zoe/description: "ZOE Organism - Cognitive Agent"
+  org.zoe/version: "1.0"
+
+# Images - sobreescribir en overlays o con kustomize edit
+images:
+  - name: zoe
+    newName: zoe
+    newTag: latest
+
+# ConfigMap generator para production.yaml (opcional)
+# Puedes usar overlays para diferentes entornos
+# configMapGenerator:
+#   - name: zoe-config
+#     behavior: merge
+#     files:
+#       - production.yaml
+
+# Secret generator (base64 automatico)
+# secretGenerator:
+#   - name: zoe-secrets
+#     behavior: merge
+#     literals:
+#       - POSTGRES_PASSWORD=change-me
+
+# Patches - ejemplos de como personalizar
+# patchesStrategicMerge:
+#   - |
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     metadata:
+#       name: zoe
+#     spec:
+#       replicas: 3
+
+# Replacements para conectar servicios
+replacements:
+  - source:
+      kind: Service
+      name: zoe-postgres
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: ConfigMap
+          name: zoe-config
+        fieldPaths:
+          - data.POSTGRES_HOST
+  - source:
+      kind: Service
+      name: zoe-ollama
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: ConfigMap
+          name: zoe-config
+        fieldPaths:
+          - data.OLLAMA_HOST
+        options:
+          delimiter: ":"
+          index: 0

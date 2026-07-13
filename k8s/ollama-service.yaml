@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zoe-ollama
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-ollama
+    app.kubernetes.io/component: llm
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: zoe-ollama
+    app.kubernetes.io/component: llm
+  ports:
+    - name: ollama
+      port: 11434
+      targetPort: ollama
+      protocol: TCP
+  publishNotReadyAddresses: false

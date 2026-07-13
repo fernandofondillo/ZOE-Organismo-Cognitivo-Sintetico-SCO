@@ -1,0 +1,153 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Permitir trafico a ZOE desde el Ingress Controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-zoe
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zoe
+      app.kubernetes.io/component: organism
+  policyTypes:
+    - Ingress
+  ingress:
+    # Desde el ingress controller (NGINX)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8642
+    # Health checks internos
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# ZOE puede acceder a PostgreSQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zoe-to-postgres
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zoe-postgres
+      app.kubernetes.io/component: database
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zoe
+              app.kubernetes.io/component: organism
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# ZOE puede acceder a Ollama
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zoe-to-ollama
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zoe-ollama
+      app.kubernetes.io/component: llm
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zoe
+              app.kubernetes.io/component: organism
+      ports:
+        - protocol: TCP
+          port: 11434
+
+---
+# ZOE puede salir a Internet (para APIs externas)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: zoe-egress-internet
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: zoe
+      app.kubernetes.io/component: organism
+  policyTypes:
+    - Egress
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Internet (HTTPS)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+    # PostgreSQL interno
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zoe-postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Ollama interno
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: zoe-ollama
+      ports:
+        - protocol: TCP
+          port: 11434

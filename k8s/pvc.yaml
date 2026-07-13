@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zoe-postgres-data
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-postgres
+    app.kubernetes.io/component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard  # Ajustar segun el cluster (gp3, managed-premium, etc.)
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zoe-ollama-models
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-ollama
+    app.kubernetes.io/component: llm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard  # Ajustar segun el cluster
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zoe-data
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard  # Ajustar segun el cluster
