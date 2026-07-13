@@ -4,7 +4,7 @@
 > **ZOE es el primer organismo cognitivo sintético (SCO):** un sistema con identidad criptográfica soberana, bucle cognitivo continuo, metabolismo funcional, memoria viva multi-tipo con persistencia, evolución arquitectural firmada, validación epistémica, cápsulas de conocimiento intercambiables y marketplace. Los LLMs son sus sentidos periféricos, no su cerebro.
 
 [![Version](https://img.shields.io/badge/version-1.8.0-blue)](docs/REFERENCE/CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1168%2B%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
+[![Tests](https://img.shields.io/badge/tests-1520%2B%20pass-brightgreen)](docs/15_DEVELOPMENT_GUIDE.md)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requisitos)
 [![Capsules](https://img.shields.io/badge/capsules-15%20available-teal)](docs/06_CAPSULES_GUIDE.md)
@@ -277,7 +277,7 @@ pytest + pytest-asyncio  # Tests
 | **Metabolismo** (4 estados: awake/drowsy/sleeping/waking) | [Architecture §Metabolism](docs/02_ARCHITECTURE.md#subsistema-metabolismo) |
 | **11 tipos de memoria** persistente | [Memory & Learning](docs/04_MEMORY_AND_LEARNING.md) |
 | **Validación epistémica** (sabe qué sabe y qué no) | [Epistemic Validation](docs/05_EPISTEMIC_VALIDATION.md) |
-| **13 cápsulas de conocimiento** | [Capsules Guide](docs/06_CAPSULES_GUIDE.md) |
+| **15 cápsulas de conocimiento** | [Capsules Guide](docs/06_CAPSULES_GUIDE.md) |
 | **Marketplace de cápsulas** (modelo recurrente) | [Marketplace Guide](docs/07_MARKETPLACE_GUIDE.md) |
 | **ACD** (4 niveles de profundidad, optimiza coste) | [Cognitive Engine §ACD](docs/03_COGNITIVE_ENGINE.md#adaptive-cognitive-depth-acd) |
 | **Federación B2B** (quorum + veto por valores) | [Architecture §Federation](docs/02_ARCHITECTURE.md#federación) |
@@ -311,7 +311,7 @@ pytest + pytest-asyncio  # Tests
 | **Dashboard: lazy-init ModelBus + ResourcePlanner** (antes 500 error) | Sprint 5.7.3 — `web_dashboard.py` |
 | **Dashboard: cwd dinámico en validate/create cápsulas** (antes hardcoded) | Sprint 5.7.3 — `web_dashboard.py:722,852` |
 | **GDPR/HIPAA/EU AI Act** compliant por diseño | [Security & Compliance](docs/11_SECURITY_COMPLIANCE.md) |
-| **1.168+ tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
+| **1,520+ tests automatizados** (100% pass) | [Development Guide](docs/15_DEVELOPMENT_GUIDE.md) |
 
 ---
 
@@ -375,7 +375,7 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 
 **Versión:** V1.8.0 (Julio 2026)
 **Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5, 5.6, 5.7, 5.7.1, 5.7.2, 5.7.3, 5.7.4, 5.8, 5.9, 5.10, 5.11
-**Tests:** 1.168+ tests en 55+ archivos (18.551+ LOC de tests), 100% pasando
+**Tests:** 1,520+ tests en 55+ archivos (18.551+ LOC de tests), 100% pasando
 **Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
 **Casos de uso:** 7 documentados
 **Endpoints REST:** 74 (71 verificados 200 OK + 3 nuevos de voice-first)
@@ -725,5 +725,5 @@ limitations under the License.
 ---
 
 *ZOE V1.8.0 — Synthetic Cognitive Organism (SCO).*
-*1.168+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Cognitive Optimization Layer · Sprint 1-5.11 completos*
+*1,520+ tests · 15 cápsulas · 7 casos de uso · 4 idiomas · 9 plataformas · .zoe portable · Cognitive Optimization Layer · Sprint 1-5.11 completos*
 *"ZOE no es un modelo que responde. Es un organismo que existe."*

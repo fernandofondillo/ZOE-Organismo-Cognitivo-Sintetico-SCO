@@ -1,0 +1,180 @@
+# =============================================================================
+# ZOE v1.2 — Synthetic Cognitive Organism (SCO)
+# Docker Compose — Orquestación de producción
+#
+# Uso:
+#   docker-compose up -d              # Iniciar ZOE
+#   docker-compose up -d ollama       # Iniciar solo Ollama
+#   docker-compose logs -f zoe        # Ver logs
+#   docker-compose down               # Detener todo
+#   docker-compose down -v            # Detener y eliminar volúmenes
+# =============================================================================
+
+version: "3.8"
+
+services:
+  # -----------------------------------------------------------------------------
+  # ZOE — Servicio Principal
+  # El organismo cognitivo sintético. Ejecuta el cognitive loop principal.
+  # -----------------------------------------------------------------------------
+  zoe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: zoe:latest
+    container_name: zoe-sco
+    restart: unless-stopped
+
+    # Puertos expuestos
+    ports:
+      - "8642:8642"   # Dashboard web
+      - "8643:8643"   # Federación (cuando esté habilitada)
+
+    # Volúmenes para datos persistentes
+    volumes:
+      # Base de datos SQLite y datos persistentes
+      - zoe_data:/opt/zoe/data
+      # Logs del sistema
+      - zoe_logs:/opt/zoe/logs
+      # Configuración personalizada (montar archivo si se quiere override)
+      # - ./zoe/config/custom.yaml:/app/zoe/config/production.yaml:ro
+
+    # Variables de entorno
+    environment:
+      - ZOE_ENV=production
+      - ZOE_CONFIG_PATH=zoe/config/production.yaml
+      - ZOE_DATA_DIR=/opt/zoe/data
+      - ZOE_LOG_DIR=/opt/zoe/logs
+      # Configuración LLM — apunta al servicio ollama (opcional)
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:3b
+      # Logging
+      - LOG_LEVEL=INFO
+
+    # Health check integrado (ver Dockerfile para detalles)
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "zoe.serve"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Dependencias de red
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+    # Networking
+    networks:
+      - zoe_network
+
+    # Recursos (ajustar según capacidad del host)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # -----------------------------------------------------------------------------
+  # Ollama — Servicio LLM Local (Opcional)
+  # Motor de inferencia local para ZOE. Puede omitirse si se usa otro backend.
+  # -----------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: zoe-ollama
+    restart: unless-stopped
+
+    # Puerto de Ollama API
+    ports:
+      - "11434:11434"
+
+    # Volúmenes para modelos descargados
+    volumes:
+      - ollama_models:/root/.ollama
+
+    # Variables de entorno
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      # Descomentar para usar GPU NVIDIA
+      # - OLLAMA_CUDA=1
+      # Descomentar para limitar uso de CPU
+      # - OLLAMA_NUM_PARALLEL=1
+
+    # Health check: verificar que la API de Ollama responda
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+    # Networking
+    networks:
+      - zoe_network
+
+    # GPU (descomentar si se tiene GPU NVIDIA con nvidia-docker)
+    # runtime: nvidia
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # -----------------------------------------------------------------------------
+  # ZOE Dashboard — Servicio Web (Opcional)
+  # Interfaz web para interactuar con ZOE. Descomentar para usar.
+  # Requiere que ZOE esté corriendo.
+  # -----------------------------------------------------------------------------
+  # zoe-dashboard:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   image: zoe:latest
+  #   container_name: zoe-dashboard
+  #   restart: unless-stopped
+  #   command: python -m zoe.web_dashboard --port 8642 --backend ollama
+  #   ports:
+  #     - "8642:8642"
+  #   environment:
+  #     - ZOE_ENV=production
+  #     - OLLAMA_HOST=http://ollama:11434
+  #   depends_on:
+  #     - zoe
+  #     - ollama
+  #   networks:
+  #     - zoe_network
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-fsS", "http://localhost:8642/stats"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+
+# =============================================================================
+# Volúmenes persistentes
+# =============================================================================
+volumes:
+  zoe_data:
+    driver: local
+
+  zoe_logs:
+    driver: local
+
+  ollama_models:
+    driver: local
+
+# =============================================================================
+# Redes
+# =============================================================================
+networks:
+  zoe_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

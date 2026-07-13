@@ -263,11 +263,12 @@ class ZoePackager:
                 try:
                     cursor.execute(f"SELECT COUNT(*) FROM {table}")
                     total += cursor.fetchone()[0]
-                except:
-                    pass
+                except sqlite3.Error as e:
+                    logger.debug(f"SQLite table {table} query failed: {e}")
             conn.close()
             return total
-        except:
+        except sqlite3.Error as e:
+            logger.warning(f"SQLite database access failed: {e}")
             return 0
 
     def _count_capsules(self, capsules_dir: str) -> int:

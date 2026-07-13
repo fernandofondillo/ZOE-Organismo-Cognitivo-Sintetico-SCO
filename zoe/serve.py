@@ -21,11 +21,21 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(level: str = "INFO", log_file: str = None):
+def setup_logging(
+    level: str = "INFO",
+    log_file: str = None,
+    max_bytes: int = 10 * 1024 * 1024,
+    backup_count: int = 5,
+):
     handlers = [logging.StreamHandler(sys.stdout)]
     if log_file:
+        from logging.handlers import RotatingFileHandler
         Path(log_file).parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(logging.FileHandler(log_file))
+        handlers.append(RotatingFileHandler(
+            log_file,
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+        ))
 
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
@@ -48,10 +58,12 @@ async def serve(config_path: str = None, env: str = None):
     fed_config = config.get("federation", {})
     log_config = config.get("logging", {})
 
-    # Setup logging
+    # Setup logging (with rotation)
     setup_logging(
         level=log_config.get("level", "INFO"),
         log_file=log_config.get("file"),
+        max_bytes=log_config.get("max_bytes", 10 * 1024 * 1024),
+        backup_count=log_config.get("backup_count", 5),
     )
 
     organism_id = zoe_config.get("organism_id", "zoe_default")

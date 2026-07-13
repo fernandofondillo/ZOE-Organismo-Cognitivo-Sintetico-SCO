@@ -660,7 +660,8 @@ class CognitivePrefetchLayer:
                     {"content": m.content, "type": getattr(m, "memory_type", "unknown")}
                     for m in relevant
                 ]
-            except:
+            except Exception as e:
+                logger.warning(f"Memory search failed: {e}")
                 context["relevant_memories"] = []
 
         # Añadir info del .zmap si disponible

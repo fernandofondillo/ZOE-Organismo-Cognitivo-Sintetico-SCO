@@ -2,7 +2,7 @@
 
 > **Visión global de ZOE: qué es, qué no es, su historia, evolución y filosofía de diseño.**
 > **Audiencia:** todos (directivos, técnicos, nuevos miembros del equipo).
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -678,5 +678,5 @@ Los próximos 6 meses son críticos para consolidar la categoría "organismo cog
 
 ---
 
-*ZOE V1.6.0 — Documento 01: Overview*
+*ZOE V1.8.0 — Documento 01: Overview*
 *Julio 2026*

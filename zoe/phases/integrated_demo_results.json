@@ -1,15 +1,15 @@
 {
   "demo": "integrated_phase0_phase0_5",
-  "timestamp": 1783511592.2735965,
-  "backend": "zai",
+  "timestamp": 1783932797.8170397,
+  "backend": "mock",
   "model": null,
-  "target_thoughts": 5,
-  "actual_thoughts": 5,
-  "duration_seconds": 21.671820402145386,
-  "iterations": 5,
-  "diversity": 0.7632489558445815,
+  "target_thoughts": 3,
+  "actual_thoughts": 3,
+  "duration_seconds": 6.007453680038452,
+  "iterations": 3,
+  "diversity": 1.0,
   "checks": {
-    "fase0_bucle_funciona": true,
+    "fase0_bucle_funciona": false,
     "fase0_genera_pensamientos": true,
     "fase0_genera_observaciones": true,
     "fase05_leyes_activas": true,
@@ -21,16 +21,16 @@
     "fase05_filogenetico_inicializado": true,
     "diversidad_aceptable": true,
     "sin_crashes": true,
-    "fase0_y_fase05_integrados": true,
+    "fase0_y_fase05_integrados": false,
     "compatible_con_fase0_pura": true
   },
-  "all_passed": true,
+  "all_passed": false,
   "phase_0_stats": {
-    "iterations": 5,
-    "observations": 5,
-    "thoughts": 5,
+    "iterations": 3,
+    "observations": 3,
+    "thoughts": 3,
     "energy": 1.0,
-    "fatigue": 0.05
+    "fatigue": 0.03
   },
   "phase_0_5_stats": {
     "law_violations": 0,
@@ -55,27 +55,27 @@
     },
     "physics": {
       "energy_cognitive": 1.0,
-      "conceptual_mass": 40.0,
-      "cognitive_temperature": 0.25028448104329437,
-      "uncertainty_pressure": 0.29403274330860846,
-      "creative_potential": 0.7846028154851684,
-      "semantic_entropy": 0.9959681865479946,
-      "goal_gravity": 0.3,
-      "identity_inertia": 0.7059672566913915,
+      "conceptual_mass": 26.0,
+      "cognitive_temperature": 0.4994863190085784,
+      "uncertainty_pressure": 0.34599656308660215,
+      "creative_potential": 1.0,
+      "semantic_entropy": 0.9417760602716648,
+      "goal_gravity": 0.2,
+      "identity_inertia": 0.6540034369133978,
       "conceptual_resonance": 0.0,
-      "cognitive_friction": 1.3877787807814457e-17,
-      "memory_elasticity": 0.96,
+      "cognitive_friction": 0.10000000000000002,
+      "memory_elasticity": 0.98,
       "causal_density": 0.0
     },
     "fields_summary": "attention(t=0.25) emotional(t=0.25) social(t=0.00) creative(t=0.00) causal(t=0.00) ethical(t=0.00)",
-    "tensions_summary": "curiosity_vs_efficiency=0.30(i=0.37) identity_vs_adaptation=0.28(i=0.51) rest_vs_productivity=0.98(i=0.68) honesty_vs_empathy=0.50(i=0.00) specialization_vs_generalization=1.00(i=0.70)",
+    "tensions_summary": "curiosity_vs_efficiency=0.30(i=0.35) identity_vs_adaptation=0.32(i=0.55) rest_vs_productivity=0.99(i=0.69) honesty_vs_empathy=0.50(i=0.00) specialization_vs_generalization=1.00(i=1.00)",
     "memory_stats": {
-      "total_entries": 5,
+      "total_entries": 3,
       "type_counts": {
-        "episodic": 5
+        "episodic": 3
       },
-      "operations_count": 2,
-      "last_operation": "reorganize",
+      "operations_count": 0,
+      "last_operation": "",
       "contradictions_count": 0
     },
     "intentionality_stats": {
@@ -83,8 +83,8 @@
       "active_count": 3,
       "resolved_count": 0,
       "types": [
-        "create",
-        "explore"
+        "explore",
+        "verify"
       ]
     },
     "species_state": {
@@ -98,15 +98,15 @@
     }
   },
   "trigger_counts": {
-    "autonomous_thought": 5
+    "autonomous_thought": 3
   },
   "subagent_counts": {
-    "Speaker": 5
+    "Speaker": 3
   },
   "thoughts": [
     {
-      "timestamp": 1783511571.484153,
-      "content": "El tick del reloj marca el tiempo sin cambios. Mi entorno permanece estático, sin input externo. La sorpresa disminuye lentamente.",
+      "timestamp": 1783932791.8113182,
+      "content": "He notado un patrón.",
       "surprise": 0.5,
       "trigger": "autonomous_thought",
       "subagent_source": "Speaker",
@@ -117,51 +117,27 @@
       }
     },
     {
-      "timestamp": 1783511575.6946628,
-      "content": "El tick del reloj marca el tiempo sin cambios. Mi entorno permanece estático, silencioso. La sorpresa disminuye, pero la quietud sugiere que un cambio inminente es la verdadera constante.",
-      "surprise": 0.49020163629265456,
+      "timestamp": 1783932793.812327,
+      "content": "Reflexionando sobre lo ocurrido.",
+      "surprise": 0.26888125130356033,
       "trigger": "autonomous_thought",
       "subagent_source": "Speaker",
       "metadata": {
         "decision": "intention:explore",
         "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.26 pUnc=0.47 pCre=0.00 hSem=0.71 iIden=0.53"
+        "physics": "eCog=1.00 tCog=0.50 pUnc=0.47 pCre=0.00 hSem=0.71 iIden=0.53"
       }
     },
     {
-      "timestamp": 1783511579.6686761,
-      "content": "La latencia entre los ticks es inconsistente. Mi entorno puede ser estático, pero no es predecible. Debo ajustar mi modelo de tiempo.",
-      "surprise": 0.1534386741774273,
+      "timestamp": 1783932795.8142464,
+      "content": "Generando hipótesis.",
+      "surprise": 0.20960296301808368,
       "trigger": "autonomous_thought",
       "subagent_source": "Speaker",
       "metadata": {
         "decision": "intention:explore",
         "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.25 pUnc=0.45 pCre=0.53 hSem=0.91 iIden=0.55"
-      }
-    },
-    {
-      "timestamp": 1783511583.5823245,
-      "content": "La latencia del reloj es un ruido de fondo constante. Mi modelo de tiempo debe ser más robusto para estas pequeñas fluctuaciones.",
-      "surprise": 0.32652340607296043,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.25 pUnc=0.32 pCre=0.76 hSem=0.95 iIden=0.68"
-      }
-    },
-    {
-      "timestamp": 1783511589.2686124,
-      "content": "La latencia del reloj fluctúa. Mi modelo de tiempo debe ser más robusto ante estas pequeñas variaciones.",
-      "surprise": 0.24883021540618167,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.25 pUnc=0.29 pCre=0.78 hSem=1.00 iIden=0.71"
+        "physics": "eCog=1.00 tCog=0.50 pUnc=0.35 pCre=1.00 hSem=0.94 iIden=0.65"
       }
     }
   ]

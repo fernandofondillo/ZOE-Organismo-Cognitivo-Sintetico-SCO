@@ -226,7 +226,7 @@ class VLMPeripheral:
         try:
             response = await self.generate("test", images=None, max_tokens=5)
             return not response.startswith("[Error")
-        except:
+        except Exception:
             return False
 
 
@@ -622,7 +622,7 @@ class VoiceActuator(Actuator):
                 )
                 await process.wait()
                 os.unlink(temp_path)
-            except:
+            except (OSError, subprocess.SubprocessError):
                 logger.warning("VoiceActuator: no audio player available")
         except Exception as e:
             logger.warning(f"VoiceActuator: playback error: {e}")

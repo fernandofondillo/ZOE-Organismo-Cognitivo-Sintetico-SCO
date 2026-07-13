@@ -144,7 +144,7 @@ class EpistemicFederation:
             request_id para trackear respuestas
         """
         import hashlib
-        request_id = f"req_{hashlib.md5(claim.encode()).hexdigest()[:12]}"
+        request_id = f"req_{hashlib.sha256(claim.encode()).hexdigest()[:12]}"
         
         request = KnowledgeValidationRequest(
             request_id=request_id,
@@ -194,7 +194,7 @@ class EpistemicFederation:
         
         # Buscar en knowledge local
         import hashlib
-        claim_hash = hashlib.md5(request.claim.encode()).hexdigest()
+        claim_hash = hashlib.sha256(request.claim.encode()).hexdigest()
         local_entry = self._local_knowledge_index.get(claim_hash)
         
         if local_entry and local_entry.get("confidence", 0) >= 0.7:

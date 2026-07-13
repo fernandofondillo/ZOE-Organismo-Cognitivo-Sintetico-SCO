@@ -29,6 +29,41 @@ from .cognitive_cache import CognitiveCache
 
 logger = logging.getLogger(__name__)
 
+# ============================================================
+# Componentes opcionales — lazy initialization con graceful fallback
+# ============================================================
+
+# MentorAgent: evalúa pensamientos autónomos contra criterios de crecimiento
+try:
+    from .mentor import MentorAgent, MentorConfig
+except ImportError:
+    MentorAgent = None  # type: ignore
+    MentorConfig = None  # type: ignore
+    logger.debug("MentorAgent no disponible (mentor.py no encontrado)")
+
+# LanguageDetector: detecta idioma del usuario (<10ms, sin LLM)
+try:
+    from .language_detector import LanguageDetector, LANGUAGE_PROFILES
+except ImportError:
+    LanguageDetector = None  # type: ignore
+    LANGUAGE_PROFILES = {}  # type: ignore
+    logger.debug("LanguageDetector no disponible (language_detector.py no encontrado)")
+
+# CognitiveOptimizationLayer: prefetch cognitivo, TPE, ZMAP
+try:
+    from .cognitive_optimization import (
+        CognitivePrefetchLayer,
+        TensorPredictionEngine,
+        ZMAPLoader,
+        PrefetchResult,
+    )
+except ImportError:
+    CognitivePrefetchLayer = None  # type: ignore
+    TensorPredictionEngine = None  # type: ignore
+    ZMAPLoader = None  # type: ignore
+    PrefetchResult = None  # type: ignore
+    logger.debug("CognitivePrefetchLayer no disponible (cognitive_optimization.py no encontrado)")
+
 
 # Respuestas reflejas para L0 (sin llamar al LLM)
 _L0_REFLEX_RESPONSES = {
@@ -130,6 +165,49 @@ class CognitiveLoopV5(CognitiveLoopV4):
 
         # Última clasificación (para auditoría)
         self.last_classification: Optional[ClassificationResult] = None
+
+        # ============================================================
+        # Componentes opcionales — lazy initialization
+        # ============================================================
+
+        # Sprint 5.10 C8 — LanguageDetector (cacheado por sesión)
+        self._language_detector: Optional[Any] = None
+        if LanguageDetector is not None:
+            try:
+                self._language_detector = LanguageDetector()
+                logger.info("LanguageDetector inicializado")
+            except Exception as e:
+                logger.debug(f"LanguageDetector init failed (non-fatal): {e}")
+                self._language_detector = None
+
+        # MentorAgent — evaluación de pensamientos autónomos
+        self._mentor: Optional[Any] = None
+        if MentorAgent is not None:
+            try:
+                self._mentor = MentorAgent()
+                logger.info("MentorAgent inicializado")
+            except Exception as e:
+                logger.debug(f"MentorAgent init failed (non-fatal): {e}")
+                self._mentor = None
+
+        # Cognitive Prefetch Layer — optimización de inferencia
+        self._cpl: Optional[Any] = None
+        if CognitivePrefetchLayer is not None:
+            try:
+                # Buscar ModelBus y PatternSpeaker en subagentes (si existen)
+                model_bus = getattr(self, "model_bus", None)
+                pattern_speaker = self._find_subagent("pattern")
+                self._cpl = CognitivePrefetchLayer(
+                    model_bus=model_bus,
+                    pattern_speaker=pattern_speaker,
+                )
+                logger.info("CognitivePrefetchLayer inicializado")
+            except Exception as e:
+                logger.debug(f"CognitivePrefetchLayer init failed (non-fatal): {e}")
+                self._cpl = None
+
+        # System prompt del idioma detectado (para el Speaker)
+        self._current_system_prompt: Optional[str] = None
 
     async def process_user_input_acd(self, user_input: str) -> Dict[str, Any]:
         """
@@ -353,6 +431,40 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 CognitiveLevel.L1_FAST, user_input, response, classification
             )
 
+        # === Cognitive Prefetch Layer (CPL) — Sprint 5 OPT ===
+        # Pre-cargar modelo/contexto ANTES de llamar al Speaker
+        cpl_result = None
+        if self._cpl is not None:
+            try:
+                cpl_result = await self._cpl.prefetch(
+                    acd_level="L1_FAST",
+                    user_input=user_input,
+                    memory=getattr(self, "memory", None),
+                    metabolic_state=getattr(self, "metabolic_state", None),
+                )
+                # Si CPL devuelve pattern_response, usarla directamente
+                if cpl_result and getattr(cpl_result, "pattern_response", None):
+                    response = cpl_result.pattern_response
+                    logger.debug(f"L1: CPL pattern shortcut used")
+                    # Saltar a mentor + registro
+                    if self._mentor is not None:
+                        try:
+                            mentor_intervention = self._mentor.evaluate_thought(response)
+                            if mentor_intervention:
+                                logger.info(
+                                    f"Mentor L1: {mentor_intervention.get('type', 'unknown')} — "
+                                    f"{mentor_intervention.get('message', '')[:80]}"
+                                )
+                        except Exception as me:
+                            logger.debug(f"Mentor L1 evaluation failed: {me}")
+                    trajectory_hash = self._register_acd_mutation(
+                        CognitiveLevel.L1_FAST, user_input, response, classification,
+                        metadata_extra={"cpl": "pattern_shortcut"} if cpl_result else None
+                    )
+                    return response, trajectory_hash
+            except Exception as e:
+                logger.debug(f"CPL L1 prefetch failed (non-fatal): {e}")
+
         # Generar respuesta
         try:
             context = {
@@ -365,6 +477,13 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 "acd_level": "L1_FAST",
                 "relevant_memories": memories,
             }
+            # Inyectar system prompt del idioma si está disponible
+            if self._current_system_prompt:
+                context["system_prompt_override"] = self._current_system_prompt
+            # Inyectar contexto pre-construido por CPL si existe
+            if cpl_result and getattr(cpl_result, "context_built", False):
+                context["cpl_context"] = getattr(cpl_result, "predicted_layers", {})
+
             response = await speaker.generate_thought(context)
             response = speaker._sanitize(response) if hasattr(speaker, "_sanitize") else response
             if not response:
@@ -372,6 +491,21 @@ class CognitiveLoopV5(CognitiveLoopV4):
         except Exception as e:
             logger.warning(f"L1 Speaker failed: {e}")
             response = f"Recibido. Procesando: {user_input[:50]}..."
+
+        # === MentorAgent — evaluar pensamiento generado ===
+        if self._mentor is not None:
+            try:
+                mentor_intervention = self._mentor.evaluate_thought(response)
+                if mentor_intervention:
+                    logger.info(
+                        f"Mentor L1: {mentor_intervention.get('type', 'unknown')} — "
+                        f"{mentor_intervention.get('message', '')[:80]}"
+                    )
+                    # Si la intervención es crítica, adjuntar warning al log
+                    if mentor_intervention.get("severity") == "critical":
+                        logger.warning(f"Mentor CRITICAL L1: pensamiento desviado")
+            except Exception as me:
+                logger.debug(f"Mentor L1 evaluation failed: {me}")
 
         trajectory_hash = self._register_acd_mutation(
             CognitiveLevel.L1_FAST, user_input, response, classification
@@ -404,6 +538,37 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 CognitiveLevel.L2_STANDARD, user_input, response, classification
             )
 
+        # === Cognitive Prefetch Layer (CPL) — Sprint 5 OPT ===
+        cpl_result = None
+        if self._cpl is not None:
+            try:
+                cpl_result = await self._cpl.prefetch(
+                    acd_level="L2_STANDARD",
+                    user_input=user_input,
+                    memory=getattr(self, "memory", None),
+                    metabolic_state=getattr(self, "metabolic_state", None),
+                )
+                if cpl_result and getattr(cpl_result, "pattern_response", None):
+                    response = cpl_result.pattern_response
+                    logger.debug(f"L2: CPL pattern shortcut used")
+                    if self._mentor is not None:
+                        try:
+                            mentor_intervention = self._mentor.evaluate_thought(response)
+                            if mentor_intervention:
+                                logger.info(
+                                    f"Mentor L2: {mentor_intervention.get('type', 'unknown')} — "
+                                    f"{mentor_intervention.get('message', '')[:80]}"
+                                )
+                        except Exception as me:
+                            logger.debug(f"Mentor L2 evaluation failed: {me}")
+                    trajectory_hash = self._register_acd_mutation(
+                        CognitiveLevel.L2_STANDARD, user_input, response, classification,
+                        metadata_extra={"cpl": "pattern_shortcut"} if cpl_result else None
+                    )
+                    return response, trajectory_hash
+            except Exception as e:
+                logger.debug(f"CPL L2 prefetch failed (non-fatal): {e}")
+
         try:
             # Perceiver interpreta (1 LLM call opcional)
             perceived_intent = None
@@ -433,6 +598,13 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 "physics": self.physics.summary() if hasattr(self, 'physics') and self.physics else "",
                 "tensions": self.tensions.summary() if hasattr(self, 'tensions') and self.tensions else "",
             }
+            # Inyectar system prompt del idioma si está disponible
+            if self._current_system_prompt:
+                context["system_prompt_override"] = self._current_system_prompt
+            # Inyectar contexto pre-construido por CPL si existe
+            if cpl_result and getattr(cpl_result, "context_built", False):
+                context["cpl_context"] = getattr(cpl_result, "predicted_layers", {})
+
             response = await speaker.generate_thought(context)
             response = speaker._sanitize(response) if hasattr(speaker, "_sanitize") else response
             if not response:
@@ -459,6 +631,20 @@ class CognitiveLoopV5(CognitiveLoopV4):
             logger.warning(f"L2 pipeline failed: {e}")
             response = f"Procesando tu mensaje. {user_input[:30]}..."
 
+        # === MentorAgent — evaluar pensamiento generado ===
+        if self._mentor is not None:
+            try:
+                mentor_intervention = self._mentor.evaluate_thought(response)
+                if mentor_intervention:
+                    logger.info(
+                        f"Mentor L2: {mentor_intervention.get('type', 'unknown')} — "
+                        f"{mentor_intervention.get('message', '')[:80]}"
+                    )
+                    if mentor_intervention.get("severity") == "critical":
+                        logger.warning(f"Mentor CRITICAL L2: pensamiento desviado")
+            except Exception as me:
+                logger.debug(f"Mentor L2 evaluation failed: {me}")
+
         trajectory_hash = self._register_acd_mutation(
             CognitiveLevel.L2_STANDARD, user_input, response, classification
         )
@@ -473,6 +659,41 @@ class CognitiveLoopV5(CognitiveLoopV4):
         Los 12 sub-agentes + meta-cog + global workspace + active inference.
         Igual que el _tick de V3 pero con input explícito.
         """
+        # === Cognitive Prefetch Layer (CPL) — Sprint 5 OPT ===
+        cpl_result = None
+        if self._cpl is not None:
+            try:
+                cpl_result = await self._cpl.prefetch(
+                    acd_level="L3_DEEP",
+                    user_input=user_input,
+                    memory=getattr(self, "memory", None),
+                    metabolic_state=getattr(self, "metabolic_state", None),
+                    sensitive_domain=classification.score > 0.8 if classification else False,
+                )
+                if cpl_result and getattr(cpl_result, "pattern_response", None):
+                    response = cpl_result.pattern_response
+                    logger.debug(f"L3: CPL pattern shortcut used")
+                    if self._mentor is not None:
+                        try:
+                            mentor_intervention = self._mentor.evaluate_thought(response)
+                            if mentor_intervention:
+                                logger.info(
+                                    f"Mentor L3: {mentor_intervention.get('type', 'unknown')} — "
+                                    f"{mentor_intervention.get('message', '')[:80]}"
+                                )
+                        except Exception as me:
+                            logger.debug(f"Mentor L3 evaluation failed: {me}")
+                    trajectory_hash = self._register_acd_mutation(
+                        CognitiveLevel.L3_DEEP, user_input, response, classification,
+                        metadata_extra={
+                            "cpl": "pattern_shortcut",
+                            "system": "system1",
+                        }
+                    )
+                    return response, trajectory_hash
+            except Exception as e:
+                logger.debug(f"CPL L3 prefetch failed (non-fatal): {e}")
+
         # Recoger observaciones (incluyendo el input del usuario)
         observations = [Observation(
             timestamp=time.time(),
@@ -516,6 +737,11 @@ class CognitiveLoopV5(CognitiveLoopV4):
         decision["action"] = "respond_to_user"
         decision["target_subagent"] = "speaker"
         decision["user_content"] = user_input
+        # Inyectar system prompt del idioma y contexto CPL en la decisión
+        if self._current_system_prompt:
+            decision["system_prompt_override"] = self._current_system_prompt
+        if cpl_result and getattr(cpl_result, "context_built", False):
+            decision["cpl_context"] = getattr(cpl_result, "predicted_layers", {})
 
         # Verificar leyes
         law_action = self._build_law_action(decision, surprise)
@@ -526,6 +752,20 @@ class CognitiveLoopV5(CognitiveLoopV4):
         # Actuar
         thought = await self._act_v3(decision, observations, surprise, winners)
         response = thought.content if thought else f"Procesando en profundidad: {user_input[:50]}..."
+
+        # === MentorAgent — evaluar pensamiento generado ===
+        if self._mentor is not None and thought:
+            try:
+                mentor_intervention = self._mentor.evaluate_thought(response)
+                if mentor_intervention:
+                    logger.info(
+                        f"Mentor L3: {mentor_intervention.get('type', 'unknown')} — "
+                        f"{mentor_intervention.get('message', '')[:80]}"
+                    )
+                    if mentor_intervention.get("severity") == "critical":
+                        logger.warning(f"Mentor CRITICAL L3: pensamiento desviado")
+            except Exception as me:
+                logger.debug(f"Mentor L3 evaluation failed: {me}")
 
         # Broadcast
         self._broadcast_to_subagents(winners, decision, surprise)
@@ -681,5 +921,33 @@ class CognitiveLoopV5(CognitiveLoopV4):
 
         # Sprint 5.7.2 — Incluir stats del ACD Model Router en /stats
         stats["acd_router_stats"] = self.get_router_stats()
+
+        # Sprint 5 OPT — Stats de componentes conectados
+        # LanguageDetector stats
+        if self._language_detector is not None:
+            try:
+                stats["language_detector"] = self._language_detector.get_stats()
+            except Exception:
+                stats["language_detector"] = {"enabled": False, "error": "stats_failed"}
+        else:
+            stats["language_detector"] = {"enabled": False}
+
+        # MentorAgent stats
+        if self._mentor is not None:
+            try:
+                stats["mentor"] = self._mentor.get_stats()
+            except Exception:
+                stats["mentor"] = {"enabled": False, "error": "stats_failed"}
+        else:
+            stats["mentor"] = {"enabled": False}
+
+        # CognitivePrefetchLayer stats
+        if self._cpl is not None:
+            try:
+                stats["cognitive_prefetch_layer"] = self._cpl.get_stats()
+            except Exception:
+                stats["cognitive_prefetch_layer"] = {"enabled": False, "error": "stats_failed"}
+        else:
+            stats["cognitive_prefetch_layer"] = {"enabled": False}
 
         return stats

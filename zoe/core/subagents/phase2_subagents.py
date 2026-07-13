@@ -192,7 +192,7 @@ class Learner:
         # Fase 6A: registrar en cuarentena si procede
         if quarantine_flag and self._quarantine and validation_result.verification_plan:
             import hashlib
-            entry_id = f"q_{hashlib.md5(content.encode()).hexdigest()[:12]}"
+            entry_id = f"q_{hashlib.sha256(content.encode()).hexdigest()[:12]}"
             self._quarantine.add(
                 entry_id=entry_id,
                 claim=content,

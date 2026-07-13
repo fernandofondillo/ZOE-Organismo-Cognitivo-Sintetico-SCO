@@ -427,8 +427,8 @@ SYSTEM "Eres ZOE, un organismo cognitivo sintético."
             )
             if result.returncode == 0:
                 return tag in result.stdout
-        except:
-            pass
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning(f"Ollama registration check failed: {e}")
         return False
 
     def download_and_register(

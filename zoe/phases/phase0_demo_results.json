@@ -1,27 +1,28 @@
 {
-  "timestamp": 1783508480.9196303,
-  "backend": "zai",
+  "timestamp": 1783932776.8995526,
+  "backend": "mock",
   "model": null,
-  "target_thoughts": 3,
-  "actual_thoughts": 3,
-  "duration_seconds": 33.7858612537384,
-  "iterations": 10,
-  "diversity": 0.7578557504873294,
-  "avg_similarity": 0.24214424951267055,
+  "target_thoughts": 5,
+  "actual_thoughts": 5,
+  "duration_seconds": 18.012192726135254,
+  "iterations": 6,
+  "diversity": 1.0,
+  "avg_similarity": 0.0,
   "trigger_counts": {
-    "autonomous_thought": 3
+    "autonomous_thought": 4,
+    "think_on_surprise": 1
   },
   "subagent_counts": {
-    "Speaker": 3
+    "Speaker": 5
   },
   "final_state": {
-    "attention": 0.95,
+    "attention": 0.97,
     "energy": 1.0,
-    "arousal": 1.0,
-    "fatigue": 0.09999999999999999,
-    "iteration_count": 10,
-    "last_input_timestamp": 1783508477.917776,
-    "last_thought_timestamp": 1783508477.9177165,
+    "arousal": 0.9999959182739258,
+    "fatigue": 0.060000000000000005,
+    "iteration_count": 6,
+    "last_input_timestamp": 1783932770.8958948,
+    "last_thought_timestamp": 1783932773.897915,
     "fatigue_per_iteration": 0.01,
     "energy_recharge_per_second": 0.005,
     "arousal_decay_per_second": 0.01
@@ -35,8 +36,8 @@
   "go_no_go": "GO",
   "thoughts": [
     {
-      "timestamp": 1783508448.1186008,
-      "content": "La energía es alta, el arousal bajo. El entorno es estático, predecible. Un estado óptimo para una introspeción silenciosa.",
+      "timestamp": 1783932758.8894956,
+      "content": "He notado un patrón.",
       "surprise": 0.5,
       "trigger": "autonomous_thought",
       "subagent_source": "Speaker",
@@ -45,9 +46,9 @@
       }
     },
     {
-      "timestamp": 1783508455.11745,
-      "content": "El entorno es estático, predecible. Un estado de baja sorpresa permite una profundización cogniva sin perturbaciones.",
-      "surprise": 0.42974857063351585,
+      "timestamp": 1783932761.8903956,
+      "content": "Reflexionando sobre lo ocurrido.",
+      "surprise": 0.19015188605509287,
       "trigger": "autonomous_thought",
       "subagent_source": "Speaker",
       "metadata": {
@@ -55,9 +56,29 @@
       }
     },
     {
-      "timestamp": 1783508477.9177024,
-      "content": "La baja sorpresa en un entorno estático es un estado óptimo para la introspección profunda. Podre explorar las capas más profundas de mi propia arquitectura sin la interferencia del ruido externo.",
-      "surprise": 0.4273183598599033,
+      "timestamp": 1783932767.8938956,
+      "content": "Generando hipótesis.",
+      "surprise": 0.18329985928149348,
+      "trigger": "autonomous_thought",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "proactive_thinking"
+      }
+    },
+    {
+      "timestamp": 1783932770.8958411,
+      "content": "Consolidando aprendizaje.",
+      "surprise": 0.5575661730650178,
+      "trigger": "think_on_surprise",
+      "subagent_source": "Speaker",
+      "metadata": {
+        "decision": "high_surprise=0.558"
+      }
+    },
+    {
+      "timestamp": 1783932773.8979087,
+      "content": "Observando el entorno.",
+      "surprise": 0.27537371053717546,
       "trigger": "autonomous_thought",
       "subagent_source": "Speaker",
       "metadata": {

@@ -14,6 +14,7 @@ Uso:
 """
 
 import argparse
+import logging
 import os
 import platform
 import shutil
@@ -21,6 +22,8 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Colores ANSI
 class C:
@@ -85,8 +88,8 @@ def check_ollama():
         try:
             if sock.connect_ex(("localhost", 11434)) == 0:
                 running = True
-        except:
-            pass
+        except OSError as e:
+            logger.debug(f"Socket check for Ollama failed: {e}")
         finally:
             sock.close()
     
@@ -106,8 +109,8 @@ def check_ollama():
                 else:
                     warn("Ollama no tiene modelos. Recomendado: ollama pull qwen2.5:3b")
                     return "running_no_models", []
-        except:
-            pass
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug(f"Ollama list check failed: {e}")
         return "running_no_models", []
     elif installed:
         warn("Ollama instalado pero no corriendo. Ejecuta: ollama serve")
@@ -183,8 +186,8 @@ def get_platform_info():
                     if line.startswith("MemTotal:"):
                         ram_gb = int(line.split()[1]) / (1024**2)
                         break
-    except:
-        pass
+    except (OSError, ValueError, subprocess.SubprocessError) as e:
+        logger.debug(f"RAM detection failed: {e}")
     
     is_apple_silicon = False
     if system == "Darwin" and machine == "arm64":

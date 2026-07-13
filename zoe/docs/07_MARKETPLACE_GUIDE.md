@@ -1,7 +1,7 @@
 # 07 — Marketplace Guide
 
 > **Marketplace de cápsulas: modelo de negocio, guía de autor, guía de comprador, API.**
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -143,5 +143,5 @@ curl -X POST http://localhost:8642/api/marketplace/upload_use_case \
 
 ---
 
-*ZOE V1.6.0 — Documento 07: Marketplace Guide*
+*ZOE V1.8.0 — Documento 07: Marketplace Guide*
 *Julio 2026*

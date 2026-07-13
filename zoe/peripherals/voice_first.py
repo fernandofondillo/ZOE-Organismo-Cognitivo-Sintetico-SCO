@@ -136,7 +136,8 @@ class WakeWordDetector:
                         if score >= self.sensitivity:
                             return True
                 return False
-            except:
+            except Exception as e:
+                logger.debug(f"Wake word detection error: {e}")
                 return False
         else:
             # Fallback: detección por energía
@@ -190,7 +191,7 @@ class VoiceActivityDetector:
         if self._available and self._vad:
             try:
                 return bool(self._vad.is_speech(audio_frame, sample_rate))
-            except:
+            except Exception:
                 return False
         else:
             # Fallback: energía
@@ -706,8 +707,8 @@ class VoiceFirstMode:
                 
                 if self._interruption.check_interruption(frame.tobytes()):
                     break
-        except:
-            pass
+        except OSError as e:
+            logger.debug(f"Sounddevice interruption monitoring error: {e}")
 
     def _get_banner(self) -> str:
         """Banner de inicio."""

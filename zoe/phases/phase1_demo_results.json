@@ -1,14 +1,14 @@
 {
   "demo": "phase1_complete",
-  "timestamp": 1783513635.4087276,
+  "timestamp": 1783932798.3350704,
   "backend": "mock",
-  "target_thoughts": 8,
-  "actual_thoughts": 8,
-  "duration_seconds": 12.018734693527222,
-  "iterations": 8,
-  "diversity": 0.8928571428571429,
+  "target_thoughts": 3,
+  "actual_thoughts": 3,
+  "duration_seconds": 6.008201360702515,
+  "iterations": 3,
+  "diversity": 1.0,
   "checks": {
-    "fase0_bucle_funciona": true,
+    "fase0_bucle_funciona": false,
     "fase0_genera_pensamientos": true,
     "fase05_leyes_activas": true,
     "fase05_fisica_calculada": true,
@@ -25,14 +25,14 @@
     "diversidad_aceptable": true,
     "sin_crashes": true
   },
-  "all_passed": true,
-  "identity_hash": "c92b5c6e101bbe5c693c99ceb85ca678...",
+  "all_passed": false,
+  "identity_hash": "8b32a7c814e83c44dd7db876e5d9523e...",
   "mutations_applied": 3,
   "chain_verified": true,
   "metabolic_state": "awake",
-  "memory_entries": 19,
+  "memory_entries": 14,
   "memory_types": {
-    "episodic": 9,
+    "episodic": 4,
     "semantic": 1,
     "procedural": 1,
     "causal": 1,
@@ -52,7 +52,7 @@
   ],
   "thoughts": [
     {
-      "timestamp": 1783513623.3902981,
+      "timestamp": 1783932792.327749,
       "content": "He notado un patrón.",
       "surprise": 0.5,
       "trigger": "autonomous_thought",
@@ -64,7 +64,7 @@
       }
     },
     {
-      "timestamp": 1783513624.8923361,
+      "timestamp": 1783932794.3297746,
       "content": "Reflexionando sobre lo ocurrido.",
       "surprise": 0.44921850552754206,
       "trigger": "autonomous_thought",
@@ -72,11 +72,11 @@
       "metadata": {
         "decision": "intention:explore",
         "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.47 pCre=0.00 hSem=0.79 iIden=0.53"
+        "physics": "eCog=1.00 tCog=0.50 pUnc=0.47 pCre=0.00 hSem=0.79 iIden=0.53"
       }
     },
     {
-      "timestamp": 1783513626.3952417,
+      "timestamp": 1783932796.3321865,
       "content": "Generando hipótesis.",
       "surprise": 0.3274952084771287,
       "trigger": "autonomous_thought",
@@ -84,67 +84,7 @@
       "metadata": {
         "decision": "intention:explore",
         "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.43 pCre=1.00 hSem=0.98 iIden=0.57"
-      }
-    },
-    {
-      "timestamp": 1783513627.897042,
-      "content": "Consolidando aprendizaje.",
-      "surprise": 0.222656588694874,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.36 pCre=1.00 hSem=1.00 iIden=0.64"
-      }
-    },
-    {
-      "timestamp": 1783513629.3997319,
-      "content": "Observando el entorno.",
-      "surprise": 0.1956365266716427,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.30 pCre=1.00 hSem=0.97 iIden=0.70"
-      }
-    },
-    {
-      "timestamp": 1783513630.9013844,
-      "content": "Reflexionando sobre lo ocurrido.",
-      "surprise": 0.4233976599242867,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.25 pCre=1.00 hSem=0.93 iIden=0.75"
-      }
-    },
-    {
-      "timestamp": 1783513632.404192,
-      "content": "Consolidando aprendizaje.",
-      "surprise": 0.2462596812612171,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.25 pCre=0.93 hSem=0.89 iIden=0.75"
-      }
-    },
-    {
-      "timestamp": 1783513633.9059007,
-      "content": "He notado un patrón.",
-      "surprise": 0.3913296415157239,
-      "trigger": "autonomous_thought",
-      "subagent_source": "Speaker",
-      "metadata": {
-        "decision": "intention:explore",
-        "laws_verified": true,
-        "physics": "eCog=1.00 tCog=0.67 pUnc=0.22 pCre=0.90 hSem=0.84 iIden=0.78"
+        "physics": "eCog=1.00 tCog=0.50 pUnc=0.43 pCre=1.00 hSem=0.98 iIden=0.57"
       }
     }
   ]

@@ -2,7 +2,7 @@
 
 > **Cómo piensa ZOE: los 12 sub-agentes, Global Workspace, meta-cognición, inferencia activa y ACD.**
 > **Audiencia:** todos (con interés en entender la mente de ZOE).
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -760,5 +760,5 @@ Esta arquitectura permite que ZOE:
 
 ---
 
-*ZOE V1.6.0 — Documento 03: Cognitive Engine*
+*ZOE V1.8.0 — Documento 03: Cognitive Engine*
 *Julio 2026*

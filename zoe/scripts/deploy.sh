@@ -40,7 +40,7 @@ echo ""
 echo "[3/6] Copiando código..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cp -r "$SCRIPT_DIR/zoe" "$ZOE_DIR/zoe"
-cp "$SCRIPT_DIR/zoe/requirements.txt" "$ZOE_DIR/"
+cp "$SCRIPT_DIR/requirements.txt" "$ZOE_DIR/"
 echo "✅ Código copiado a $ZOE_DIR"
 
 # 4. Instalar dependencias Python
@@ -68,7 +68,7 @@ After=network.target ollama.service
 
 [Service]
 Type=simple
-User=root
+User=$ZOE_USER
 WorkingDirectory=$ZOE_DIR
 Environment=ZOE_ENV=production
 Environment=PYTHONPATH=$ZOE_DIR

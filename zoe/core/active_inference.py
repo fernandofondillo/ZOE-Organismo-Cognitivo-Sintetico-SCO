@@ -16,6 +16,7 @@ Si pymdp está disponible, se puede extender en el futuro.
 from __future__ import annotations
 
 import logging
+import math
 import random
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -108,11 +109,11 @@ class ActiveInferenceLoop:
         expected = 0.0
 
         for next_state, prob in next_states.items():
-            # Sorpresa = -log(prob) simplificado
+            # Sorpresa = entropía de Shannon: -sum(prob * log(prob))
             if prob > 0:
-                surprise = -prob * (prob + 0.01)  # entropía simplificada
+                surprise = -prob * math.log(prob)
             else:
-                surprise = 1.0
+                surprise = 0.0
             expected += prob * surprise
 
         # Bonus de exploración: acciones poco probadas tienen bonus

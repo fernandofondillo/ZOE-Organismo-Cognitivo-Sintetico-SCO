@@ -182,8 +182,8 @@ class ModelProfileRouter:
                     if model.ollama_tag in result.stdout and key not in installed:
                         installed.append(key)
                         logger.info(f"ModelProfileRouter: found {key} in Ollama")
-        except:
-            pass
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.warning(f"Ollama model detection failed: {e}")
         
         self._installed_models = installed
         logger.info(f"ModelProfileRouter: {len(installed)} models detected: {installed}")

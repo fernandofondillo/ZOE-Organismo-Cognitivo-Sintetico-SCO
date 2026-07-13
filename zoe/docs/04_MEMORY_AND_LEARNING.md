@@ -2,7 +2,7 @@
 
 > **Cómo recuerda y aprende ZOE: los 11 tipos de memoria, consolidación, aprendizaje y cápsulas.**
 > **Audiencia:** desarrolladores, investigadores.
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -642,5 +642,5 @@ La memoria de ZOE es radicalmente distinta a la de un chatbot:
 
 ---
 
-*ZOE V1.6.0 — Documento 04: Memory & Learning*
+*ZOE V1.8.0 — Documento 04: Memory & Learning*
 *Julio 2026*

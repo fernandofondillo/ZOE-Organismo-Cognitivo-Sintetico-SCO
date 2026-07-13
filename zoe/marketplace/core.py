@@ -251,8 +251,15 @@ class CapsulePackager:
     @staticmethod
     def unpackage(zcap_path: Path, target_dir: Path) -> bool:
         try:
+            target_resolved = Path(target_dir).resolve()
             with zipfile.ZipFile(zcap_path, "r") as zf:
-                zf.extractall(target_dir)
+                for member in zf.infolist():
+                    member_path = (target_dir / member.filename).resolve()
+                    if not str(member_path).startswith(str(target_resolved)):
+                        raise ValueError(
+                            f"Path traversal detected in ZIP: {member.filename}"
+                        )
+                    zf.extract(member, target_dir)
             return True
         except Exception as e:
             logger.error(f"Failed to unpackage {zcap_path}: {e}")

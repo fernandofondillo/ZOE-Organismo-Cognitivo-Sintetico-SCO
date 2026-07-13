@@ -24,14 +24,50 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import collections
 import json
 import logging
 import os
+import re
+import secrets
 import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Set
 
+from .core.metrics import (
+    inc_requests_total,
+    observe_request_duration,
+    inc_cognitive_loop_iterations,
+    set_memory_entries,
+    set_metabolism_state,
+    inc_llm_requests,
+    observe_llm_duration,
+    set_active_capsules,
+    generate_metrics,
+)
+
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_name(name: str) -> str:
+    """Sanitiza un nombre de cápsula/archivo: solo permite [a-zA-Z0-9_-]."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "", name)
+
+
+def _safe_path(base: Path, name: str) -> Path:
+    """Construye una ruta segura dentro de *base* sanitizando *name*.
+
+    Raises:
+        ValueError: si la ruta resuelta escapa de *base*.
+    """
+    safe = _sanitize_name(name)
+    if not safe:
+        raise ValueError(f"Invalid name after sanitization: {name!r}")
+    result = (base / safe).resolve()
+    base_resolved = base.resolve()
+    if not str(result).startswith(str(base_resolved)):
+        raise ValueError(f"Invalid path: {safe}")
+    return result
 
 
 class DashboardServer:
@@ -65,7 +101,17 @@ class DashboardServer:
         self.base_url = base_url
         # Sprint 5.9 — seguridad
         self.host = host
-        self.auth_token = auth_token
+        # SECURITY FIX: Auth is now MANDATORY by default.
+        # If no token is provided, auto-generate one and log it.
+        if auth_token is None:
+            self.auth_token = secrets.token_urlsafe(32)
+            logger.warning(
+                "SECURITY: No auth_token provided. Auto-generated token: %s "
+                "(Store this securely — it is required for all endpoints except /health, /ready, /live)",
+                self.auth_token,
+            )
+        else:
+            self.auth_token = auth_token
 
         self.chat = None
         self.ws_clients: Set = set()
@@ -73,6 +119,11 @@ class DashboardServer:
         self._runner = None
         self._background_broadcaster = None
         self._conversation_history: List[Dict[str, Any]] = []
+
+        # Rate limiting state (in-memory per-IP tracking)
+        # {ip: collections.deque([(timestamp, count), ...])}
+        self._rate_limit_store: Dict[str, collections.deque] = {}
+        self._rate_limit_request_count = 0
 
     async def initialize(self) -> None:
         """Inicializa ZOE y el servidor."""
@@ -93,20 +144,143 @@ class DashboardServer:
         """Inicia el servidor HTTP + WebSocket."""
         from aiohttp import web, WSMsgType
 
-        # Sprint 5.9 — Middleware de autenticación (opcional)
+        # ===================================================================
+        # SECURITY MIDDLEWARES (Rate Limiting + Auth + Security Headers)
+        # ===================================================================
+        _HEALTH_PATHS = {"/health", "/ready", "/live"}
+        _COSTLY_PATHS = {"/chat", "/feed", "/llm", "/api/models/optimize",
+                         "/api/embodiment/compose", "/api/embodiment/bootstrap",
+                         "/api/voice/start", "/ws"}
+        _RATE_LIMIT_NORMAL = 60   # requests per minute
+        _RATE_LIMIT_COSTLY = 10   # requests per minute
+        _RATE_LIMIT_WINDOW = 60.0  # seconds
+        _RATE_LIMIT_CLEANUP_EVERY = 100  # clean old entries every N requests
+
+        @web.middleware
+        async def security_headers_middleware(request, handler):
+            """Add security headers to every HTTP response."""
+            response = await handler(request)
+            # Only add headers to HTTP responses (not WebSocket upgrades)
+            if hasattr(response, 'headers'):
+                response.headers["X-Content-Type-Options"] = "nosniff"
+                response.headers["X-Frame-Options"] = "DENY"
+                response.headers["X-XSS-Protection"] = "1; mode=block"
+                response.headers["Strict-Transport-Security"] = (
+                    "max-age=31536000; includeSubDomains"
+                )
+                response.headers["Content-Security-Policy"] = (
+                    "default-src 'self'; script-src 'self' 'unsafe-inline'"
+                )
+                response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+                response.headers["Permissions-Policy"] = (
+                    "camera=(), microphone=(), geolocation=()"
+                )
+            return response
+
+        @web.middleware
+        async def rate_limit_middleware(request, handler):
+            """Rate limiting by IP: 60 req/min normal, 10 req/min costly endpoints."""
+            # Skip rate limiting for health checks
+            if request.path in _HEALTH_PATHS:
+                return await handler(request)
+
+            peer = request.remote or "unknown"
+            now = time.monotonic()
+            is_costly = any(request.path.startswith(p) for p in _COSTLY_PATHS)
+            limit = _RATE_LIMIT_COSTLY if is_costly else _RATE_LIMIT_NORMAL
+
+            # Get or create deque for this IP
+            dq = self._rate_limit_store.get(peer)
+            if dq is None:
+                dq = collections.deque()
+                self._rate_limit_store[peer] = dq
+
+            # Remove entries older than the window
+            while dq and dq[0][0] < now - _RATE_LIMIT_WINDOW:
+                dq.popleft()
+
+            # Count requests in current window
+            count = sum(c for _, c in dq)
+
+            if count >= limit:
+                logger.warning(
+                    "Rate limit exceeded for IP %s on %s (%d/%d %s requests)",
+                    peer, request.path, count, limit,
+                    "costly" if is_costly else "normal",
+                )
+                return web.json_response(
+                    {"error": "too_many_requests", "retry_after": int(_RATE_LIMIT_WINDOW)},
+                    status=429,
+                    headers={"Retry-After": str(int(_RATE_LIMIT_WINDOW))},
+                )
+
+            # Record this request
+            dq.append((now, 1))
+            self._rate_limit_request_count += 1
+
+            # Periodic cleanup of stale IP entries to prevent memory leak
+            if self._rate_limit_request_count % _RATE_LIMIT_CLEANUP_EVERY == 0:
+                _cleanup_stale_entries(now)
+
+            return await handler(request)
+
+        def _cleanup_stale_entries(now: float) -> None:
+            """Remove stale IP entries older than the rate limit window."""
+            stale_ips = [
+                ip for ip, dq in self._rate_limit_store.items()
+                if not dq or dq[-1][0] < now - _RATE_LIMIT_WINDOW
+            ]
+            for ip in stale_ips:
+                del self._rate_limit_store[ip]
+            if stale_ips:
+                logger.debug("Rate limit cleanup: removed %d stale IP(s)", len(stale_ips))
+
         @web.middleware
         async def auth_middleware(request, handler):
-            if self.auth_token:
+            """Authentication: token required for all non-health endpoints."""
+            if request.path not in _HEALTH_PATHS:
                 auth_header = request.headers.get("Authorization", "")
-                # También aceptar query param ?token= para WebSocket
+                # Also accept query param ?token= for WebSocket
                 query_token = request.query.get("token", "")
-                if auth_header != f"Bearer {self.auth_token}" and query_token != self.auth_token:
+                expected = f"Bearer {self.auth_token}"
+                if auth_header != expected and query_token != self.auth_token:
+                    logger.warning(
+                        "Unauthorized request to %s from %s",
+                        request.path, request.remote or "unknown",
+                    )
                     return web.json_response({"error": "unauthorized"}, status=401)
             return await handler(request)
 
+        @web.middleware
+        async def metrics_middleware(request, handler):
+            """Prometheus instrumentation: count requests and measure latency."""
+            # Skip instrumentation for /metrics itself to avoid recursion
+            if request.path == "/metrics":
+                return await handler(request)
+            start = time.monotonic()
+            try:
+                response = await handler(request)
+                status = str(response.status)
+            except Exception:
+                status = "500"
+                raise
+            finally:
+                duration = time.monotonic() - start
+                method = request.method
+                endpoint = request.path
+                observe_request_duration(method, endpoint, duration)
+                inc_requests_total(method, endpoint, status)
+            return response
+
+        # Wire all middlewares: security headers → metrics → rate limit → auth
         app = web.Application(
             client_max_size=10 * 1024 * 1024,  # 10MB for file uploads
-            middlewares=[auth_middleware] if self.auth_token else [],
+            middlewares=[
+                security_headers_middleware,
+                metrics_middleware,
+                rate_limit_middleware,
+                auth_middleware,
+            ],
         )
 
         # Routes
@@ -214,6 +388,14 @@ class DashboardServer:
 
         # PWA manifest (Sprint 1.3)
         app.router.add_get("/manifest.json", self._handle_manifest)
+
+        # Health check endpoints (public, no auth required)
+        app.router.add_get("/health", self._handle_health)
+        app.router.add_get("/ready", self._handle_ready)
+        app.router.add_get("/live", self._handle_live)
+
+        # Prometheus metrics endpoint (public, no auth required)
+        app.router.add_get("/metrics", self._handle_metrics)
 
         self._app = app
         self._runner = web.AppRunner(app)
@@ -737,7 +919,7 @@ class DashboardServer:
         from aiohttp import web
         if not self.chat or not hasattr(self.chat, 'capsule_manager'):
             return web.json_response({"error": "capsule_manager not initialized"}, status=500)
-        name = request.match_info["name"]
+        name = _sanitize_name(request.match_info["name"])
         info = self.chat.capsule_manager.get_info(name)
         if not info:
             return web.json_response({"error": "capsule not found"}, status=404)
@@ -760,10 +942,13 @@ class DashboardServer:
         from pathlib import Path
         
         name = request.match_info["name"]
-        
-        # Localizar la cápsula
+
+        # Localizar la cápsula (sanitizado para prevenir path traversal)
         capsules_dir = Path(__file__).parent / "capsules"
-        cap_dir = capsules_dir / name
+        try:
+            cap_dir = _safe_path(capsules_dir, name)
+        except ValueError as exc:
+            return web.json_response({"valid": False, "errors": [str(exc)]}, status=400)
         
         if not cap_dir.exists():
             return web.json_response({
@@ -1106,8 +1291,8 @@ class DashboardServer:
         from aiohttp import web
         from zoe.marketplace import MarketplaceCatalog, MarketplaceDownloader
         from pathlib import Path
-        
-        name = request.match_info["name"]
+
+        name = _sanitize_name(request.match_info["name"])
         catalog = MarketplaceCatalog()
         capsules_dir = Path(__file__).parent / "capsules"
         use_cases_dir = Path(__file__).parent / "use_cases"
@@ -1828,6 +2013,166 @@ class DashboardServer:
             return web.json_response({"status": "running", "state": state})
         except Exception:
             return web.json_response({"status": "running"})
+
+    # ----- Health check endpoints (public, no auth required) -----
+
+    async def _handle_metrics(self, request) -> Any:
+        """GET /metrics — Prometheus metrics endpoint.
+
+        Expone métricas en formato Prometheus text exposition.
+        Público: no requiere autenticación (Prometheus necesita acceso).
+        """
+        from aiohttp import web
+
+        # Update dynamic gauge metrics before generating
+        if self.chat and hasattr(self.chat, 'loop'):
+            loop = self.chat.loop
+            if hasattr(loop, 'state') and hasattr(loop.state, 'iteration_count'):
+                inc_cognitive_loop_iterations(0)  # Ensure counter exists
+            if hasattr(loop, 'memory'):
+                try:
+                    mem_count = loop.memory.count() if hasattr(loop.memory, 'count') else 0
+                    set_memory_entries(mem_count)
+                except Exception:
+                    pass
+
+        if self.chat and hasattr(self.chat, 'metabolism'):
+            try:
+                set_metabolism_state(self.chat.metabolism.state.value)
+            except Exception:
+                pass
+
+        if self.chat and hasattr(self.chat, 'capsule_manager'):
+            try:
+                loaded = self.chat.capsule_manager.list_loaded()
+                set_active_capsules(len(loaded))
+            except Exception:
+                pass
+
+        body = generate_metrics()
+        return web.Response(
+            text=body,
+            content_type="text/plain; version=0.0.4; charset=utf-8",
+        )
+
+    async def _handle_health(self, request) -> Any:
+        """GET /health — Estado general del sistema.
+
+        Verifica que SQLite responde (SELECT 1) y que el loop cognitivo
+        está accesible. Retorna 200 si todo OK, 503 si hay problemas.
+        """
+        from aiohttp import web
+        from datetime import datetime, timezone
+        import sqlite3
+
+        checks = {
+            "memory_db": "ok",
+            "llm_backend": "ok",
+            "cognitive_loop": "ok",
+        }
+        healthy = True
+
+        # Check 1: SQLite responde
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+            conn.close()
+        except Exception as e:
+            checks["memory_db"] = f"error: {e}"
+            healthy = False
+
+        # Check 2: LLM backend responde (verificar que existe)
+        if not self.chat or not hasattr(self.chat, 'llm') or self.chat.llm is None:
+            checks["llm_backend"] = "error: not initialized"
+            healthy = False
+
+        # Check 3: Loop cognitivo accesible
+        if not self.chat or not hasattr(self.chat, 'loop') or self.chat.loop is None:
+            checks["cognitive_loop"] = "error: not initialized"
+            healthy = False
+
+        from zoe import __version__
+        body = {
+            "status": "healthy" if healthy else "unhealthy",
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "version": __version__,
+            "checks": checks,
+        }
+        return web.json_response(body, status=200 if healthy else 503)
+
+    async def _handle_ready(self, request) -> Any:
+        """GET /ready — Listo para recibir tráfico.
+
+        Verifica que el loop cognitivo esté inicializado y que
+        el metabolismo está activo. Retorna 200 si listo, 503 si no.
+        """
+        from aiohttp import web
+        from datetime import datetime, timezone
+
+        checks = {
+            "memory_db": "ok",
+            "llm_backend": "ok",
+            "cognitive_loop": "ok",
+        }
+        ready = True
+
+        # Check 1: memory_db está accesible
+        try:
+            import sqlite3
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+            conn.close()
+        except Exception as e:
+            checks["memory_db"] = f"error: {e}"
+            ready = False
+
+        # Check 2: LLM backend inicializado
+        if not self.chat or not hasattr(self.chat, 'llm') or self.chat.llm is None:
+            checks["llm_backend"] = "error: not initialized"
+            ready = False
+
+        # Check 3: Loop cognitivo inicializado (con thoughts y state)
+        if not self.chat or not hasattr(self.chat, 'loop') or self.chat.loop is None:
+            checks["cognitive_loop"] = "error: not initialized"
+            ready = False
+        elif not hasattr(self.chat.loop, 'state') or not hasattr(self.chat.loop, 'thoughts'):
+            checks["cognitive_loop"] = "error: incomplete initialization"
+            ready = False
+
+        from zoe import __version__
+        body = {
+            "status": "ready" if ready else "not_ready",
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "version": __version__,
+            "checks": checks,
+        }
+        return web.json_response(body, status=200 if ready else 503)
+
+    async def _handle_live(self, request) -> Any:
+        """GET /live — Vivo pero no necesariamente listo.
+
+        Si el servidor responde, está vivo. Siempre retorna 200.
+        Usado por Kubernetes/Docker para liveness probes.
+        """
+        from aiohttp import web
+        from datetime import datetime, timezone
+        from zoe import __version__
+
+        body = {
+            "status": "alive",
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "version": __version__,
+            "checks": {
+                "memory_db": "ok",
+                "llm_backend": "ok",
+                "cognitive_loop": "ok",
+            },
+        }
+        return web.json_response(body, status=200)
 
     async def _handle_command(self, cmd: str, data: dict) -> Any:
         """Maneja comandos especiales desde el WS."""

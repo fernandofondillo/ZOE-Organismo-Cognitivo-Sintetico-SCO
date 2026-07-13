@@ -1,8 +1,8 @@
 # 06 — Capsules Guide
 
-> **Referencia completa de las cápsulas de conocimiento de ZOE: las 13 operativas + cómo crear nuevas.**
+> **Referencia completa de las cápsulas de conocimiento de ZOE: las 15 operativas + cómo crear nuevas.**
 > **Audiencia:** autores de cápsulas, desarrolladores, integradores.
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -13,7 +13,7 @@
 3. [Los 8 tipos de contenido](#3-los-8-tipos-de-contenido)
 4. [Schema completo de capsule.yaml](#4-schema-completo-de-capsuleyaml)
 5. [Trust levels](#5-trust-levels)
-6. [Las 13 cápsulas operativas](#6-las-13-cápsulas-operativas)
+6. [Las 15 cápsulas operativas](#6-las-15-cápsulas-operativas)
 7. [Cómo crear una cápsula nueva](#7-cómo-crear-una-cápsula-nueva)
 8. [Cómo escribir validators.py](#8-cómo-escribir-validatorspy)
 9. [Cómo escribir tools/](#9-cómo-escribir-tools)
@@ -317,7 +317,7 @@ Cada cápsula tiene un trust level que determina cuánto confía ZOE en ella:
 
 ---
 
-## 6. Las 13 cápsulas operativas
+## 6. Las 15 cápsulas operativas
 
 ### 6.1 zoe_basal_knowledge
 
@@ -1008,7 +1008,7 @@ Las cápsulas son el **modelo de negocio recurrente** de ZOE. Permiten:
 - Personalizar ZOE por caso de uso
 - Mantener calidad (trust levels + validators)
 
-Con 13 cápsulas operativas y un sistema de scaffold CLI, cualquiera puede crear nuevas cápsulas para dominios verticales.
+Con 15 cápsulas operativas y un sistema de scaffold CLI, cualquiera puede crear nuevas cápsulas para dominios verticales.
 
 **Documentos relacionados:**
 - [07_MARKETPLACE_GUIDE.md](07_MARKETPLACE_GUIDE.md) — cómo vender cápsulas
@@ -1017,5 +1017,5 @@ Con 13 cápsulas operativas y un sistema de scaffold CLI, cualquiera puede crear
 
 ---
 
-*ZOE V1.6.0 — Documento 06: Capsules Guide*
+*ZOE V1.8.0 — Documento 06: Capsules Guide*
 *Julio 2026*

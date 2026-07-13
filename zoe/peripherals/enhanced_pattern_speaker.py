@@ -116,8 +116,8 @@ class ResponseDistiller:
                         try:
                             data = json.loads(line)
                             self._responses.append(DistilledResponse.from_dict(data))
-                        except:
-                            pass
+                        except (json.JSONDecodeError, KeyError, TypeError) as e:
+                            logger.debug(f"Skipping invalid distilled response line: {e}")
         logger.info(f"ResponseDistiller: loaded {len(self._responses)} distilled responses")
 
     def distill(self, input_text: str, response_text: str, source: str = "unknown",
@@ -258,8 +258,8 @@ class CapsuleRetriever:
                                 entry["_capsule"] = capsule_dir.name
                                 entry["_type"] = "semantic"
                                 self._knowledge.append(entry)
-                            except:
-                                pass
+                            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                                logger.debug(f"Skipping invalid semantic memory line: {e}")
 
             # Cargar procedural_skills.jsonl
             proc_path = capsule_dir / "procedural_skills.jsonl"
@@ -273,8 +273,8 @@ class CapsuleRetriever:
                                 entry["_capsule"] = capsule_dir.name
                                 entry["_type"] = "procedural"
                                 self._knowledge.append(entry)
-                            except:
-                                pass
+                            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                                logger.debug(f"Skipping invalid procedural skill line: {e}")
 
         logger.info(f"CapsuleRetriever: loaded {len(self._knowledge)} knowledge entries from capsules")
 

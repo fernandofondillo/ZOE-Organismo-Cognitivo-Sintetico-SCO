@@ -454,7 +454,7 @@ class TestEpistemicFederation:
         """Peer confirma cuando tiene el claim indexado."""
         import hashlib
         claim = "Las benzodiacepinas son seguras en mayores."
-        claim_hash = hashlib.md5(claim.encode()).hexdigest()
+        claim_hash = hashlib.sha256(claim.encode()).hexdigest()
         
         self.fed.index_local_knowledge(claim_hash, {
             "content": claim,

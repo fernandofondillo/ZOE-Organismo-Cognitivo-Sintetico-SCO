@@ -100,8 +100,8 @@ class ZoeRuntime:
                     try:
                         cursor.execute(f"SELECT COUNT(*) FROM {table}")
                         self.memory_entries += cursor.fetchone()[0]
-                    except:
-                        pass
+                    except sqlite3.Error as e:
+                        logger.debug(f"SQLite table {table} query failed: {e}")
                 conn.close()
             except Exception as e:
                 print(f"  Warning: memory.db load error: {e}")
@@ -127,8 +127,8 @@ class ZoeRuntime:
             result = sock.connect_ex(("localhost", 11434))
             if result == 0:
                 self.has_ollama = True
-        except:
-            pass
+        except OSError as e:
+            logger.debug(f"Ollama detection socket error: {e}")
         finally:
             sock.close()
 
@@ -160,8 +160,8 @@ class ZoeRuntime:
                 with open(IDENTITY_VAULT_PATH, "r") as f:
                     vault = json.load(f)
                     self.identity_hash = vault.get("identity_hash", "unknown")[:16]
-            except:
-                pass
+            except (OSError, json.JSONDecodeError) as e:
+                logger.debug(f"Identity vault load failed: {e}")
 
     def get_banner(self) -> str:
         """Devuelve el banner de inicio."""

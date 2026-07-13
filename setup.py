@@ -12,17 +12,22 @@ from setuptools import setup, find_packages
 
 setup(
     name="zoe-sco",
-    version="1.2.0",
+    version="1.8.0",
     author="Fernando Fondillo",
     author_email="fernandofondillo@users.noreply.github.com",
     description="ZOE — Synthetic Cognitive Organism (SCO). El primer organismo cognitivo digital.",
-    long_description=open("README.md").read(),
+    long_description=(
+        open("README.md").read() if __import__("os").path.exists("README.md")
+        else "ZOE — Synthetic Cognitive Organism (SCO). El primer organismo cognitivo digital."
+    ),
     long_description_content_type="text/markdown",
     url="https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO",
     packages=find_packages(),
     python_requires=">=3.10",
     install_requires=[
         "aiohttp>=3.9.0",
+        "numpy>=1.24.0",
+        "psutil>=5.9.0",
         "PyYAML>=6.0",
     ],
     extras_require={

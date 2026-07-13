@@ -51,7 +51,7 @@ class TestEpistemicFederationServer:
         # Indexar claim local
         import hashlib
         claim = "Las benzodiacepinas son peligrosas en mayores."
-        claim_hash = hashlib.md5(claim.encode()).hexdigest()
+        claim_hash = hashlib.sha256(claim.encode()).hexdigest()
         fed.index_local_knowledge(claim_hash, {
             "content": claim,
             "confidence": 0.9,
@@ -97,7 +97,7 @@ class TestEpistemicFederationServer:
         fed = EpistemicFederation(organism_id="zoe_1")
         import hashlib
         claim = "test claim"
-        claim_hash = hashlib.md5(claim.encode()).hexdigest()
+        claim_hash = hashlib.sha256(claim.encode()).hexdigest()
         fed.index_local_knowledge(claim_hash, {"content": claim, "confidence": 0.8})
         
         server = EpistemicFederationServer(fed)

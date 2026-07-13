@@ -2,7 +2,7 @@
 
 > **Arquitectura técnica profunda de ZOE, subsistema por subsistema.**
 > **Audiencia:** arquitectos, CTO, Tech Leads, Staff Engineers.
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -1442,5 +1442,5 @@ La arquitectura de ZOE es **modular, extensible y bien testeada**. Cada subsiste
 
 ---
 
-*ZOE V1.6.0 — Documento 02: Architecture*
+*ZOE V1.8.0 — Documento 02: Architecture*
 *Julio 2026*

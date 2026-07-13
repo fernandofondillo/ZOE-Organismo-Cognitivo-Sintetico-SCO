@@ -2,7 +2,7 @@
 
 > **Cómo ZOE valida el conocimiento: EpistemicValidator, Quarantine, CrossValidator, Federación epistémica.**
 > **Audiencia:** desarrolladores, investigadores.
-> **Versión:** V1.6.0 — Julio 2026
+> **Versión:** V1.8.0 — Julio 2026
 
 ---
 
@@ -402,5 +402,5 @@ El sistema epistémico es lo que hace que ZOE **no alucine con seguridad**. Cono
 
 ---
 
-*ZOE V1.6.0 — Documento 05: Epistemic Validation*
+*ZOE V1.8.0 — Documento 05: Epistemic Validation*
 *Julio 2026*

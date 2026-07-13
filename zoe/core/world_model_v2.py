@@ -61,7 +61,7 @@ def _ngram_embedding(text: str, dim: int = 128) -> List[float]:
         for i in range(len(text_lower) - n + 1):
             ngram = text_lower[i:i + n]
             # Hash del n-grama a una posición del vector
-            h = int(hashlib.md5(ngram.encode()).hexdigest(), 16) % dim
+            h = int(hashlib.sha256(ngram.encode()).hexdigest(), 16) % dim
             vec[h] += 1.0
 
     # L2 normalizar
