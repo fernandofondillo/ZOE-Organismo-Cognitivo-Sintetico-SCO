@@ -41,7 +41,7 @@ class TestReflectionConfig:
         assert cfg.max_input_tokens == 2048
         assert cfg.max_output_tokens == 512
         assert cfg.daily_cloud_budget == 1.0
-        assert cfg.model_tag == "qwq-32b-iq2"  # Modelo que ya existe en ZOE
+        assert cfg.model_tag == "deepseek-r1:32b-q4km"  # Modelo que ya existe en ZOE
         assert cfg.model_fallback_tag == "qwen2.5:14b-iq2"
 
     def test_custom_config(self):
@@ -124,7 +124,7 @@ class TestReflectionEngineInit:
     def test_init_defaults(self):
         """Inicialización con defaults."""
         engine = ReflectionEngine()
-        assert engine.config.model_tag == "qwq-32b-iq2"
+        assert engine.config.model_tag == "deepseek-r1:32b-q4km"
         assert engine._total_reflections == 0
         assert engine._total_insights == 0
         assert engine._total_cost_usd == 0.0
@@ -291,7 +291,7 @@ class TestGetMetrics:
         assert m["total_cost_usd"] == 0.0
         assert m["errors"] == 0
         assert m["is_running"] is False
-        assert m["model_tag"] == "qwq-32b-iq2"
+        assert m["model_tag"] == "deepseek-r1:32b-q4km"
 
     def test_metrics_after_reflection(self):
         """Métricas reflejan actividad."""
