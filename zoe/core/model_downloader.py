@@ -144,6 +144,20 @@ OPTIMIZED_MODELS: Dict[str, OptimizedModel] = {
         estimated_tokens_s="3-6",
         description="DeepSeek R1 destilado a 32B. Especializado en razonamiento.",
     ),
+    "deepseek-r1:32b-q4km": OptimizedModel(
+        name="deepseek-r1:32b-q4km",
+        display_name="DeepSeek R1 32B (Q4_K_M) — Reflexion v2.1",
+        params_b=32.0,
+        quantization="Q4_K_M",
+        size_gb=18.0,
+        source=ModelSource.HUGGINGFACE_MRADERMACHER,
+        hf_repo="mradermacher/DeepSeek-R1-Distill-Qwen-32B-GGUF",
+        hf_filename="DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf",
+        ollama_tag="deepseek-r1-32b-q4km",
+        recommended_ram_gb=16.0,
+        estimated_tokens_s="2-4",
+        description="DeepSeek R1 destilado a 32B con cuantizacion Q4_K_M. Maxima calidad para razonamiento paso a paso durante reflexion autonoma (L4). ~18GB, requiere 16GB RAM o SSD con swap. NO para interaccion en tiempo real.",
+    ),
     "qwq-32b-iq2": OptimizedModel(
         name="qwq-32b-iq2",
         display_name="QwQ-32B (IQ2_M) — Rey del Razonamiento",
@@ -551,6 +565,12 @@ SETUP_PRESETS = {
         "min_ram_gb": 8.0,
         "description": "Los 4 modelos (53GB) — espectro completo para SSD 1TB",
     },
+    "reflection": {
+        "models": ["gemma-2-9b-iq2", "agents-a1-iq2", "qwq-32b-iq2", "deepseek-r1:32b-q4km"],
+        "total_gb": 46.2,
+        "min_ram_gb": 16.0,
+        "description": "Espectro completo + L4_REFLECTION (46GB) — Requiere 16GB RAM o SSD con swap",
+    },
 }
 
 
@@ -562,7 +582,7 @@ def _main_cli():
     )
     parser.add_argument(
         "--download-setup",
-        choices=["minimal", "balanced", "complete", "maximum"],
+        choices=["minimal", "balanced", "complete", "maximum", "reflection"],
         help="Setup preseleccionado a descargar",
     )
     parser.add_argument(

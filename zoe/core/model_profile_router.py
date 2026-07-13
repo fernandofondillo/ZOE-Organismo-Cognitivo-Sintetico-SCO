@@ -11,6 +11,7 @@ Con 4 modelos en un SSD de 1TB cubrimos todo el espectro:
   L2 (estándar)           → Agents-A1 MoE (11.7GB, 5-10 t/s)
   L3 (profundo)           → QwQ-32B (12.5GB, 3-6 t/s, razonamiento)
   L3 máximo (calidad)     → Qwen 2.5 72B (25GB, 1-3 t/s)
+  L4 (reflexión autónoma) → DeepSeek-R1 32B Q4_K_M (18GB, 2-4 t/s, solo SLEEPING)
 
 Total: ~52.7 GB en SSD de 1TB — sobra espacio para cápsulas y memoria.
 
@@ -134,9 +135,9 @@ class ModelProfileRouter:
             "fallback": "qwq-32b-iq2",
         },
         "L4_REFLECTION": {
-            "preferred": "deepseek-r1:32b-iq2",
-            "reason": "Razonamiento profundo paso a paso (destilado de DeepSeek-R1). Para reflexión autónoma durante SLEEPING. No para interacción en tiempo real.",
-            "fallback": "qwq-32b-iq2",
+            "preferred": "deepseek-r1:32b-q4km",
+            "reason": "DeepSeek-R1-Distill-Qwen-32B Q4_K_M (~18GB). Máxima calidad para razonamiento paso a paso durante reflexión autónoma en SLEEPING. Cuantización Q4_K_M preserva ~98% de calidad. NO para interacción en tiempo real — solo ciclo SLEEPING.",
+            "fallback": "deepseek-r1:32b-iq2",
         },
     }
     
@@ -147,7 +148,7 @@ class ModelProfileRouter:
         "L2_STANDARD": ["agents-a1-iq2", "qwen2.5:32b-iq2", "deepseek-r1:32b-iq2", "gemma-2-9b-iq2", "pattern"],
         "L3_DEEP": ["qwq-32b-iq2", "deepseek-r1:32b-iq2", "qwen2.5:32b-iq2", "agents-a1-iq2", "pattern"],
         "L3_MAXIMUM": ["qwen2.5:72b-iq2", "llama3.1:70b-iq2", "qwq-32b-iq2", "deepseek-r1:32b-iq2", "qwen2.5:32b-iq2", "pattern"],
-        "L4_REFLECTION": ["deepseek-r1:32b-iq2", "qwq-32b-iq2", "qwen2.5:32b-iq2"],
+        "L4_REFLECTION": ["deepseek-r1:32b-q4km", "deepseek-r1:32b-iq2", "qwq-32b-iq2", "qwen2.5:32b-iq2"],
     }
     
     def __init__(self):
