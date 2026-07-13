@@ -14,8 +14,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.0.0--rc1-blue?style=flat-square" alt="Version"></a>
-  <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1633%2B-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"></a>
+  <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1668%2B-brightgreen?style=flat-square" alt="Tests"></a>
   <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=github" alt="CI"></a>
   <a href="Dockerfile"><img src="https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker" alt="Docker"></a>
   <a href="k8s/"><img src="https://img.shields.io/badge/kubernetes-ready-blue?style=flat-square&logo=kubernetes" alt="Kubernetes"></a>
@@ -71,7 +71,7 @@ El instalador detecta automáticamente tu SSD, verifica Python, descarga ZOE, y 
 
 ### Qué es ZOE en términos técnicos
 
-ZOE es un **framework Python de ~65,000 LOC** que implementa una arquitectura cognitiva completa organizada en 4 capas, con 1,633+ tests automatizados, 78 endpoints REST, 15 cápsulas de conocimiento con contenido real, y soporte para despliegue en Docker, Kubernetes o SSD portátil.
+ZOE es un **framework Python de ~68,000 LOC** que implementa una arquitectura cognitiva completa organizada en 4 capas, con **1,668+ tests** automatizados, **81 endpoints REST**, 15 cápsulas de conocimiento con contenido real, y soporte para despliegue en Docker, Kubernetes o SSD portátil. Incluye el **ReflectionEngine v2.1** para reflexión autónoma durante SLEEPING con gestión inteligente de presupuesto cloud.
 
 > **Documentación técnica completa:** [`docs/19_ZOE_TECHNICAL_INTERNALS.md`](zoe/docs/19_ZOE_TECHNICAL_INTERNALS.md)
 
@@ -196,13 +196,14 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Python | 202 |
-| Líneas de código | ~65,000 |
-| Tests | 1,633+ (99.93% pass) |
-| Archivos de test | 60 |
-| LOC de tests | ~25,000 |
+| Archivos Python | 205 |
+| Líneas de código | ~68,000 |
+| Tests | 1,668+ (99.93% pass) |
+| Archivos de test | 61 |
+| LOC de tests | ~26,000 |
 | Cápsulas | 15 con contenido real |
-| Endpoints REST | 78 (+ health checks + metrics) |
+| Endpoints REST | 81 (+ health checks + metrics + reflections) |
+| ReflectionEngine v2.1 | Sí — Reflexión autónoma durante SLEEPING |
 | Documentos | 50+ |
 | Backends LLM | 6 |
 | Plataformas | macOS, Linux, Windows, Docker, Kubernetes, PWA, Telegram, SSD portátil |
@@ -243,6 +244,16 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 - **CapsuleLoader/Registry** — Carga dinámica en runtime
 - **Marketplace framework** — 5 tipos de licencia, revenue split 70/30
 
+### Reflexión Autónoma v2.1 — ReflectionEngine
+- **Ejecuta durante SLEEPING** — Cuando ZOE no atiende al usuario, reflexiona sobre memorias de alta saliencia
+- **Gestión inteligente de presupuesto cloud** — BudgetTracker con precios reales (OpenAI, Anthropic, DeepSeek). Límite diario configurable
+- **Saliencia computada** — Recencia + intensidad emocional + confianza inversa + conexiones
+- **Almacenamiento en tipos existentes** — MemoryType.COUNTERFACTUAL (simulaciones) y EVOLUTIONARY (expansión de conocimiento)
+- **Validación de insights** — MentorAgent evalúa calidad + KnowledgeQuarantine filtra antes de persistir
+- **Async puro** — 0 threading, integrado con el metabolism.tick() existente
+- **Fallback de modelo** — DeepSeek-R1:32b-iq2 → qwq-32b-iq2 → qwen2.5:14b-iq2
+- **L4_REFLECTION en ACD** — Nivel adicional en ModelProfileRouter para reflexión profunda
+
 ### Infraestructura
 - **Docker** — Multi-stage build, docker-compose con Ollama
 - **Kubernetes** — 15 manifiestos (deployment, service, ingress, postgres, ollama, rbac)
@@ -258,7 +269,7 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 ---
 
-## Dashboard — 78 Endpoints REST
+## Dashboard — 81 Endpoints REST
 
 | Categoría | Endpoints |
 |-----------|-----------|
@@ -270,6 +281,7 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 | Federación | `/federation/epistemic/*` (6 endpoints) |
 | Cuarentena | `/api/quarantine/*` (4 endpoints) |
 | Mentor | `/api/mentor/*` (3 endpoints) |
+| **Reflection v2.1** | **`/api/reflections` (list), `/api/reflections/metrics`, `/api/reflections/config`** |
 | Resources/ModelBus/Planner | `/api/resources/*`, `/api/modelbus/*`, `/api/planner/*` |
 | Health | `/health`, `/ready`, `/live` (públicos) |
 | Metrics | `/metrics` (Prometheus, público) |
@@ -367,7 +379,7 @@ Licensed under the Apache License, Version 2.0.
 
 <p align="center">
   <b>ZOE v2.0.0-rc1 — Synthetic Cognitive Organism</b><br>
-  1,633+ tests · 202 archivos Python · 15 cápsulas · 78 endpoints · 6 backends LLM · 4 idiomas<br>
+  1,668+ tests · 205 archivos Python · 15 cápsulas · 81 endpoints · 6 backends LLM · 4 idiomas<br>
   Docker · Kubernetes · SSD portátil · 100% offline<br>
   <i>"ZOE no es un modelo que responde. Es un organismo que existe."</i>
 </p>
