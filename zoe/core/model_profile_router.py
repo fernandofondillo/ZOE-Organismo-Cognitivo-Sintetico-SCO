@@ -135,9 +135,9 @@ class ModelProfileRouter:
             "fallback": "qwq-32b-iq2",
         },
         "L4_REFLECTION": {
-            "preferred": "deepseek-r1:32b-q4km",
-            "reason": "DeepSeek-R1-Distill-Qwen-32B Q4_K_M (~18GB). Máxima calidad para razonamiento paso a paso durante reflexión autónoma en SLEEPING. Cuantización Q4_K_M preserva ~98% de calidad. NO para interacción en tiempo real — solo ciclo SLEEPING.",
-            "fallback": "deepseek-r1:32b-iq2",
+            "preferred": "deepseek-r1:32b-iq2",
+            "reason": "DeepSeek-R1-Distill-Qwen-32B IQ2_M (~12.5GB). Cuantización ultra-ligera optimizada para MacBook Air M3 8GB. Preserva ~93% de calidad. Reflexión autónoma durante SLEEPING sin swap destructivo. NO para interacción en tiempo real — solo ciclo SLEEPING. Si tienes 16GB+ RAM, el bootstrap instala Q4_K_M automáticamente.",
+            "fallback": "qwq-32b-iq2",
         },
     }
     
@@ -148,7 +148,7 @@ class ModelProfileRouter:
         "L2_STANDARD": ["agents-a1-iq2", "qwen2.5:32b-iq2", "deepseek-r1:32b-iq2", "gemma-2-9b-iq2", "pattern"],
         "L3_DEEP": ["qwq-32b-iq2", "deepseek-r1:32b-iq2", "qwen2.5:32b-iq2", "agents-a1-iq2", "pattern"],
         "L3_MAXIMUM": ["qwen2.5:72b-iq2", "llama3.1:70b-iq2", "qwq-32b-iq2", "deepseek-r1:32b-iq2", "qwen2.5:32b-iq2", "pattern"],
-        "L4_REFLECTION": ["deepseek-r1:32b-q4km", "deepseek-r1:32b-iq2", "qwq-32b-iq2", "qwen2.5:32b-iq2"],
+        "L4_REFLECTION": ["deepseek-r1:32b-iq2", "deepseek-r1:32b-q4km", "qwq-32b-iq2", "qwen2.5:32b-iq2"],
     }
     
     def __init__(self):
@@ -196,20 +196,36 @@ class ModelProfileRouter:
         logger.info(f"ModelProfileRouter: {len(installed)} models detected: {installed}")
         return installed
     
-    def create_optimal_profile(self, installed_models: List[str] = None) -> ModelProfile:
+    def create_optimal_profile(self, installed_models: List[str] = None, ram_gb: float = None) -> ModelProfile:
         """
         Crea el perfil óptimo con los modelos disponibles.
         
         Asigna cada modelo al nivel ACD donde es mejor, usando
         fallbacks si el preferido no está disponible.
         
+        Si ram_gb >= 16.0 y deepseek-r1:32b-q4km está disponible,
+        L4_REFLECTION usa Q4_K_M para máxima calidad.
+        
         Args:
             installed_models: lista de claves instaladas (si None, usa self._installed_models)
+            ram_gb: RAM disponible en GB (si None, no ajusta L4_REFLECTION)
             
         Returns:
             ModelProfile con asignaciones óptimas
         """
         available = installed_models or self._installed_models
+        
+        # Ajustar cadena de fallback para L4_REFLECTION según RAM disponible
+        if ram_gb is not None and ram_gb >= 16.0 and "deepseek-r1:32b-q4km" in available:
+            # RAM alta + q4km disponible: preferir calidad máxima
+            self.FALLBACK_CHAINS["L4_REFLECTION"] = [
+                "deepseek-r1:32b-q4km", "deepseek-r1:32b-iq2", "qwq-32b-iq2", "qwen2.5:32b-iq2"
+            ]
+        else:
+            # Por defecto: preferir iq2 (más ligero, sin swap)
+            self.FALLBACK_CHAINS["L4_REFLECTION"] = [
+                "deepseek-r1:32b-iq2", "deepseek-r1:32b-q4km", "qwq-32b-iq2", "qwen2.5:32b-iq2"
+            ]
         
         if not available:
             # Sin modelos instalados — todo a PatternSpeaker

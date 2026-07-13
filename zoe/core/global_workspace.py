@@ -1,15 +1,11 @@
 """
-ZOE v1.0 — Global Workspace (Fase 2.5)
+ZOE v1.0 -- Global Workspace (Teoria de Bernard Baars)
 
-Espacio compartido de capacidad limitada donde los sub-agentes compiten
-por acceso. El ganador hace "broadcast" a todos los demás.
+Implementa la "conciencia" del organismo: los 12 sub-agentes envian
+propuestas que compiten por acceso al espacio de trabajo global.
+Las ganadoras se "emiten" a todos los sub-agentes.
 
-Inspiración: Global Workspace Theory de Baars.
-
-Diferencia con bucle lineal (Fase 0-1):
-- En Fase 0-1: el bucle decide qué sub-agente ejecutar en secuencia
-- En Fase 2: todos los sub-agentes proponen acciones, el workspace
-  selecciona la ganadora por relevancia, urgencia, novedad, energía
+Basado en: Baars, B.J. (1988) "A Cognitive Theory of Consciousness"
 """
 
 from __future__ import annotations
@@ -24,159 +20,192 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Proposal:
-    """Propuesta de un sub-agente para el workspace."""
+    """Propuesta de un sub-agente para el Global Workspace."""
 
-    subagent_name: str
-    action: str  # qué quiere hacer
-    content: str  # pensamiento o acción propuesta
-    relevance: float = 0.5  # 0-1, cuán relevante para el contexto actual
-    urgency: float = 0.5  # 0-1, cuán urgente
-    novelty: float = 0.5  # 0-1, cuán novedoso
-    energy_cost: float = 0.3  # 0-1, cuánta energía requiere
+    # Autor
+    subagent_name: str = ""
+    content: str = ""
+
+    # Scoring (0-1)
+    relevance: float = 0.0   # 50% del score: relacion con contexto
+    urgency: float = 0.0     # 30% del score: urgencia
+    novelty: float = 0.0     # 20% del score: novedad vs pensamientos recientes
+
+    # Coste
+    energy_cost: float = 0.1  # cuanta energia consume ejecutarla
+
+    # Metadata
     timestamp: float = field(default_factory=time.time)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def score(self, available_energy: float = 1.0) -> float:
-        """Puntaje de la propuesta para selección."""
-        # Ponderación: relevancia + urgencia + novedad, penalizado por coste
-        base = (
-            self.relevance * 0.4
-            + self.urgency * 0.3
-            + self.novelty * 0.2
-            - self.energy_cost * 0.1
-        )
-        # Penalizar si el coste excede energía disponible
-        if self.energy_cost > available_energy:
-            base *= 0.3
-        return base
+    # Score computado (se calcula en compete)
+    score: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "subagent_name": self.subagent_name,
-            "action": self.action,
-            "content": self.content[:100],
+            "content": self.content[:200],
             "relevance": self.relevance,
             "urgency": self.urgency,
             "novelty": self.novelty,
             "energy_cost": self.energy_cost,
-            "score": self.score(),
+            "score": self.score,
             "timestamp": self.timestamp,
         }
 
 
 class GlobalWorkspace:
     """
-    Espacio compartido donde los sub-agentes compiten.
+    Espacio de trabajo global (Baars).
 
-    Flujo:
-    1. Cada sub-agente propone una acción al workspace
-    2. El workspace selecciona la propuesta con mayor score
-    3. La propuesta ganadora hace broadcast a todos los sub-agentes
-    4. Los sub-agentes actualizan su estado interno según el broadcast
+    Los sub-agentes envian propuestas que compiten por acceso.
+    Las ganadoras se emiten a todos (broadcast).
+
+    Attributes:
+        max_proposals: maximo propuestas a aceptar por tick
+        broadcast_capacity: cuantas propuestas ganan (tipicamente 1-3)
     """
 
     def __init__(self, max_proposals: int = 12, broadcast_capacity: int = 3):
         self.max_proposals = max_proposals
-        self.broadcast_capacity = broadcast_capacity  # cuántas propuestas ganan
+        self.broadcast_capacity = broadcast_capacity
 
-        # Estado actual del workspace
+        # Propuestas del tick actual
         self._proposals: List[Proposal] = []
+
+        # Ganadores del ultimo tick
         self._winners: List[Proposal] = []
-        self._broadcast_state: Dict[str, Any] = {}
 
-        # Estadísticas
-        self._total_competitions: int = 0
-        self._winner_history: List[str] = []  # nombres de sub-agentes ganadores
-        self._broadcasts_made: int = 0
+        # Historial
+        self._total_ticks: int = 0
+        self._total_proposals: int = 0
+        self._total_winners: int = 0
 
-    def submit(self, proposal: Proposal) -> None:
-        """Un sub-agente envía una propuesta al workspace."""
+        logger.info(f"GlobalWorkspace: capacity={broadcast_capacity}, max_proposals={max_proposals}")
+
+    def submit(self, proposal: Proposal) -> bool:
+        """Envia una propuesta al workspace.
+
+        Returns:
+            True si se acepto, False si esta lleno.
+        """
+        if len(self._proposals) >= self.max_proposals:
+            logger.debug(f"Workspace full ({self.max_proposals}), proposal rejected")
+            return False
+
         self._proposals.append(proposal)
-        if len(self._proposals) > self.max_proposals:
-            # Mantener solo las de mayor score
-            self._proposals.sort(key=lambda p: p.score(), reverse=True)
-            self._proposals = self._proposals[: self.max_proposals]
+        return True
 
-    def submit_batch(self, proposals: List[Proposal]) -> None:
-        """Envía múltiples propuestas."""
+    def submit_batch(self, proposals: List[Proposal]) -> int:
+        """Envia un lote de propuestas.
+
+        Returns:
+            Numero de propuestas aceptadas.
+        """
+        accepted = 0
         for p in proposals:
-            self.submit(p)
+            if self.submit(p):
+                accepted += 1
+        return accepted
 
     def compete(self, available_energy: float = 1.0) -> List[Proposal]:
         """
-        Los sub-agentes compiten. Selecciona los ganadores.
+        Compite y selecciona las mejores propuestas.
+
+        El score se calcula como:
+        - relevance * 0.50
+        - urgency * 0.30
+        - novelty * 0.20
+
+        El presupuesto energetico limita cuantas pueden ganar.
+
+        Args:
+            available_energy: energia disponible (0-1, afecta cuantas ganan)
 
         Returns:
-            Lista de propuestas ganadoras (top N por score)
+            Lista de propuestas ganadoras.
         """
         if not self._proposals:
+            self._winners = []
             return []
 
-        # Ordenar por score
-        self._proposals.sort(
-            key=lambda p: p.score(available_energy), reverse=True
-        )
+        # Calcular score para cada propuesta
+        for p in self._proposals:
+            p.score = p.relevance * 0.50 + p.urgency * 0.30 + p.novelty * 0.20
 
-        # Seleccionar ganadores (top broadcast_capacity)
-        winners = self._proposals[: self.broadcast_capacity]
+        # Ordenar por score descendente
+        sorted_proposals = sorted(self._proposals, key=lambda x: x.score, reverse=True)
+
+        # Determinar cuantas pueden ganar segun energia disponible
+        # broadcast_capacity es el maximo, pero la energia puede limitar
+        effective_capacity = max(1, min(
+            self.broadcast_capacity,
+            int(self.broadcast_capacity * available_energy) + 1
+        ))
+
+        # Seleccionar ganadores (hasta effective_capacity)
+        winners = []
+        remaining_energy = available_energy
+        for p in sorted_proposals:
+            if len(winners) >= effective_capacity:
+                break
+            if p.energy_cost <= remaining_energy:
+                winners.append(p)
+                remaining_energy -= p.energy_cost
 
         self._winners = winners
-        self._total_competitions += 1
+        self._total_winners += len(winners)
+        self._total_proposals += len(self._proposals)
+        self._total_ticks += 1
 
-        # Registrar ganadores
-        for w in winners:
-            self._winner_history.append(w.subagent_name)
-        if len(self._winner_history) > 100:
-            self._winner_history = self._winner_history[-50:]
-
-        # Crear broadcast state
-        self._broadcast_state = {
-            "winning_actions": [w.action for w in winners],
-            "winning_contents": [w.content[:50] for w in winners],
-            "winning_subagents": [w.subagent_name for w in winners],
-            "timestamp": time.time(),
-        }
+        logger.debug(
+            f"Workspace compete: {len(self._proposals)} proposals, "
+            f"{len(winners)} winners, energy={available_energy:.2f}"
+        )
 
         return winners
 
-    def broadcast(self) -> Dict[str, Any]:
+    def broadcast(self) -> List[Proposal]:
         """
-        Devuelve el estado del broadcast para que todos los sub-agentes
-        se actualicen.
+        Emite las propuestas ganadoras a todos los sub-agentes.
+
+        En la implementacion actual, esto devuelve los ganadores
+        para que el cognitive_loop los procese.
 
         Returns:
-            Estado del broadcast (qué ganó, qué debe hacer cada sub-agente)
+            Lista de propuestas ganadoras del ultimo compete().
         """
-        self._broadcasts_made += 1
-        return dict(self._broadcast_state)
+        return list(self._winners)
 
     def clear(self) -> None:
-        """Limpia propuestas para la próxima iteración."""
+        """Limpia las propuestas del tick actual."""
         self._proposals = []
 
     def get_winners(self) -> List[Proposal]:
-        """Devuelve los ganadores actuales."""
-        return self._winners
+        """Devuelve los ganadores del ultimo tick."""
+        return list(self._winners)
 
     def get_stats(self) -> Dict[str, Any]:
-        # Distribución de ganadores
-        winner_dist: Dict[str, int] = {}
-        for name in self._winner_history:
-            winner_dist[name] = winner_dist.get(name, 0) + 1
-
+        """Estadisticas del workspace."""
         return {
-            "total_competitions": self._total_competitions,
-            "broadcasts_made": self._broadcasts_made,
+            "total_ticks": self._total_ticks,
+            "total_proposals": self._total_proposals,
+            "total_winners": self._total_winners,
+            "win_rate": (
+                self._total_winners / max(1, self._total_proposals)
+            ),
             "current_proposals": len(self._proposals),
             "current_winners": len(self._winners),
-            "winner_distribution": winner_dist,
             "broadcast_capacity": self.broadcast_capacity,
+            "max_proposals": self.max_proposals,
         }
 
     def summary(self) -> str:
+        """Resumen legible."""
+        s = self.get_stats()
         return (
-            f"GlobalWorkspace(competitions={self._total_competitions}, "
-            f"broadcasts={self._broadcasts_made}, "
-            f"proposals={len(self._proposals)}, "
-            f"winners={len(self._winners)})"
+            f"GlobalWorkspace(ticks={s['total_ticks']}, "
+            f"proposals={s['total_proposals']}, "
+            f"winners={s['total_winners']}, "
+            f"win_rate={s['win_rate']:.1%})"
         )

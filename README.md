@@ -14,8 +14,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.0-blue?style=flat-square" alt="Version"></a>
-  <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1668%2B-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.1-blue?style=flat-square" alt="Version"></a>
+  <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1381%2B-brightgreen?style=flat-square" alt="Tests"></a>
   <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=github" alt="CI"></a>
   <a href="Dockerfile"><img src="https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker" alt="Docker"></a>
   <a href="k8s/"><img src="https://img.shields.io/badge/kubernetes-ready-blue?style=flat-square&logo=kubernetes" alt="Kubernetes"></a>
@@ -28,6 +28,27 @@
   <a href="docs/10_HARDWARE_OPTIMIZATION.md"><img src="https://img.shields.io/badge/SSD%20%7C%20USB%20%7C%20VPS%20%7C%20K8s-deployable-orange?style=flat-square" alt="Deploy"></a>
   <img src="https://img.shields.io/badge/status-release%20candidate-success?style=flat-square" alt="Status">
 </p>
+
+---
+
+## Por que ZOE es un Organismo (no una herramienta)
+
+ZOE es un **Organismo Cognitivo Sintetico** porque el codigo demuestra:
+
+| Capacidad | Evidencia en codigo |
+|-----------|---------------------|
+| **Piensa sin input** | Bucle cognitivo infinito con 5 fases (OBSERVE -> PREDICT -> EVALUATE -> DECIDE -> ACT) que corre cada 3-5s |
+| **Se cansa y duerme** | 4 estados metabolicos (AWAKE/DROWSY/SLEEPING/WAKING) con umbrales de fatiga |
+| **Tiene identidad inmutable** | SHA-256 de 9 vectores + 7 valores + proposito. Ninguna mutacion puede alterarlos |
+| **11 tipos de memoria** | Episodica, Semantica, Procedural, Causal, Emocional, Corporal, Social, Prospectiva, Contrafactual, Evolutiva, Cultural |
+| **Consolida mientras duerme** | 7 operaciones de DeepConsolidation durante SLEEPING |
+| **Registra cada cambio** | TrajectoryChain criptografica con hashes encadenados (blockchain de la vida de ZOE) |
+| **Tiene 6 leyes constitucionales** | UTILITY, IDENTITY, PROVENANCE, COST, CONFIDENCE, MODULARITY — cada accion se verifica |
+| **Modifica su arquitectura** | OntogeneticMotorV2 puede anadir/eliminar sub-agentes, modificar thresholds, ajustar metabolismo |
+| **Evoluciona como especie** | PhylogeneticMotor con pool compartido: mejoras validadas por >=2 ZOEs se propagan |
+| **Delibera consciente** | GlobalWorkspace (Baars) + MetaCognition (Kahneman S1/S2) |
+| **Mutaciones reales** | organism.subagents.append() — modificaciones de objetos Python en runtime |
+| **No reescribe su pasado** | Rollback anade, nunca elimina. La cadena es inmutable |
 
 ---
 
@@ -71,7 +92,7 @@ El instalador detecta automáticamente tu SSD, verifica Python, descarga ZOE, y 
 
 ### Qué es ZOE en términos técnicos
 
-ZOE es un **framework Python de ~68,000 LOC** que implementa una arquitectura cognitiva completa organizada en 4 capas, con **1,668+ tests** automatizados, **81 endpoints REST**, 15 cápsulas de conocimiento con contenido real, y soporte para despliegue en Docker, Kubernetes o SSD portátil. Incluye el **ReflectionEngine v2.1** para reflexión autónoma durante SLEEPING con gestión inteligente de presupuesto cloud.
+ZOE es un **framework Python de ~68,000 LOC** que implementa una arquitectura cognitiva completa organizada en 4 capas, con **1,381+ tests** automatizados, **81 endpoints REST**, 15 cápsulas de conocimiento con contenido real, 12 sub-agentes, y soporte para despliegue en Docker, Kubernetes o SSD portátil. Incluye el **ReflectionEngine v2.1** para reflexión autónoma durante SLEEPING con gestión inteligente de presupuesto cloud.
 
 > **Documentación técnica completa:** [`docs/19_ZOE_TECHNICAL_INTERNALS.md`](zoe/docs/19_ZOE_TECHNICAL_INTERNALS.md)
 
@@ -180,13 +201,17 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 ### Mejoras implementadas en esta evolución
 
-- **Seguridad:** 0 vulnerabilidades críticas. Auth obligatoria por defecto. Rate limiting (60/10 req/min). 7 headers de seguridad HTTP. Path traversal y Zip Slip protegidos. SHA-256 en toda la federación. 69 tests de pentesting + 44 de chaos engineering.
+- **Seguridad:** 0 vulnerabilidades críticas. Auth obligatoria por defecto. Rate limiting (60/10 req/min). 7 headers de seguridad HTTP. Path traversal y Zip Slip protegidos. SHA-256 en toda la federación. 69 tests de pentesting + 44 de chaos engineering. 34 bare except eliminados, 7 MD5 -> SHA-256.
 - **Infraestructura:** Dockerfile multi-stage, docker-compose (ZOE + Ollama), 15 manifiestos Kubernetes, 3 workflows GitHub Actions (CI, Docker, Security), health checks (/health, /ready, /live), Prometheus metrics (/metrics), log rotation (10MB/5 backups).
 - **Backend de persistencia:** PostgreSQL opcional vía factory pattern (asyncpg, JSONB, connection pooling). SQLite con WAL mode activo. Script de backup automatizado.
 - **Dashboard refactorizado:** Monolito de 3,351 LOC → 28 módulos separados (15 handlers + 4 middleware + HTML aislado). Backward compatible.
 - **Resiliencia:** Circuit Breaker para LLM (CLOSED/OPEN/HALF_OPEN) con fallback a PatternSpeaker.
 - **Integración:** MentorAgent, LanguageDetector (4 idiomas), y CognitiveOptimizationLayer conectados al bucle cognitivo V5.
 - **Instalador SSD:** Script dedicado para SSD Crucial X9 1TB + MacBook Air M3 con detección automática de hardware.
+- **L4_REFLECTION adaptativo por RAM:** DeepSeek-R1 32B IQ2_M (8GB) / Q4_K_M (16GB+), detectado automáticamente.
+- **BudgetTracker:** Control de costes cloud con precios reales (OpenAI, Anthropic, DeepSeek). Límite diario configurable.
+- **Thinking indicator:** "ZOE está pensando..." con animación visual durante procesamiento LLM.
+- **Global Workspace recuperado:** Teoría de Baars implementada en `global_workspace.py`.
 
 > **Informes completos de auditoría en:** [`zoe/docs/ZOE_OMEGA_AUDITORIA_FINAL.md`](zoe/docs/ZOE_OMEGA_AUDITORIA_FINAL.md)
 
@@ -196,15 +221,16 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Python | 205 |
+| Archivos Python | 202+ |
 | Líneas de código | ~68,000 |
-| Tests | 1,668+ (99.93% pass) |
+| Tests | 1,381+ (1,292 pasando) |
 | Archivos de test | 61 |
 | LOC de tests | ~26,000 |
-| Cápsulas | 15 con contenido real |
+| Cápsulas | 15 |
+| Sub-agentes | 12 |
 | Endpoints REST | 81 (+ health checks + metrics + reflections) |
 | ReflectionEngine v2.1 | Sí — Reflexión autónoma durante SLEEPING |
-| Documentos | 50+ |
+| Documentos | 41+ |
 | Backends LLM | 6 |
 | Plataformas | macOS, Linux, Windows, Docker, Kubernetes, PWA, Telegram, SSD portátil |
 | Idiomas | ES, EN, FR, DE (auto-detectado) |
@@ -378,8 +404,8 @@ Licensed under the Apache License, Version 2.0.
 ---
 
 <p align="center">
-  <b>ZOE v2.0.0-rc1 — Synthetic Cognitive Organism</b><br>
-  1,668+ tests · 205 archivos Python · 15 cápsulas · 81 endpoints · 6 backends LLM · 4 idiomas<br>
+  <b>ZOE v2.1.1 — Synthetic Cognitive Organism</b><br>
+  1,381+ tests · 202+ archivos Python · 15 cápsulas · 12 sub-agentes · 81 endpoints · 6 backends LLM · 4 idiomas<br>
   Docker · Kubernetes · SSD portátil · 100% offline<br>
   <i>"ZOE no es un modelo que responde. Es un organismo que existe."</i>
 </p>

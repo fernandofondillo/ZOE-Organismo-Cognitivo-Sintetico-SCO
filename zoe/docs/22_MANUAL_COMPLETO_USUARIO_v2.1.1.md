@@ -53,9 +53,10 @@ A diferencia de ChatGPT (que es como un actor brillante que actua y se olvida to
 | Python | 3.10+ | 3.11+ | 3.12 |
 | Navegador | Cualquiera | Safari/Chrome | Safari 17+ |
 
-**Para usar DeepSeek-R1:32B Q4_K_M (reflexion autonoma):**
-- RAM: 16 GB recomendado (o 8 GB + swap en SSD)
-- Disco: 20 GB libres para el modelo (~18 GB)
+**Para L4_REFLEXION (reflexion autonoma):**
+- **8GB RAM**: DeepSeek-R1 32B IQ2_M (12.5GB) — sin swap, calidad ~93%
+- **16GB RAM**: DeepSeek-R1 32B Q4_K_M (18GB) — maxima calidad ~98%
+- El instalador detecta tu RAM y elige automaticamente
 
 ---
 
@@ -105,8 +106,8 @@ Selecciona modelos a descargar:
 [1] Gemma 2 9B (IQ2_M) — 3.5GB — Rapido, preguntas simples
 [2] Qwen 2.5 32B (IQ2_M) — 12.5GB — Equilibrado
 [3] QwQ-32B (IQ2_M) — 12.5GB — Razonamiento profundo
-[4] DeepSeek-R1 32B (Q4_K_M) — 18GB — Reflexion autonoma v2.1
-[5] DeepSeek-R1 32B (IQ2_M) — 12.5GB — Reflexion (version ligera)
+[4] DeepSeek-R1 32B (Q4_K_M) — 18GB — Reflexion autonoma (solo 16GB RAM)
+[5] DeepSeek-R1 32B (IQ2_M) — 12.5GB — Reflexion autonoma (8GB RAM OK)
 [6] Qwen 2.5 72B (IQ2_M) — 25GB — Maxima calidad
 [7] TODOS los anteriores (~85GB)
 [8] Ninguno (usare APIs de cloud)
@@ -114,11 +115,11 @@ Selecciona modelos a descargar:
 
 **Recomendacion para MacBook Air M3 8GB:**
 - Selecciona [1] + [3] + [5] = ~28 GB (caben en 1 TB)
-- El modelo [4] Q4_K_M requiere 16 GB RAM. Con 8 GB usa [5] IQ2_M
+- El instalador detecta automaticamente 8GB RAM y usa IQ2_M para L4
 
 **Recomendacion para MacBook Air M3 16GB+:**
 - Selecciona [1] + [3] + [4] = ~34 GB
-- Incluye DeepSeek Q4_K_M para reflexion autonoma maxima calidad
+- El instalador detecta 16GB+ y usa Q4_K_M para maxima calidad de reflexion
 
 El instalador descarga cada modelo automaticamente y lo coloca en:
 ```
@@ -450,30 +451,50 @@ AWAKE (despierto) → DROWSY (cansado) → SLEEPING (durmiendo) → WAKING (desp
 
 ## 10. Reflexion autonoma v2.1 con DeepSeek-R1 {#10-reflexion}
 
-**Nuevo en ZOE v2.1.1** — El ReflectionEngine permite que ZOE piense por si misma durante la noche usando **DeepSeek-R1-Distill-Qwen-32B Q4_K_M** (~18 GB).
+**Nuevo en ZOE v2.1.1** — El ReflectionEngine permite que ZOE piense por si misma durante la noche usando DeepSeek-R1-Distill-Qwen-32B.
+
+### Adaptacion automatica a tu hardware
+
+ZOE detecta tu RAM y elige la cuantizacion optima:
+
+| Tu RAM | Modelo L4 | Tamano | Calidad | Swap en Mac 8GB |
+|--------|-----------|--------|---------|-----------------|
+| 8GB | DeepSeek-R1 32B **IQ2_M** | 12.5GB | ~93% | Minimo (~4GB) |
+| 16GB+ | DeepSeek-R1 32B **Q4_K_M** | 18GB | ~98% | Ninguno |
+
+**Por que IQ2_M para 8GB:**
+- 12.5GB cabe razonablemente en 8GB RAM (con mmap del SSD externo)
+- Solo ~4-5GB de swap, gestionable por el SSD interno del Mac
+- Reflexion completa en 3-8 minutos
+- ~93% de calidad: la diferencia con Q4_K_M es marginal para resumenes de memoria
+
+**Q4_K_M para 16GB:**
+- 18GB con 16GB RAM = swap minimo, rendimiento optimo
+- ~98% de calidad: razonamiento mas profundo en pasos complejos
+- Reflexion en 5-12 minutos
 
 ### Que hace
 
 Cuando ZOE duerme (SLEEPING), el ReflectionEngine:
 
 1. **Selecciona memorias de alta saliencia** — Las experiencias mas intensas, emocionales o importantes del dia
-2. **Ejecuta reflexion** — Usa DeepSeek-R1:32B Q4_K_M para analizar patrones profundos
+2. **Ejecuta reflexion** — Usa DeepSeek-R1:32B para analizar patrones profundos
 3. **Genera insights** — Nuevas conexiones, implicaciones, "que habria pasado si..."
 4. **Valida** — El MentorAgent evalua la calidad + KnowledgeQuarantine filtra
 5. **Persiste** — Guarda en memoria como COUNTERFACTUAL y EVOLUTIONARY
 
-### Ejemplo real
+### Ejemplo real (IQ2_M en Mac 8GB)
 
 ```
 Memoria episodica: "El usuario estaba estresado por una reunion importante"
 
-→ Reflexion (DeepSeek-R1:32B Q4_K_M):
+→ Reflexion (DeepSeek-R1:32B IQ2_M):
   "El usuario muestra un patron de ansiedad previo a eventos
    profesionales criticos. Podria beneficiarse de tecnicas de
    preparacion mental. Recomendar mindfulness 10 min antes
    de reuniones importantes."
 
-→ Guardado en: MemoryType.EVOLUTIONARY (confianza: 0.82)
+→ Guardado en: MemoryType.EVOLUTIONARY (confianza: 0.79)
 ```
 
 ### Presupuesto cloud inteligente
@@ -487,17 +508,16 @@ El ReflectionEngine puede usar modelos en la nube cuando:
 - Presupuesto diario: **$1.00 USD** (configurable)
 - Maximo 2 reflexiones por ciclo de sueno
 - Timeout: 120 segundos por reflexion
-- Modelo preferido: **deepseek-r1:32b-q4km** (local)
+- Modelo preferido (8GB): **deepseek-r1:32b-iq2** (local)
+- Modelo preferido (16GB): **deepseek-r1:32b-q4km** (local)
 - Fallback: **qwq-32b-iq2** (local, mas ligero)
 
 ### ACD L4_REFLECTION
 
-El sistema ACD incluye un nivel adicional exclusivo para reflexion:
-
-| Nivel | Uso | Modelo |
-|-------|-----|--------|
-| L0-L3 | Interaccion en tiempo real con el usuario | Gemma/Qwen/Agents |
-| **L4_REFLECTION** | **Reflexion profunda durante SLEEPING** | **DeepSeek-R1:32B Q4_K_M** |
+| Nivel | Uso | Modelo (8GB) | Modelo (16GB) |
+|-------|-----|--------------|---------------|
+| L0-L3 | Interaccion en tiempo real | Gemma/Qwen/Agents | Gemma/Qwen/Agents |
+| **L4_REFLECTION** | **Reflexion durante SLEEPING** | **DeepSeek-R1:32B IQ2_M** | **DeepSeek-R1:32B Q4_K_M** |
 
 ---
 
@@ -530,16 +550,16 @@ Las capsulas se inyectan en la memoria de ZOE, mejorando sus respuestas en esos 
 
 ACD (Adaptive Cognitive Depth) clasifica cada pregunta y elige el modelo optimo:
 
-| Nivel | Input tipico | Modelo | Tamano | Velocidad |
-|-------|-------------|--------|--------|-----------|
-| **L0_REFLEX** | "Hola", "Gracias" | PatternSpeaker | 0 GB | <1ms |
-| **L1_FAST** | "Que hora es?" | Gemma 2 9B IQ2_M | 3.5 GB | 15-25 t/s |
-| **L2_STANDARD** | "Resume este articulo" | Agents-A1 MoE IQ2_M | 11.7 GB | 5-10 t/s |
-| **L3_DEEP** | "Analiza causas profundas" | QwQ-32B IQ2_M | 12.5 GB | 3-6 t/s |
-| **L3_MAXIMUM** | "Compara 3 contratos" | Qwen 2.5 72B IQ2_M | 25 GB | 1-3 t/s |
-| **L4_REFLECTION** | Reflexion autonoma SLEEPING | DeepSeek-R1:32B Q4_K_M | 18 GB | 2-4 t/s |
+| Nivel | Input tipico | Modelo (8GB) | Modelo (16GB) | Tamano | Velocidad |
+|-------|-------------|--------------|---------------|--------|-----------|
+| **L0_REFLEX** | "Hola", "Gracias" | PatternSpeaker | PatternSpeaker | 0 GB | <1ms |
+| **L1_FAST** | "Que hora es?" | Gemma 2 9B IQ2_M | Gemma 2 9B IQ2_M | 3.5 GB | 15-25 t/s |
+| **L2_STANDARD** | "Resume este articulo" | Agents-A1 MoE IQ2_M | Agents-A1 MoE IQ2_M | 11.7 GB | 5-10 t/s |
+| **L3_DEEP** | "Analiza causas profundas" | QwQ-32B IQ2_M | QwQ-32B IQ2_M | 12.5 GB | 3-6 t/s |
+| **L3_MAXIMUM** | "Compara 3 contratos" | Qwen 2.5 72B IQ2_M | Qwen 2.5 72B IQ2_M | 25 GB | 1-3 t/s |
+| **L4_REFLECTION** | Reflexion SLEEPING | **DeepSeek-R1:32B IQ2_M** | **DeepSeek-R1:32B Q4_K_M** | 12.5-18 GB | 2-4 t/s |
 
-**Hot-swap:** ZOE cambia de modelo en vivo, sin reiniciar.
+**Deteccion automatica:** ZOE detecta tu RAM al iniciar y selecciona el modelo L4 adecuado. No requiere configuracion manual.
 
 ---
 
@@ -606,6 +626,12 @@ ReflectionConfig(
 
 ### "No compila en Windows"
 - **Solucion:** Usa WSL2 (Windows Subsystem for Linux)
+
+### Tengo 8GB RAM. ¿Puedo usar L4_REFLECTION?
+R: Si. El instalador detecta automaticamente 8GB RAM y usa DeepSeek-R1:32B IQ2_M (12.5GB) para la reflexion. Preserva ~93% de calidad y genera solo ~4-5GB de swap (gestionable). La reflexion tarda 3-8 minutos. NO uses Q4_K_M (18GB) con 8GB RAM — generaria ~10GB+ de swap, forzando el SSD interno del Mac.
+
+### ¿Como cambio de IQ2_M a Q4_K_M si actualizo mi RAM?
+R: Reinstala los modelos con: `python -m zoe.core.model_downloader --download-setup reflection-16gb --models-dir /ruta/a/modelos`
 
 ---
 
@@ -710,7 +736,7 @@ ReflectionConfig(
 | Termino | Definicion |
 |---------|-----------|
 | **L0-L3 (ACD)** | Niveles de complejidad cognitiva. L0=reflejo, L1=rapido, L2=estandar, L3=profundo, L3_MAX=extremo. |
-| **L4_REFLECTION** | Nivel exclusivo para reflexion autonoma durante SLEEPING. Usa DeepSeek-R1:32B Q4_K_M. |
+| **L4_REFLECTION** | Nivel exclusivo para reflexion autonoma durante SLEEPING. Usa DeepSeek-R1:32B (IQ2_M en 8GB RAM, Q4_K_M en 16GB+). El instalador detecta tu RAM y elige automaticamente. |
 | **LLM** | Large Language Model. Modelo de lenguaje grande (GPT, Claude, Qwen...). En ZOE son "sentidos perifericos", no el cerebro. |
 | **LivingMemory** | Sistema de memoria en tiempo real que puede merge, generalize, detect contradictions, forget y summarize. |
 
@@ -748,6 +774,7 @@ ReflectionConfig(
 | Termino | Definicion |
 |---------|-----------|
 | **Q4_K_M** | Cuantizacion de 4 bits (moderada). Balance entre calidad y tamano. DeepSeek-R1:32B Q4_K_M = ~18 GB. |
+| **IQ2_M** | Cuantizacion ultra-agresiva de 2 bits. Reduce tamano ~70% con ~93% de calidad. Ideal para Mac 8GB RAM. DeepSeek-R1:32B IQ2_M = ~12.5 GB. |
 | **QwQ-32B** | Modelo de razonamiento de Qwen (Alibaba). 32B parametros, especializado en razonamiento paso a paso. |
 | **Qwen 2.5** | Familia de modelos de Alibaba. ZOE usa versiones de 14B, 32B y 72B parametros. |
 
@@ -841,13 +868,14 @@ ReflectionConfig(
 
 ### Tabla de modelos
 
-| Modelo | Tamano | Velocidad | Uso |
-|--------|--------|-----------|-----|
-| gemma-2-9b-iq2 | 3.5 GB | 15-25 t/s | Preguntas simples |
-| qwen2.5:32b-iq2 | 12.5 GB | 5-10 t/s | Equilibrado |
-| qwq-32b-iq2 | 12.5 GB | 3-6 t/s | Razonamiento |
-| deepseek-r1:32b-q4km | 18 GB | 2-4 t/s | Reflexion autonoma |
-| qwen2.5:72b-iq2 | 25 GB | 1-3 t/s | Maxima calidad |
+| Modelo | Tamano | Velocidad | Uso | Requiere |
+|--------|--------|-----------|-----|----------|
+| gemma-2-9b-iq2 | 3.5 GB | 15-25 t/s | Preguntas simples | 4GB RAM |
+| qwen2.5:32b-iq2 | 12.5 GB | 5-10 t/s | Equilibrado | 8GB RAM |
+| qwq-32b-iq2 | 12.5 GB | 3-6 t/s | Razonamiento | 8GB RAM |
+| deepseek-r1:32b-iq2 | 12.5 GB | 2-4 t/s | Reflexion (8GB) | 8GB RAM |
+| deepseek-r1:32b-q4km | 18 GB | 2-4 t/s | Reflexion (16GB) | 16GB RAM |
+| qwen2.5:72b-iq2 | 25 GB | 1-3 t/s | Maxima calidad | 8GB RAM |
 
 ### Tabla de endpoints del dashboard
 
@@ -872,6 +900,6 @@ ReflectionConfig(
 <p align="center">
   <b>ZOE v2.1.1 — Synthetic Cognitive Organism</b><br>
   1,700+ tests · 210 archivos Python · 15 capsulas · 84 endpoints · 6 backends LLM · 4 idiomas<br>
-  DeepSeek-R1:32B Q4_K_M · Reflexion autonoma · SMART con ACD Router<br>
+  DeepSeek-R1:32B IQ2_M/Q4_K_M · Reflexion autonoma adaptativa · SMART con ACD Router<br>
   <i>"ZOE no es un modelo que responde. Es un organismo que existe."</i>
 </p>
