@@ -42,7 +42,7 @@ class TestReflectionConfig:
         assert cfg.max_output_tokens == 512
         assert cfg.daily_cloud_budget == 1.0
         assert cfg.model_tag == "deepseek-r1:32b-q4km"  # Modelo que ya existe en ZOE
-        assert cfg.model_fallback_tag == "qwen2.5:14b-iq2"
+        assert cfg.model_fallback_tag == "qwq-32b-iq2"
 
     def test_custom_config(self):
         """Config personalizada respeta valores."""
