@@ -11,6 +11,10 @@
 [![Marketplace](https://img.shields.io/badge/marketplace-open%20for%20authors-success)](docs/07_MARKETPLACE_GUIDE.md)
 [![Fases](https://img.shields.io/badge/fases-0%20to%207G%20%2B%20Sprint%201-5-purple)](docs/14_ROADMAP.md)
 [![.zoe](https://img.shields.io/badge/.zoe%20format-portable%20organism-orange)](docs/16_ZOE_FORMAT.md)
+[![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](Dockerfile)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-green?logo=github)](.github/workflows/)
+[![Security](https://img.shields.io/badge/security-hardened-critical?logo=shield)](docs/AUDITORIA_SECURITY.md)
+[![Production](https://img.shields.io/badge/status-release%20candidate-success)]()
 
 ---
 
@@ -373,14 +377,21 @@ Usuario: "Analiza este contrato de 30 páginas" (L3_DEEP)
 
 ## Estado actual
 
-**Versión:** V1.8.0 (Julio 2026)
+**Versión:** V1.8.0 (Julio 2026) — Post ZOE OMEGA Correcciones
 **Fases completas:** 0, 0.5, 1, 2, 3, 4, 5, 6A, 6B, 6C, 7F, 7A, 7B, 7C, 7D, 7E, 7G + Sprint 1, 2, 3, 3.5, 3.6, 4, 5, 5.5, 5.6, 5.7, 5.7.1, 5.7.2, 5.7.3, 5.7.4, 5.8, 5.9, 5.10, 5.11
-**Tests:** 1,520+ tests en 55+ archivos (18.551+ LOC de tests), 100% pasando
-**Cápsulas:** 15 operativas (13 originales + multimodal_perception + language_patterns)
+**Tests:** 1,520+ tests en 58 archivos (19,547 LOC de tests), 99.93% pasando
+**Cápsulas:** 15 operativas con contenido real
 **Casos de uso:** 7 documentados
-**Endpoints REST:** 74 (71 verificados 200 OK + 3 nuevos de voice-first)
-**Idiomas:** 4 (ES, EN, FR, DE)
-**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil (Android/iOS), Telegram (todas las plataformas), SSD portátil multiplataforma (exFAT), archivo .zoe, Android (Termux), iPhone/iPad (SSD USB-C / PWA Safari)
+**Endpoints REST:** 74 + 3 health checks (/health, /ready, /live) + /metrics (Prometheus)
+**Idiomas:** 4 (ES, EN, FR, DE) — Language Detector integrado en bucle V5
+**Plataformas:** macOS, Linux, Windows, Docker, Kubernetes, PWA móvil (Android/iOS), Telegram, SSD portátil, archivo .zoe
+
+### Mejoras de Producción (ZOE OMEGA Correcciones)
+- **Seguridad:** 0 vulnerabilidades críticas, auth obligatoria, rate limiting, 7 security headers, path traversal protegido, Zip Slip mitigado, SHA-256 en toda la federación
+- **Infraestructura:** Dockerfile multi-stage, docker-compose (ZOE + Ollama), GitHub Actions CI/CD, health checks, Prometheus metrics, log rotation
+- **Integración:** MentorAgent, LanguageDetector y CognitiveOptimizationLayer conectados al bucle V5
+- **Base de datos:** SQLite WAL mode activo, script de backup automatizado
+- **Observabilidad:** Endpoint /metrics con 9 métricas Prometheus, structured logging opcional
 
 ---
 
