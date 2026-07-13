@@ -73,6 +73,9 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
         _handle_health, _handle_ready, _handle_live, _handle_metrics,
     )
     from .handlers.llm import _handle_llm_switch
+    from .handlers.reflection import (
+        _handle_reflections_list, _handle_reflections_metrics, _handle_reflections_config,
+    )
     from .handlers.hardware import (
         _handle_hardware_ssds, _handle_hardware_token_rates,
         _handle_hardware_cable_warning, _handle_hardware_system,
@@ -177,3 +180,7 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
     app.router.add_get("/ready", bind(_handle_ready))
     app.router.add_get("/live", bind(_handle_live))
     app.router.add_get("/metrics", bind(_handle_metrics))
+    # Reflection (ZOE v2.1 — ReflectionEngine)
+    app.router.add_get("/api/reflections", bind(_handle_reflections_list))
+    app.router.add_get("/api/reflections/metrics", bind(_handle_reflections_metrics))
+    app.router.add_get("/api/reflections/config", bind(_handle_reflections_config))

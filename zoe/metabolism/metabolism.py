@@ -160,13 +160,70 @@ class Metabolism:
         )
 
     def _consolidate_during_sleep(self) -> None:
-        """Consolida memoria durante el sueño."""
-        # En Fase 1: marcar operaciones pendientes
-        # En Fase 3: ejecutar consolidación real con LivingMemory
+        """Consolida memoria durante el sueño.
+
+        En ZOE v2.1+: Además de la consolidación pasiva, ejecuta el
+        ReflectionEngine para reflexión autónoma activa (generación de
+        insights nuevos, no solo reorganización de memoria existente).
+        """
+        # 1. Consolidación pasiva (reorganización de memoria existente)
         if self.pending_consolidation:
             op = self.pending_consolidation.pop(0)
             self.total_consolidation_operations += 1
             logger.debug(f"Metabolism: consolidating '{op}' during sleep")
+
+        # 2. Reflexión autónoma activa (ZOE v2.1 — ReflectionEngine)
+        # Solo ejecutar si hay presupuesto de cómputo disponible
+        if self.compute_spent < self.compute_budget * 0.8:
+            self._run_reflection_during_sleep()
+
+    def _run_reflection_during_sleep(self) -> None:
+        """Ejecuta reflexión autónoma durante SLEEPING vía ReflectionHook.
+
+        Este método es llamado sincrónicamente desde _consolidate_during_sleep,
+        pero el ReflectionHook ejecuta la reflexión de forma async no bloqueante.
+        La reflexión se ejecuta en el mismo loop async que el metabolism.
+        """
+        try:
+            # Lazy import para evitar dependencia circular
+            from ..core.reflection_hook import ReflectionHook
+
+            if not hasattr(self, '_reflection_hook'):
+                self._reflection_hook = None
+
+            if self._reflection_hook is not None:
+                import asyncio
+                metabolic_state = {
+                    "fatigue": self.fatigue,
+                    "energy": self.energy,
+                    "arousal": self.arousal,
+                    "attention": self.attention,
+                    "compute_budget": self.compute_budget,
+                    "compute_spent": self.compute_spent,
+                    "cycle_count": self.total_sleep_cycles,
+                }
+                # Crear tarea async no bloqueante
+                asyncio.create_task(
+                    self._reflection_hook.on_sleeping(metabolic_state)
+                )
+                # Gastar cómputo por la reflexión
+                self.compute_spent += 0.05
+        except Exception as e:
+            logger.debug(f"Reflection during sleep skipped: {e}")
+
+    def attach_reflection_hook(self, reflection_engine) -> None:
+        """Conecta el ReflectionEngine al metabolismo.
+
+        Llamado por ZoeChat durante la inicialización.
+        No modifica el flujo del metabolism — solo añade el hook.
+        """
+        try:
+            from ..core.reflection_hook import ReflectionHook
+            self._reflection_hook = ReflectionHook(reflection_engine)
+            logger.info("Metabolism: ReflectionHook attached")
+        except Exception as e:
+            logger.warning(f"Could not attach ReflectionHook: {e}")
+            self._reflection_hook = None
 
     def should_sleep(self, physics=None) -> bool:
         """Decide si es hora de dormir."""
