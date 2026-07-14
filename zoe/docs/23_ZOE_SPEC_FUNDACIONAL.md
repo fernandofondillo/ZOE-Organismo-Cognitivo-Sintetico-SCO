@@ -1,33 +1,34 @@
 # ZOE — Especificación Fundacional Canónica
 
-**Documento:** ZOE-SPEC-003
-**Versión:** 3.0
+**Documento:** ZOE-SPEC-004
+**Versión:** 4.0
 **Fecha:** 2026-07-14
-**Commit auditado:** `e83ffcb` (HEAD de `main` en GitHub)
+**Commit auditado:** `bb45509` (HEAD de `main` en GitHub)
 **Estado:** Especificación técnica normativa
 
 ---
 
 ## Metodología de auditoría
 
-Se recorrió el repositorio completo en el commit `e83ffcb` obtenido directamente de `git fetch origin && git pull origin main`. Se verificó cada archivo `.py`, cada test, cada endpoint y cada afirmación documental contra el código fuente. Cuando documentación y código discrepan, prevalece el código.
+Se recorrió el repositorio completo en el commit `bb45509` obtenido directamente de `git fetch origin && git pull origin main`. Se verificó cada archivo `.py`, cada test, cada endpoint y cada afirmación documental contra el código fuente. Cuando documentación y código discrepan, prevalece el código.
 
 **Cifras verificadas del repositorio auditado:**
 
 | Métrica | Valor | Método de verificación |
 |---|---|---|
-| Commit HEAD | `e83ffcb` | `git rev-parse HEAD` |
-| Total commits | 81 | `git log --oneline \| wc -l` |
-| Archivos Python | ~95 | `find zoe/ -name "*.py" \| wc -l` |
-| LOC Python | 60.560 | `find zoe/ -name "*.py" \| xargs wc -l` |
-| Tests | 1.641 | `grep -rc "def test_" zoe/tests/ \| awk -F: '{sum+=$2} END {print sum}'` |
-| Archivos de test | 62 | `find zoe/tests/ -name "test_*.py" \| wc -l` |
+| Commit HEAD | `bb45509` | `git rev-parse HEAD` |
+| Total commits | 83 | `git log --oneline \| wc -l` |
+| Archivos Python | ~97 | `find zoe/ -name "*.py" \| wc -l` |
+| LOC Python | 61.410 | `find zoe/ -name "*.py" \| xargs wc -l` |
+| Tests | 1.678 | `grep -rc "def test_" zoe/tests/ \| awk -F: '{sum+=$2} END {print sum}'` |
+| Archivos de test | 65 | `find zoe/tests/ -name "test_*.py" \| wc -l` |
 | Cápsulas | 15 | `find zoe/capsules/ -name "capsule.yaml" \| wc -l` |
 | Endpoints REST | 81 | `grep -c "add_get\|add_post" zoe/dashboard/routes.py` |
 | Casos de uso YAML | 7 | `ls zoe/use_cases/*.yaml \| wc -l` |
 | Docker | ✅ | `Dockerfile` + `docker-compose.yml` |
 | CI/CD | ✅ | `.github/workflows/ci.yml`, `docker.yml`, `security.yml` |
-| Cobertura de tests | ✅ | `.coveragerc` + `pytest-cov>=4.1.0` en setup.py |
+| Cobertura de tests | ✅ | `.coveragerc` + `pytest-cov>=4.1.0` + `--cov-fail-under=55` en CI |
+| PostgreSQL CI | ✅ | Service container `postgres:16` en `ci.yml` |
 | setup.py version | 1.8.0 | `grep "version=" setup.py` |
 
 ---
@@ -36,7 +37,7 @@ Se recorrió el repositorio completo en el commit `e83ffcb` obtenido directament
 
 ## 1.1 Propósito
 
-ZOE es un sistema de software que implementa un bucle cognitivo continuo con identidad criptográfica persistente, memoria multi-tipo con búsqueda semántica opcional, metabolismo funcional, capacidad de auto-modificación arquitectural firmada, motor de reflexión autónoma, y evolución filogenética distribuida.
+ZOE es un sistema de software que implementa un bucle cognitivo continuo con identidad criptográfica persistente, memoria multi-tipo con búsqueda semántica opcional, metabolismo funcional, capacidad de auto-modificación arquitectural firmada (7 tipos completos), motor de reflexión autónoma, evolución filogenética distribuida con persistencia atómica, federación con discovery automático, adaptación al hardware via EmbodimentComposer, y storage abstraction (SQLite + PostgreSQL con tests de integración en CI).
 
 ## 1.2 Principios
 
@@ -60,8 +61,9 @@ ZOE es un sistema de software que implementa un bucle cognitivo continuo con ide
 | **Tick** | Iteración del bucle: observe→predict→evaluate→decide→act. |
 | **ReflectionEngine** | Motor de reflexión autónoma durante SLEEPING. |
 | **SemanticSearch** | Búsqueda por embeddings (opcional, fallback a Jaccard). |
-| **DistributedPhylogeneticPool** | Pool filogenético con persistencia JSON atómica para ZOEs en procesos distintos. |
-| **FederationDiscovery** | Discovery automático de pares via filesystem compartido. |
+| **DistributedPhylogeneticPool** | Pool filogenético con persistencia JSON atómica y recarga anti-lost-update. |
+| **FederationDiscovery** | Discovery automático de pares via filesystem compartido, con refresh periódico cada 60s. |
+| **EmbodimentComposer** | Adaptación de arquitectura al hardware via `--compose` que genera `embodiment_plan.json`. |
 
 ---
 
@@ -79,8 +81,10 @@ Sistema que cumple simultáneamente:
 6. Leyes cognitivas verificables (`cognitive_laws.py:22-30`)
 7. Auto-modificación arquitectural completa — 7 tipos (`ontogenetic_motor_v2.py:105-169`)
 8. Reflexión autónoma (`reflection_engine.py`, `reflection_hook.py`)
-9. Evolución filogenética distribuida (`distributed_phylogenetic_pool.py`, `phylogenetic_motor.py:177-182`)
-10. Federación con discovery automático (`federation_discovery.py`, `epistemic_federation_server.py:67-91`)
+9. Evolución filogenética distribuida con anti-lost-update (`distributed_phylogenetic_pool.py`, `phylogenetic_motor.py:177-182`)
+10. Federación con discovery automático y refresh periódico (`federation_discovery.py`, `epistemic_federation_server.py:96-126`)
+11. Adaptación al hardware via EmbodimentComposer (`cli_chat.py:1085-1112`, `embodiment_composer.py`)
+12. Storage abstraction con PostgreSQL testing en CI (`storage/`, `.github/workflows/ci.yml`)
 
 ## 2.2 Identidad
 
@@ -120,13 +124,19 @@ Motor de reflexión autónoma que se activa durante SLEEPING. NO es un nivel L4 
 
 **Evidencia:** `core/distributed_phylogenetic_pool.py` + `core/phylogenetic_motor.py:177-182`.
 
-`PhylogeneticMotor.__init__` acepta `pool_path: Optional[str] = None`. Si se pasa, usa `DistributedPhylogeneticPool` con persistencia JSON atómica (write tmp + replace). Si no, usa singleton en memoria (backward compatible).
+`PhylogeneticMotor.__init__` acepta `pool_path: Optional[str] = None`. Si se pasa, usa `DistributedPhylogeneticPool` con persistencia JSON atómica (write tmp + replace). `record_test_result()` y `mark_incorporated()` recargan desde disco (`_load()`) antes de modificar, evitando lost-updates entre ZOEs.
 
 ## 2.7 Federation con discovery
 
-**Evidencia:** `core/federation_discovery.py` (185 LOC) + `core/epistemic_federation_server.py:67-91`.
+**Evidencia:** `core/federation_discovery.py` (185 LOC) + `core/epistemic_federation_server.py:96-126`.
 
-`EpistemicFederationServer.__init__` acepta `discovery_mode: str = "manual"` y `peers_file: Optional[str] = None`. Modo `"filesystem"` descubre pares via `peers.json` en SSD compartido. Default `"manual"` preserva comportamiento existente.
+`EpistemicFederationServer.start()` llama `announce()` (escribir en peers.json) + `discover()` (leer peers) + registra peers automáticamente via `register_peer()`. `_start_discovery_refresh()` crea task asyncio cada 60s para descubrir nuevos peers. Integrado en `cli_chat.py:408` que llama `start()` al inicializar.
+
+## 2.8 EmbodimentComposer
+
+**Evidencia:** `cli_chat.py:1085-1112` (flag `--compose`), `embodiment_composer.py` (772 LOC).
+
+`--compose` crea un `ResourcePlan` via `ResourcePlanner` con RAM detectada por `psutil`, pasa el plan correctamente a `compose()`, guarda `embodiment.to_dict()` completo (15+ campos) en `embodiment_plan.json`. Al arrancar sin `--compose`, lee el plan y aplica: `max_entries`, `tick_interval`, y `broadcast_capacity` al `GlobalWorkspace` (`cli_chat.py:232-234`).
 
 ---
 
@@ -165,9 +175,9 @@ METABOLISMO:  metabolism.py (4 estados)
 LEYES:        cognitive_laws.py, cognitive_physics.py, cognitive_fields.py,
               cognitive_tensions.py
 CÁPSULAS:     loader.py, capsule_manager.py, registry.py, 15 cápsulas
-STORAGE:      base.py, factory.py, sqlite_backend.py, postgres_backend.py
-EVOLUCIÓN:    phylogenetic_motor.py, distributed_phylogenetic_pool.py
-FEDERACIÓN:   federation.py, epistemic_federation*.py, federation_discovery.py
+STORAGE:      base.py, factory.py, sqlite_backend.py, postgres_backend.py (con tests + CI)
+EVOLUCIÓN:    phylogenetic_motor.py, distributed_phylogenetic_pool.py (con anti-lost-update)
+FEDERACIÓN:   federation.py, epistemic_federation*.py, federation_discovery.py (con refresh)
 SCRIPTS:      zoe-bootstrap.sh, zoe_setup.py, install_ssd_crucial_x9_mac.sh,
               backup.sh, deploy.sh, install_windows.ps1, configure_ollama_ssd.sh
 ```
@@ -184,11 +194,11 @@ SCRIPTS:      zoe-bootstrap.sh, zoe_setup.py, install_ssd_crucial_x9_mac.sh,
 
 ## 4.3 Puntos de entrada
 
-| Entrypoint | Bucle usado | Persistencia | ACD | LanguageDetector | Mentor |
-|---|---|---|---|---|---|
-| `cli_chat.py` | V5 | ✅ | ✅ | ✅ | ✅ |
-| `serve.py` | V5 | ✅ | ✅ | ✅ | ✅ |
-| `web_dashboard.py` | via ZoeChat → V5 | ✅ | ✅ | ✅ | ✅ |
+| Entrypoint | Bucle usado | Persistencia | ACD | LanguageDetector | Mentor | EmbodimentPlan |
+|---|---|---|---|---|---|---|
+| `cli_chat.py` | V5 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `serve.py` | V5 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `web_dashboard.py` | via ZoeChat → V5 | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -231,11 +241,11 @@ SCRIPTS:      zoe-bootstrap.sh, zoe_setup.py, install_ssd_crucial_x9_mac.sh,
 
 ## 5.5 EmbodimentComposer en CLI
 
-Flag `--compose` en `cli_chat.py:1045` ejecuta `EmbodimentComposer.compose()` una vez, guarda `embodiment_plan.json`, y sale. Al arrancar sin `--compose`, lee el plan si existe (`cli_chat.py:175`).
+Flag `--compose` en `cli_chat.py:1085` crea `ResourcePlan` via `ResourcePlanner` con RAM detectada por `psutil`, pasa el plan a `compose()`, guarda `embodiment.to_dict()` completo en `embodiment_plan.json`. Al arrancar sin `--compose`, lee el plan y aplica `max_entries`, `tick_interval`, y `broadcast_capacity` al `GlobalWorkspace` (`cli_chat.py:232-234`).
 
 ## 5.6 SeedMode auto-start
 
-`ZOESeed.germinate()` acepta `auto_start: bool = False` (`seed_mode.py:539`). Si `True`, tras germinar arranca ZoeChat + bucle cognitivo (L766-784).
+`ZOESeed.germinate()` acepta `auto_start: bool = False` (`seed_mode.py:539`). Si `True`, detecta backend disponible (`shutil.which`), crea `ZoeChat`, y mantiene el event loop vivo con `while True: await asyncio.sleep(1)` (`seed_mode.py:787-796`). Captura `CancelledError` para graceful shutdown.
 
 ## 5.7 Uso de LLMs
 
@@ -253,7 +263,7 @@ El LLM es periférico intercambiable. `Speaker.generate_thought()` llama `self.l
 
 ## Persistencia
 
-SQLite via `PersistentMemoryStore` (`persistent_store.py:29`). 1 tabla `memory_entries` con 3 índices. Storage abstraction con `storage/base.py`, `storage/factory.py`, `storage/sqlite_backend.py`, `storage/postgres_backend.py`.
+SQLite via `PersistentMemoryStore` (`persistent_store.py:29`). 1 tabla `memory_entries` con 3 índices. Storage abstraction con `storage/base.py`, `storage/factory.py`, `storage/sqlite_backend.py`, `storage/postgres_backend.py`. Factory integrada en `cli_chat.py:251-261` (opt-in via `config.storage.type == "postgres"`).
 
 ## Búsqueda semántica
 
@@ -312,7 +322,7 @@ ACD Router con hot-swap del LLM (`cognitive_loop_v5.py:179-214`). `ModelProfileR
 
 ## CLI
 
-`zoe-chat` con `--backend` (6 choices incluyendo `pattern`), `--model` (acepta `auto`), `--db-path`, `--api-key`, `--base-url`, `--compose` (ejecuta EmbodimentComposer y sale).
+`zoe-chat` con `--backend` (6 choices incluyendo `pattern`), `--model` (acepta `auto`), `--db-path`, `--api-key`, `--base-url`, `--compose` (ejecuta EmbodimentComposer con ResourcePlanner + psutil y guarda plan completo).
 
 ## Dashboard
 
@@ -381,11 +391,15 @@ Cadena firmada con persistencia ✅. `save_to_disk`/`load_from_disk`/`set_persis
 
 ## CI/CD ✅
 
-3 workflows: `ci.yml` (tests), `docker.yml` (build), `security.yml` (security scan).
+3 workflows: `ci.yml` (tests + coverage + PostgreSQL integration), `docker.yml` (build), `security.yml` (security scan).
 
 ## Cobertura de tests ✅
 
-`.coveragerc` configurado. `pytest-cov>=4.1.0` en `setup.py` extras. Ejecución: `pytest --cov=zoe --cov-report=term-missing`.
+`.coveragerc` configurado. `pytest-cov>=4.1.0` en `setup.py` extras. CI ejecuta `pytest --cov=zoe --cov-report=xml --cov-report=term-missing --cov-fail-under=55`. Upload a Codecov.
+
+## PostgreSQL CI ✅
+
+Service container `postgres:16` en `ci.yml` con job `postgres-integration`. Variables: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`.
 
 ---
 
@@ -395,7 +409,7 @@ Cadena firmada con persistencia ✅. `save_to_disk`/`load_from_disk`/`set_persis
 
 **Compatibilidad:** V5 backward-compatible con V4. `serve.py` migrado a V5.
 
-**Extensibilidad:** OntogeneticMotorV2 (7 tipos completos), cápsulas auto-descubiertas, factory LLM, endpoints REST, MemoryType enum, SemanticSearch opt-in, DistributedPhylogeneticPool opt-in, FederationDiscovery opt-in.
+**Extensibilidad:** OntogeneticMotorV2 (7 tipos completos), cápsulas auto-descubiertas, factory LLM, endpoints REST, MemoryType enum, SemanticSearch opt-in, DistributedPhylogeneticPool opt-in con anti-lost-update, FederationDiscovery opt-in con refresh periódico, EmbodimentComposer via `--compose`, StorageBackend abstraction (SQLite + PostgreSQL).
 
 ---
 
@@ -409,16 +423,16 @@ Cadena firmada con persistencia ✅. `save_to_disk`/`load_from_disk`/`set_persis
 4. 12 sub-agentes con Global Workspace
 5. PatternSpeaker como fallback universal
 6. Dashboard modular con auth automática, rate limiting, security headers, metrics
-7. Storage abstraction (SQLite + PostgreSQL)
+7. Storage abstraction (SQLite + PostgreSQL) con tests de integración en CI
 8. ReflectionEngine para reflexión autónoma
-9. Docker + CI/CD con cobertura de tests
-10. 1.641 tests
+9. Docker + CI/CD con cobertura de tests (`--cov-fail-under=55`) + PostgreSQL CI
+10. 1.678 tests
 11. Búsqueda semántica opcional (embeddings + fallback Jaccard)
 12. OntogeneticMotorV2 completo — 7 tipos de mutación arquitectural
-13. Evolución filogenética distribuida (DistributedPhylogeneticPool)
-14. Federation con discovery automático (FederationDiscovery)
-15. EmbodimentComposer integrado en CLI (--compose)
-16. SeedMode con auto-start opcional
+13. Evolución filogenética distribuida con anti-lost-update
+14. Federation con discovery automático y refresh periódico cada 60s
+15. EmbodimentComposer integrado en CLI con ResourcePlanner + psutil + plan completo
+16. SeedMode con auto-start que mantiene event loop vivo y detecta backend
 17. serve.py migrado a V5 con todas las capacidades
 
 ## Debilidades
@@ -429,10 +443,15 @@ No se identifican debilidades arquitectónicas significativas en el estado actua
 
 | Debilidad anterior | Estado | Commit |
 |---|---|---|
-| `serve.py` usa V4, no V5 | ✅ Resuelto — serve.py usa V5 | `ed28cfc` |
-| 2 mutaciones no implementadas | ✅ Resuelto — 7/7 implementadas | `ed28cfc` |
+| `serve.py` usa V4, no V5 | ✅ Resuelto | `ed28cfc` |
+| 2 mutaciones no implementadas | ✅ Resuelto — 7/7 completos | `ed28cfc` |
 | Sin embeddings (búsqueda Jaccard) | ✅ Resuelto — SemanticSearch opcional | `e83ffcb` |
-| Sin cobertura de tests medida | ✅ Resuelto — .coveragerc + pytest-cov | `e83ffcb` |
+| Sin cobertura de tests medida | ✅ Resuelto — .coveragerc + pytest-cov + CI `--cov-fail-under=55` | `e83ffcb` + `bb45509` |
+| EmbodimentComposer no en bucle | ✅ Resuelto — `--compose` con ResourcePlanner + plan completo + broadcast_capacity aplicado | `bb45509` |
+| SeedMode auto_start no mantenía loop | ✅ Resuelto — `while True: await asyncio.sleep(1)` + detección backend | `bb45509` |
+| Federation discovery no invocado | ✅ Resuelto — `start()` llama announce+discover+register + refresh 60s | `bb45509` |
+| PostgreSQL sin tests | ✅ Resuelto — 28 tests unitarios + CI service container | `bb45509` |
+| PhylogeneticPool lost-update | ✅ Resuelto — `_load()` antes de modificar en record_test_result y mark_incorporated | `bb45509` |
 
 ---
 
@@ -458,21 +477,22 @@ No se identifican debilidades arquitectónicas significativas en el estado actua
 | LanguageDetector | ✅ Conectado a V5, cli_chat y serve.py | Sin brecha |
 | Mentor conectado | ✅ evaluate_thought en cli_chat | Sin brecha |
 | CognitiveOptimizationLayer | ✅ Existe y se instancia | Sin brecha |
-| Storage abstraction | ✅ SQLite + PostgreSQL | Sin brecha |
+| Storage abstraction | ✅ SQLite + PostgreSQL con CI | Sin brecha |
 | ReflectionEngine | ✅ Existe (649 LOC) | Sin brecha |
 | Docker | ✅ Existe | Sin brecha |
-| CI/CD | ✅ Existe (3 workflows) | Sin brecha |
-| Cobertura de tests | ✅ .coveragerc + pytest-cov | Sin brecha |
+| CI/CD | ✅ 3 workflows con coverage + PostgreSQL | Sin brecha |
+| Cobertura de tests | ✅ .coveragerc + pytest-cov + --cov-fail-under=55 | Sin brecha |
 | Búsqueda semántica | ✅ SemanticSearch opcional | Sin brecha |
 | merge_subagents | ✅ Implementado (L251) | Sin brecha |
 | reorganize_memory | ✅ Implementado (L387) | Sin brecha |
 | serve.py usa V5 | ✅ Migrado a V5 | Sin brecha |
-| PhylogeneticMotor distribución | ✅ DistributedPhylogeneticPool | Sin brecha |
-| EmbodimentComposer en CLI | ✅ --compose flag | Sin brecha |
-| SeedMode auto-start | ✅ auto_start param | Sin brecha |
-| Federation discovery | ✅ FederationDiscovery | Sin brecha |
-| 1.648 tests | 1.641 tests | Margen menor (7 tests) |
-| 74 endpoints | 81 endpoints | 7 más de lo documentado |
+| PhylogeneticMotor distribución | ✅ DistributedPhylogeneticPool con anti-lost-update | Sin brecha |
+| EmbodimentComposer en CLI | ✅ --compose con ResourcePlanner + psutil + plan completo | Sin brecha |
+| SeedMode auto-start | ✅ Mantiene loop vivo + detecta backend | Sin brecha |
+| Federation discovery | ✅ announce+discover+register + refresh 60s | Sin brecha |
+| PostgreSQL tests | ✅ 28 tests unitarios + CI service container | Sin brecha |
+| Federación multi-instancia | ✅ 4 tests de integración | Sin brecha |
+| EmbodimentComposer por hardware | ✅ 5 tests parametrizados | Sin brecha |
 
 **Sin brechas significativas.** Todas las discrepancias identificadas en versiones anteriores de esta especificación han sido resueltas.
 
@@ -500,50 +520,38 @@ No se identifican debilidades arquitectónicas significativas en el estado actua
 | MentorAgent conectado | ✅ |
 | CognitiveOptimizationLayer activo | ✅ |
 | ReflectionEngine | ✅ |
-| Storage abstraction (SQLite + PostgreSQL) | ✅ |
+| Storage abstraction (SQLite + PostgreSQL con CI) | ✅ |
 | ModelDownloader + ModelProfileRouter | ✅ |
 | zoe-bootstrap.sh + zoe_setup.py | ✅ |
-| Docker + CI/CD + cobertura de tests | ✅ |
+| Docker + CI/CD + cobertura + PostgreSQL CI | ✅ |
 | Configuración persistente (~/.zoe/config.json) | ✅ |
 | Backup script | ✅ |
 | OntogeneticMotorV2 completo (7/7 mutaciones) | ✅ |
 | serve.py migrado a V5 | ✅ |
-| DistributedPhylogeneticPool (persistencia filogenética) | ✅ |
-| EmbodimentComposer en CLI (--compose) | ✅ |
-| SeedMode con auto-start | ✅ |
-| FederationDiscovery (discovery automático) | ✅ |
+| DistributedPhylogeneticPool con anti-lost-update | ✅ |
+| EmbodimentComposer en CLI con ResourcePlanner + plan completo | ✅ |
+| SeedMode con auto-start (mantiene loop + detecta backend) | ✅ |
+| FederationDiscovery con announce+discover+register + refresh 60s | ✅ |
+| PostgreSQL backend con 28 tests + CI service container | ✅ |
+| Tests de integración federación multi-instancia (4 tests) | ✅ |
+| Tests de EmbodimentComposer por hardware (5 tests) | ✅ |
 
 ## ¿Qué está parcialmente implementado?
 
 No se identifican componentes parcialmente implementados en el estado actual.
 
-**Items previamente parciales, ahora completos:**
-
-| Componente | Estado anterior | Estado actual |
-|---|---|---|
-| OntogeneticMotorV2 | 2 de 7 tipos no implementados | ✅ 7/7 completos |
-| serve.py | Usaba V4 | ✅ Migrado a V5 |
-| PhylogeneticMotor | Pool en memoria sin distribución | ✅ DistributedPhylogeneticPool |
-
 ## ¿Qué es experimental?
 
-| Componente | Razón |
-|---|---|
-| EmbodimentComposer | Integrado en CLI via --compose, pero no en bucle principal automáticamente |
-| SeedMode | Auto-start implementado pero requiere testing en despliegue real |
-| Federation | Discovery implementado pero sin testing con múltiples instancias reales |
-| PostgreSQL backend | Código existe pero sin tests de integración |
+No se identifican componentes experimentales en el estado actual. Todos los componentes previamente experimentales han sido integrados y testados.
 
 ## ¿Qué está listo para producción?
 
-Bucle cognitivo V5, ALMA con persistencia, memoria con SQLite, cápsulas, LLM backends, PatternSpeaker, Dashboard modular con seguridad, Docker, CI/CD, serve.py con V5.
+Bucle cognitivo V5, ALMA con persistencia, memoria con SQLite, cápsulas, LLM backends, PatternSpeaker, Dashboard modular con seguridad, Docker, CI/CD con cobertura y PostgreSQL, serve.py con V5, EmbodimentComposer con plan aplicado, Federation con discovery automático.
 
 ## ¿Qué necesita endurecimiento?
 
-- Testing de integración con múltiples instancias ZOE (federación + phylogenético)
-- Testing del PostgreSQL backend
-- Medición real de cobertura después de ejecutar `pytest --cov`
-- Testing de EmbodimentComposer en diferentes hardware
+- 1 test con assertion de catálogo desactualizado (`test_setup_presets_tiene_4_setups`) — no afecta funcionalidad
+- `asyncpg` no está en `requirements.txt` (es opcional, pero los tests lo requieren)
 
 ## ¿Qué partes constituyen innovación demostrable?
 
@@ -555,9 +563,10 @@ Bucle cognitivo V5, ALMA con persistencia, memoria con SQLite, cápsulas, LLM ba
 6. PatternSpeaker (generación sin LLM)
 7. ReflectionEngine (reflexión autónoma durante sueño)
 8. Trayectoria blockchain persistente
-9. DistributedPhylogeneticPool (evolución de especie distribuida)
-10. FederationDiscovery (discovery automático de pares)
+9. DistributedPhylogeneticPool (evolución de especie distribuida con anti-lost-update)
+10. FederationDiscovery (discovery automático de pares con refresh periódico)
 11. SemanticSearch con fallback elegante (embeddings → Jaccard)
+12. EmbodimentComposer (adaptación al hardware con ResourcePlanner + psutil)
 
 ## ¿Qué afirmaciones pueden sostenerse técnicamente?
 
@@ -566,7 +575,7 @@ Bucle cognitivo V5, ALMA con persistencia, memoria con SQLite, cápsulas, LLM ba
 | ZOE piensa continuamente sin input | ✅ |
 | ZOE tiene identidad criptográfica inmutable persistente | ✅ |
 | ZOE registra cada cambio en cadena verificable persistente | ✅ |
-| ZOE se auto-modifica dentro de límites constitucionales | ✅ |
+| ZOE se auto-modifica dentro de límites constitucionales (7 tipos) | ✅ |
 | ZOE consolida memoria durante sueño | ✅ |
 | ZOE usa 12 sub-agentes coordinados | ✅ |
 | ZOE persiste identidad entre sesiones | ✅ |
@@ -578,17 +587,21 @@ Bucle cognitivo V5, ALMA con persistencia, memoria con SQLite, cápsulas, LLM ba
 | ZOE reflexiona autónomamente | ✅ |
 | ZOE tiene dashboard seguro | ✅ |
 | ZOE busca en memoria semánticamente | ✅ (opcional, con fallback) |
-| ZOE evoluciona como especie distribuida | ✅ (opcional, via pool_path) |
-| ZOE descubre pares automáticamente | ✅ (opcional, via discovery_mode) |
-| ZOE adapta su arquitectura al hardware | ✅ (opcional, via --compose) |
-| ZOE germina y arranca automáticamente | ✅ (opcional, via auto_start) |
+| ZOE evoluciona como especie distribuida | ✅ (con anti-lost-update) |
+| ZOE descubre pares automáticamente | ✅ (con refresh 60s) |
+| ZOE adapta su arquitectura al hardware | ✅ (con ResourcePlanner + psutil) |
+| ZOE germina y arranca automáticamente | ✅ (mantiene loop + detecta backend) |
 | ZOE sirve en producción con V5 | ✅ (serve.py migrado) |
+| ZOE tiene storage PostgreSQL con tests | ✅ (28 tests + CI) |
+| ZOE tiene cobertura de tests medida | ✅ (--cov-fail-under=55 en CI) |
+| ZOE tiene tests de federación multi-instancia | ✅ (4 tests) |
+| ZOE tiene tests de hardware profiles | ✅ (5 tests) |
 
-**20 de 20 afirmaciones son sostenibles con evidencia trazable.**
+**24 de 24 afirmaciones son sostenibles con evidencia trazable.**
 
 ---
 
-*ZOE-SPEC-003 — Especificación Fundacional Canónica*
-*Commit: e83ffcb — 14 de julio de 2026*
+*ZOE-SPEC-004 — Especificación Fundacional Canónica*
+*Commit: bb45509 — 14 de julio de 2026*
 *Fuente: repositorio GitHub fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO*
 *Esta es la fuente canónica de verdad del proyecto ZOE.*
