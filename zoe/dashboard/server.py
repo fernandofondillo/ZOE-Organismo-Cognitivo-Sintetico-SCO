@@ -129,7 +129,10 @@ class DashboardServer:
         auth_middleware = create_auth_middleware(self.auth_token)
         self._rate_limit_middleware = create_rate_limit_middleware()
 
-        # Wire all middlewares: security headers -> metrics -> rate limit -> auth
+        # Sprint 5.19 F5.2: Tenant middleware para multi-tenant
+        from ..core.tenant import tenant_middleware
+
+        # Wire all middlewares: security headers -> metrics -> rate limit -> auth -> tenant
         app = web.Application(
             client_max_size=10 * 1024 * 1024,  # 10MB for file uploads
             middlewares=[
@@ -137,6 +140,7 @@ class DashboardServer:
                 metrics_middleware,
                 self._rate_limit_middleware,
                 auth_middleware,
+                tenant_middleware,
             ],
         )
 
