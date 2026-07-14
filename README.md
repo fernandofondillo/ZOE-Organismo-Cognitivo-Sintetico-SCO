@@ -238,23 +238,28 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Python | 210+ |
-| Líneas de código | ~70,000 |
-| Tests | 1,700+ (Sprint 5.12 añadió 8 tests) |
-| Archivos de test | 62 |
-| LOC de tests | ~28,000 |
-| Cápsulas | 15 |
+| Archivos Python | 220+ |
+| Líneas de código | ~72,000 |
+| Tests | 1,832 collected, 0 broken |
+| Archivos de test | 72 |
+| Cápsulas | 15 (5 base + 10 especialidad) |
 | Sub-agentes | 12 |
-| Endpoints REST | 81 (+ health checks + metrics + reflections) |
-| ReflectionEngine v2.1 | Sí — Reflexión autónoma durante SLEEPING |
-| Documentos | 42+ (Manual de usuario ampliado a 2,078 líneas) |
-| Backends LLM | 6 |
-| Plataformas | macOS, Linux, Windows, Docker, Kubernetes, PWA, Telegram, SSD portátil |
-| Idiomas | ES, EN, FR, DE (auto-detectado) |
-| Vulnerabilidades críticas | 0 |
-| except:pass restantes | 0 |
-| CI/CD | GitHub Actions (CI + Docker + Security) |
-| Lanzadores macOS | 6 (.command) + 6 en Linux (.sh) |
+| Endpoints REST | 81 (+ health + metrics + reflections) |
+| ReflectionEngine v2.1 | Sí — Cableado en producción (Sprint 5.13 B2) |
+| Documentos | 44+ (Manual 2,444 líneas, Runbook, Release Notes) |
+| Backends LLM | 6 (mock, ollama, openai, anthropic, zai, pattern) |
+| Plataformas | macOS, Linux, Windows, Docker, Kubernetes, SSD portátil |
+| Idiomas | ES, EN, FR, DE (auto-detectado, <10ms sin LLM) |
+| k8s manifests | 17 (PDB, HPA, ServiceMonitor, PrometheusRule, NetworkPolicy) |
+| Alertas Prometheus | 6 (ZoeDown, ZoeHighMemory, ZoeHighDisk, ZoeStalled, ZoeHighErrorRate, ZoeLLMUnavailable) |
+| CI/CD | GitHub Actions (CI + Docker + Security con bandit real) |
+| Coverage threshold | 65% |
+| Security score | 9.0/10 |
+| Production score | 8.5/10 |
+| Global score | 8.3/10 |
+| Distributed rate limiting | Sí (Redis opcional, fallback in-memory) |
+| Multi-tenant | Sí (X-ZOE-Tenant header) |
+| Structured logging | Sí (JSON con redaction de secrets) |
 
 ---
 
@@ -567,10 +572,19 @@ Script `smoke_test_dashboard.py` verifica end-to-end:
 | ✅ | ZOE-SPEC-002 Mejoras (6) | SemanticSearch, cobertura tests, Phylo persistencia, Composer CLI, Seed auto-start, Federation discovery |
 | ✅ | ZOE-SPEC-002 Experimentales (4) | EmbodimentComposer fix, SeedMode auto_start fix, Federation discovery activado, PostgreSQL tests |
 | ✅ | ZOE-SPEC-002 Endurecimiento (4) | Tests federacion multi-instancia, PostgreSQL CI, cobertura CI, Tests EmbodimentComposer por hardware |
-| ✅ | Sprint 5.12 (Julio 2026) | Dashboard utilizable (auth automática), launchers macOS universales, rate_limit refactor, manual 2,078 líneas |
+| ✅ | Sprint 5.12 (Julio 2026) | Dashboard utilizable (auth automática), launchers macOS universales, rate_limit refactor, manual 2,444 líneas |
+| ✅ | Sprint 5.12.1 | 5 cápsulas base preinstaladas, Tutor activo por defecto, LanguageDetector 4 idiomas |
+| ✅ | Sprint 5.13 B1-B8 | 8 bloqueantes críticos: UnboundLocalError, ReflectionEngine wiring, mentor sync, k8s probes, memory leaks, secret en git, token logging, timing-safe auth |
+| ✅ | Sprint 5.14 | Regresión /history deque, B8 incompleto, test hygiene async |
+| ✅ | Sprint 5.15 F1 | k8s image path ghcr.io, ollama UID fix, RWO PVC 1 réplica, Helm→Reloader, 7 test_loop_v3 fixed, bandit sin \|\| true, coverage 65% |
+| ✅ | Sprint 5.16 F2 | L0_REFLEX bug, /memory pagination, /feed upload limits, argument injection prevention, version unificada 2.1.2, async SQLite |
+| ✅ | Sprint 5.17 F3 | Structured logging JSON, /live check real, /health postgres+sqlite, 6 alertas Prometheus |
+| ✅ | Sprint 5.18 F4 | PDB, HPA, ServiceMonitor, NetworkPolicy endurecida, readOnlyRootFilesystem + seccompProfile |
+| ✅ | Sprint 5.19 F5 | Distributed rate limiting Redis, multi-tenant tenant_id |
+| ✅ | Sprint 5.20 F6 | Chaos engineering real (6 tests), fuzzing (6 tests), runbook, release notes |
 | 🔄 | Pasarela de pagos | Stripe/PayPal para marketplace |
-| 📋 | Chaos engineering avanzado | Load testing, fuzzing, penetración profesional |
-| 📋 | v2.0.0 GA | Production Ready tras hardening final |
+| 📋 | v2.2.0 | StatefulSet + federación para HA multi-réplica |
+| 📋 | Penetration test | Auditoría de seguridad profesional externa |
 
 ---
 
@@ -633,8 +647,9 @@ Licensed under the Apache License, Version 2.0.
 ---
 
 <p align="center">
-  <b>ZOE v2.1.2 — Synthetic Cognitive Organism</b><br>
-  1,700+ tests · 210+ archivos Python · 15 cápsulas · 12 sub-agentes · 81 endpoints · 6 backends LLM · 4 idiomas<br>
-  Docker · Kubernetes · SSD portátil · 100% offline · Dashboard web con auth automática<br>
+  <b>ZOE v2.1.2 — Synthetic Cognitive Organism — Production Ready</b><br>
+  1,832 tests · 220+ archivos Python · 15 cápsulas · 12 sub-agentes · 81 endpoints · 6 backends LLM · 4 idiomas<br>
+  Docker · Kubernetes · SSD portátil · 100% offline · Dashboard con auth timing-safe · Structured logging · Distributed rate limiting · Multi-tenant<br>
+  17 k8s manifests · 6 alertas Prometheus · Chaos engineering + fuzzing tests · Runbook de operaciones<br>
   <i>"ZOE no es un modelo que responde. Es un organismo que existe."</i>
 </p>
