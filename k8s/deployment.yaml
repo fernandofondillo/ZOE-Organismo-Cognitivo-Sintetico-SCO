@@ -8,12 +8,13 @@ metadata:
     app.kubernetes.io/component: organism
     app.kubernetes.io/version: "1.0"
 spec:
-  replicas: 2
+  # Sprint 5.15 F1.3: 1 réplica (NO 2).
+  # ZOE es STATEFUL: identidad, memoria, trayectoria viven en PVC RWO.
+  # 2 réplicas compartiendo PVC RWO es inviable (RWO = ReadWriteOnce = 1 nodo).
+  # Para HA real, migrar a StatefulSet con PVC por réplica + federación epistémica.
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    type: Recreate  # Recreate (no RollingUpdate) porque PVC RWO no se puede compartir
   selector:
     matchLabels:
       app.kubernetes.io/name: zoe
@@ -25,8 +26,12 @@ spec:
         app.kubernetes.io/component: organism
         app.kubernetes.io/version: "1.0"
       annotations:
-        # Rollout restart cuando cambia el configmap
-        checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+        # Sprint 5.15 F1.4: Helm template syntax NO funciona en Kustomize.
+        # Para rollout restart en ConfigMap changes, usar Reloader
+        # (https://github.com/stakater/Reloader) con la annotation:
+        #   configmap.reloader.stakater.com/reload: "zoe-config"
+        # O kubectl rollout restart deployment/zoe tras cambiar el configmap.
+        configmap.reloader.stakater.com/reload: "zoe-config"
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
@@ -111,8 +116,11 @@ spec:
 
       containers:
         - name: zoe
-          image: zoe:latest  # Cambiar por el tag correcto
-          imagePullPolicy: IfNotPresent
+          # Sprint 5.15 F1.1: Image path real del registry CI (ghcr.io)
+          # y imagePullPolicy: Always para :latest tags.
+          # El CI hace push a ghcr.io/fernandofondillo/zoe-organismo-cognitivo-sintetico-sco:vX.Y.Z
+          image: ghcr.io/fernandofondillo/zoe-organismo-cognitivo-sintetico-sco:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8642

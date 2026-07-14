@@ -110,6 +110,9 @@ jobs:
           pip install bandit[toml]>=1.7.0
 
       # 5. Ejecutar bandit con salida SARIF
+      # Sprint 5.15 F1.6: Eliminado '|| true' que hacia que bandit NUNCA fallara CI.
+      # Ahora bandit falla CI si encuentra vulnerabilidades HIGH o CRITICAL (-ll).
+      # Si hay findings LOW/MEDIUM, se suben al Security tab pero no fallan CI.
       - name: Run bandit security scan
         run: |
           bandit \
@@ -117,8 +120,7 @@ jobs:
             -f sarif \
             -o bandit-results.sarif \
             --exclude './zoe/tests/*,./.venv/*,./venv/*' \
-            -ll \
-            || true
+            -ll
 
       # 6. Upload SARIF results a GitHub Security tab
       - name: Upload bandit SARIF results

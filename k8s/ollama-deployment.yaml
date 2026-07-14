@@ -32,7 +32,8 @@ spec:
 
       containers:
         - name: ollama
-          image: ollama/ollama:latest
+          # Sprint 5.15 F1.2: pinned version en vez de :latest
+          image: ollama/ollama:0.5.4
           imagePullPolicy: IfNotPresent
           ports:
             - name: ollama
@@ -45,6 +46,11 @@ spec:
               value: "*"
             - name: OLLAMA_KEEP_ALIVE
               value: "24h"
+            # Sprint 5.15 F1.2: OLLAMA_MODELS apunta al directorio writable
+            # para UID 1000. Antes montaba /root/.ollama (path de root)
+            # con runAsUser: 1000 → ollama no podia escribir → modelos no persistian.
+            - name: OLLAMA_MODELS
+              value: "/var/lib/ollama"
           resources:
             requests:
               cpu: 1000m
@@ -85,8 +91,10 @@ spec:
               drop:
                 - ALL
           volumeMounts:
+            # Sprint 5.15 F1.2: mountPath apunta a /var/lib/ollama (writable por UID 1000)
+            # en vez de /root/.ollama (path de root, no writable por UID 1000).
             - name: ollama-models
-              mountPath: /root/.ollama
+              mountPath: /var/lib/ollama
             - name: tmp
               mountPath: /tmp
 
