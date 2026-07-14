@@ -1,7 +1,7 @@
 """
-ZOE v1.0 — Serve (punto de entrada para producción)
+ZOE v1.0 -- Serve (punto de entrada para produccion)
 
-Inicia el organismo ZOE con configuración de producción.
+Inicia el organismo ZOE con configuracion de produccion.
 
 Uso:
     python -m zoe.serve --config zoe/config/production.yaml
@@ -46,9 +46,9 @@ def setup_logging(
 
 
 async def serve(config_path: str = None, env: str = None):
-    """Inicia ZOE con configuración."""
+    """Inicia ZOE con configuracion."""
 
-    # Cargar configuración
+    # Cargar configuracion
     from .core.cognitive_loop_v4 import load_config
     config = load_config(config_path=config_path, env=env)
 
@@ -70,7 +70,7 @@ async def serve(config_path: str = None, env: str = None):
     tick_interval = zoe_config.get("tick_interval", 5.0)
 
     logger.info("=" * 60)
-    logger.info("ZOE v1.0 — Synthetic Cognitive Organism")
+    logger.info("ZOE v1.0 -- Synthetic Cognitive Organism")
     logger.info("=" * 60)
     logger.info(f"Organism ID: {organism_id}")
     logger.info(f"Tick interval: {tick_interval}s")
@@ -102,6 +102,10 @@ async def serve(config_path: str = None, env: str = None):
     from .core.meta_cognition import MetaCognition
     from .core.active_inference import ActiveInferenceLoop
     from .core.cognitive_loop_v4 import CognitiveLoopV4
+    from .core.cognitive_loop_v5 import CognitiveLoopV5
+    from .core.depth_classifier import DepthClassifier
+    from .core.cognitive_cache import CognitiveCache
+    from .core.model_profile_router import ModelProfileRouter
     from .core.federation import FederationManager
     from .alma.identity_vault import IdentityVault
     from .alma.trajectory_chain import TrajectoryChain
@@ -117,7 +121,7 @@ async def serve(config_path: str = None, env: str = None):
     )
     from .peripherals.llm import create_llm_peripheral
 
-    # LLM periférico
+    # LLM periferico
     llm = create_llm_peripheral(llm_config)
 
     # Componentes Fase 0
@@ -138,8 +142,30 @@ async def serve(config_path: str = None, env: str = None):
     phylogenetic = PhylogeneticMotor(zoe_id=organism_id)
 
     # Componentes Fase 1
-    vault = IdentityVault(birth_timestamp=time.time())
-    chain = TrajectoryChain(organism_id=organism_id)
+    # Sprint 5.8 -- Persistencia de identidad y trayectoria entre sesiones
+    from pathlib import Path as _Path
+    _data_dir = _Path(mem_config.get("db_path", "zoe_data/memory.db")).parent
+    _data_dir.mkdir(parents=True, exist_ok=True)
+    _vault_path = str(_data_dir / "identity_vault.json")
+    _chain_path = str(_data_dir / "trajectory_chain.json")
+    _capsules_path = str(_data_dir / "loaded_capsules.json")
+
+    # Cargar identidad existente o crear nueva
+    vault = IdentityVault.load_from_disk(_vault_path)
+    if vault is None:
+        vault = IdentityVault(birth_timestamp=time.time())
+        vault.save_to_disk(_vault_path)
+        logger.info(f"New ZOE born -- identity hash: {vault.identity_hash[:16]}...")
+    else:
+        logger.info(f"ZOE identity loaded -- hash: {vault.identity_hash[:16]}...")
+
+    # Cargar trayectoria existente o crear nueva
+    chain = TrajectoryChain.load_from_disk(_chain_path)
+    if chain is None:
+        chain = TrajectoryChain(organism_id=organism_id)
+    chain.set_persist_path(_chain_path)  # auto-save tras cada commit
+    logger.info(f"Trajectory loaded -- {len(chain._mutations)} mutations")
+
     ontogenetic = OntogeneticMotorV2(
         identity_vault=vault, trajectory_chain=chain, laws=laws, organism_id=organism_id
     )
@@ -179,10 +205,23 @@ async def serve(config_path: str = None, env: str = None):
     )
     persistent_mem = PersistentLivingMemory(memory, store)
 
-    # Fase 3.5: Consolidación profunda
+    # Fase 3.5: Consolidacion profunda
     deep_consolidation = DeepConsolidation(memory=memory, scientific_engine=scientific)
 
-    # Fase 4: Federación
+    # Fase 5: ACD + Cache
+    depth_classifier = DepthClassifier()
+    cognitive_cache = CognitiveCache(max_size=100, ttl_seconds=300)
+
+    # Sprint 5.10 C8 -- LanguageDetector
+    try:
+        from .core.language_detector import LanguageDetector
+        language_detector = LanguageDetector()
+        logger.info("LanguageDetector initialized")
+    except Exception as e:
+        logger.debug(f"LanguageDetector not available: {e}")
+        language_detector = None
+
+    # Fase 4: Federacion
     federation_mgr = None
     fed_server = None
     if fed_config.get("enabled", False):
@@ -197,8 +236,8 @@ async def serve(config_path: str = None, env: str = None):
         await fed_server.start()
         logger.info(f"Federation server started on port {fed_config.get('port', 8642)}")
 
-    # Crear organismo
-    loop = CognitiveLoopV4(
+    # Crear organismo V5 (backward-compatible con V4)
+    loop = CognitiveLoopV5(
         senses=senses,
         world_model=world_model,
         subagents=all_subagents,
@@ -225,7 +264,14 @@ async def serve(config_path: str = None, env: str = None):
         persistent_memory=persistent_mem,
         auto_save_interval=mem_config.get("auto_save_interval", 50),
         config=config,
+        # Fase 5 componentes
+        depth_classifier=depth_classifier,
+        cognitive_cache=cognitive_cache,
     )
+
+    # Inyectar LanguageDetector si esta disponible
+    if language_detector:
+        loop._language_detector = language_detector
 
     # Inicializar (carga memoria desde disco)
     logger.info("Initializing organism (loading memory from disk)...")
@@ -242,9 +288,16 @@ async def serve(config_path: str = None, env: str = None):
     except KeyboardInterrupt:
         logger.info("Shutdown requested via keyboard")
     finally:
-        # Graceful shutdown
+        # Graceful shutdown con persistencia
         logger.info("Saving memory to disk...")
         persistent_mem.save_to_disk()
+
+        # Sprint 5.8 -- Persistir identidad, trayectoria y capsulas
+        logger.info("Saving identity vault...")
+        vault.save_to_disk(_vault_path)
+        logger.info("Saving trajectory chain...")
+        chain.save_to_disk(_chain_path)
+
         if fed_server:
             await fed_server.stop()
         logger.info("ZOE stopped. Goodbye.")
@@ -255,7 +308,7 @@ async def serve(config_path: str = None, env: str = None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ZOE v1.0 — Serve")
+    parser = argparse.ArgumentParser(description="ZOE v1.0 -- Serve")
     parser.add_argument("--config", help="Path to config YAML")
     parser.add_argument("--env", help="Environment (production/development/test)")
     args = parser.parse_args()

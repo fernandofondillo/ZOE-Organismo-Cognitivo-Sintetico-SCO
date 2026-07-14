@@ -1,12 +1,12 @@
 """
-ZOE v1.0 — Ontogenetic Motor V2 (Fase 3.5)
+ZOE v1.0 - Ontogenetic Motor V2 (Fase 3.5)
 
-Motor Ontogenético avanzado que puede modificar ARQUITECTURA:
+Motor Ontogenetico avanzado que puede modificar ARQUITECTURA:
 - Crear nuevos sub-agentes
 - Eliminar sub-agentes obsoletos
 - Fusionar sub-agentes redundantes
-- Ajustar thresholds de meta-cognición
-- Ajustar parámetros de Global Workspace
+- Ajustar thresholds de meta-cognicion
+- Ajustar parametros de Global Workspace
 - Ajustar umbrales de Metabolism
 
 Todas las mutaciones arquitecturales:
@@ -31,7 +31,7 @@ from ..alma.ontogenetic_motor import OntogeneticMotor, VALID_MUTATION_TYPES
 logger = logging.getLogger(__name__)
 
 
-# Nuevos tipos de mutación arquitectural
+# Nuevos tipos de mutacion arquitectural
 ARCHITECTURAL_MUTATION_TYPES = [
     "add_subagent",
     "remove_subagent",
@@ -45,7 +45,7 @@ ARCHITECTURAL_MUTATION_TYPES = [
 
 class OntogeneticMotorV2(OntogeneticMotor):
     """
-    Motor Ontogenético V2: puede modificar arquitectura del organismo.
+    Motor Ontogenetico V2: puede modificar arquitectura del organismo.
 
     Extiende V1 con mutaciones que cambian la estructura cognitiva,
     no solo el contenido de la memoria.
@@ -66,7 +66,7 @@ class OntogeneticMotorV2(OntogeneticMotor):
         )
         self._architectural_changes: List[Dict[str, Any]] = []
 
-        # Extender tipos válidos
+        # Extender tipos validos
         self._all_valid_types = VALID_MUTATION_TYPES + ARCHITECTURAL_MUTATION_TYPES
 
     def propose_mutation(
@@ -79,7 +79,7 @@ class OntogeneticMotorV2(OntogeneticMotor):
         cost: float = 0.1,
         confidence: float = 0.5,
     ) -> Mutation:
-        """Propone una mutación (incluyendo arquitecturales)."""
+        """Propone una mutacion (incluyendo arquitecturales)."""
         if type not in self._all_valid_types:
             raise ValueError(
                 f"Invalid mutation type: {type}. Valid: {self._all_valid_types}"
@@ -108,10 +108,10 @@ class OntogeneticMotorV2(OntogeneticMotor):
         organism: Any = None,
     ) -> Tuple[bool, str]:
         """
-        Aplica una mutación arquitectural al organismo.
+        Aplica una mutacion arquitectural al organismo.
 
         Args:
-            mutation: mutación arquitectural a aplicar
+            mutation: mutacion arquitectural a aplicar
             organism: referencia al organismo (loop) para modificar
 
         Returns:
@@ -135,7 +135,7 @@ class OntogeneticMotorV2(OntogeneticMotor):
         if not preserves_identity:
             return False, f"identity not preserved: {id_reason}"
 
-        # Aplicar según tipo
+        # Aplicar segun tipo
         success = False
         reason = ""
 
@@ -143,12 +143,16 @@ class OntogeneticMotorV2(OntogeneticMotor):
             success, reason = self._add_subagent(mutation, organism)
         elif mutation.type == "remove_subagent":
             success, reason = self._remove_subagent(mutation, organism)
+        elif mutation.type == "merge_subagents":
+            success, reason = self._merge_subagents(mutation, organism)
         elif mutation.type == "modify_threshold":
             success, reason = self._modify_threshold(mutation, organism)
         elif mutation.type == "adjust_workspace_capacity":
             success, reason = self._adjust_workspace(mutation, organism)
         elif mutation.type == "adjust_metabolism_threshold":
             success, reason = self._adjust_metabolism(mutation, organism)
+        elif mutation.type == "reorganize_memory":
+            success, reason = self._reorganize_memory(mutation, organism)
         else:
             # Tipos no arquitecturales: delegar a V1
             return super().apply_mutation(mutation)
@@ -163,17 +167,17 @@ class OntogeneticMotorV2(OntogeneticMotor):
                 "timestamp": time.time(),
                 "commit_hash": commit_hash[:16],
             })
-            logger.info(f"Architectural mutation applied: {mutation.type} → {mutation.target}")
+            logger.info(f"Architectural mutation applied: {mutation.type} -> {mutation.target}")
             return True, f"applied: {commit_hash[:16]}"
         else:
             return False, reason
 
     def _add_subagent(self, mutation: Mutation, organism: Any) -> Tuple[bool, str]:
-        """Añade un sub-agente al organismo."""
+        """Anade un sub-agente al organismo."""
         if not organism:
             return False, "no organism reference"
 
-        # Solo permitir añadir sub-agentes de tipos conocidos
+        # Solo permitir anadir sub-agentes de tipos conocidos
         subagent_type = mutation.payload.get("subagent_type", "")
         allowed_types = [
             "creativity", "causal_engine", "emotional_motor",
@@ -231,7 +235,7 @@ class OntogeneticMotorV2(OntogeneticMotor):
         if not target_name:
             return False, "no subagent_name specified"
 
-        # No permitir eliminar sub-agentes críticos (Speaker, Critic, Perceiver, Forecaster)
+        # No permitir eliminar sub-agentes criticos (Speaker, Critic, Perceiver, Forecaster)
         critical = ["perceiver", "forecaster", "speaker", "critic"]
         if target_name.lower() in critical:
             return False, f"cannot remove critical subagent: {target_name}"
@@ -244,8 +248,86 @@ class OntogeneticMotorV2(OntogeneticMotor):
 
         return False, f"subagent {target_name} not found"
 
+    def _merge_subagents(self, mutation: Mutation, organism: Any) -> Tuple[bool, str]:
+        """Fusiona dos sub-agentes redundantes en uno solo."""
+        if not organism:
+            return False, "no organism reference"
+
+        source = mutation.payload.get("source", "")
+        target = mutation.payload.get("target", "")
+        if not source or not target:
+            return False, "source and target subagent names required"
+
+        # No permitir fusionar sub-agentes criticos
+        critical = ["perceiver", "forecaster", "speaker", "critic"]
+        if source.lower() in critical or target.lower() in critical:
+            return False, "cannot merge critical subagents"
+
+        # Buscar ambos sub-agentes (indices distintos si source==target tipo)
+        candidates = []
+        for i, agent in enumerate(organism.subagents):
+            name = agent.__class__.__name__
+            if source.lower() in name.lower():
+                candidates.append((i, agent, name))
+
+        if len(candidates) < 1:
+            return False, f"source subagent '{source}' not found"
+
+        source_idx = candidates[0][0]
+        source_agent = candidates[0][1]
+        source_class = candidates[0][2]
+
+        # Si source==target tipo, buscar OTRO candidato distinto
+        if source.lower() == target.lower():
+            if len(candidates) < 2:
+                return False, f"need 2 subagents of type '{source}' to merge, found 1"
+            target_idx = candidates[1][0]
+            target_agent = candidates[1][1]
+        else:
+            # Buscar target como tipo diferente
+            target_found = False
+            for i, agent in enumerate(organism.subagents):
+                if i == source_idx:
+                    continue
+                name = agent.__class__.__name__
+                if target.lower() in name.lower():
+                    target_idx = i
+                    target_agent = agent
+                    target_found = True
+                    break
+            if not target_found:
+                return False, f"target subagent '{target}' not found"
+
+        # Verificar que son del mismo tipo funcional (misma clase exacta)
+        target_class = target_agent.__class__.__name__
+        if source_class != target_class:
+            return False, f"cannot merge different types: {source_class} != {target_class}"
+
+        # Fusionar: transferir estado interno y eliminar source
+        transferred = 0
+        for attr_name in dir(source_agent):
+            if attr_name.startswith("_") and not attr_name.startswith("__"):
+                src_val = getattr(source_agent, attr_name, None)
+                if isinstance(src_val, list) and src_val:
+                    tgt_val = getattr(target_agent, attr_name, None)
+                    if isinstance(tgt_val, list):
+                        tgt_val.extend(src_val)
+                        transferred += len(src_val)
+                elif isinstance(src_val, dict) and src_val:
+                    tgt_val = getattr(target_agent, attr_name, None)
+                    if isinstance(tgt_val, dict):
+                        tgt_val.update(src_val)
+                        transferred += len(src_val)
+
+        # Eliminar source (ajustar indice si target estaba despues)
+        organism.subagents.pop(source_idx)
+        return True, (
+            f"merged {source_class}: source removed, {len(organism.subagents)} total, "
+            f"{transferred} items transferred"
+        )
+
     def _modify_threshold(self, mutation: Mutation, organism: Any) -> Tuple[bool, str]:
-        """Modifica un threshold de meta-cognición o leyes."""
+        """Modifica un threshold de meta-cognicion o leyes."""
         target_component = mutation.target  # "meta_cognition" o "laws"
         threshold_name = mutation.payload.get("threshold", "")
         new_value = mutation.payload.get("value", 0.5)
@@ -301,6 +383,113 @@ class OntogeneticMotorV2(OntogeneticMotor):
             return False, f"unknown metabolism threshold: {threshold_name}"
 
         return True, f"metabolism.{threshold_name} = {new_value}"
+
+    def _reorganize_memory(self, mutation: Mutation, organism: Any) -> Tuple[bool, str]:
+        """
+        Reorganiza la estructura de la memoria del organismo en runtime.
+
+        A diferencia de LivingMemory.think() y DeepConsolidation.consolidate()
+        que reorganizan el CONTENIDO automaticamente, esta mutacion cambia
+        la ESTRUCTURA: capacidad maxima, intervalos de guardado, tipos activos.
+
+        Args:
+            mutation: payload debe contener:
+                - 'action': tipo de reorganizacion
+                    - 'resize': cambiar LivingMemory.max_entries
+                    - 'retune_save_interval': cambiar auto_save_interval de PersistentMemoryStore
+                    - 'deactivate_type': desactivar un MemoryType (no se crearan entradas nuevas)
+                    - 'activate_type': reactivar un MemoryType previamente desactivado
+                - 'params': dict con parametros especificos del action
+                    - resize: {'max_entries': int}
+                    - retune_save_interval: {'interval': int}
+                    - deactivate_type: {'memory_type': str}
+                    - activate_type: {'memory_type': str}
+            organism: referencia al organismo con .memory y .persistent_memory
+
+        Returns:
+            (True, mensaje) si la reorganizacion se completo
+            (False, razon) si fallo
+        """
+        if not organism:
+            return False, "no organism reference"
+
+        action = mutation.payload.get("action", "")
+        params = mutation.payload.get("params", {})
+
+        if not action:
+            return False, "action required in payload (resize|retune_save_interval|deactivate_type|activate_type)"
+
+        memory = getattr(organism, "memory", None)
+        persistent_memory = getattr(organism, "persistent_memory", None)
+
+        if action == "resize":
+            new_max = params.get("max_entries", 0)
+            if not isinstance(new_max, int) or new_max < 100:
+                return False, f"invalid max_entries: {new_max} (must be int >= 100)"
+
+            if memory and hasattr(memory, "max_entries"):
+                old_max = memory.max_entries
+                memory.max_entries = new_max
+                # Si excedemos el nuevo limite, olvidar las menos recientes
+                if hasattr(memory, "_entries") and len(memory._entries) > new_max:
+                    overflow = len(memory._entries) - new_max
+                    memory._entries = memory._entries[-new_max:]
+                    return True, f"memory resized: {old_max} -> {new_max} ({overflow} entries forgotten)"
+                return True, f"memory resized: {old_max} -> {new_max}"
+            return False, "organism.memory has no max_entries attribute"
+
+        elif action == "retune_save_interval":
+            new_interval = params.get("interval", 0)
+            if not isinstance(new_interval, int) or new_interval < 1:
+                return False, f"invalid interval: {new_interval} (must be int >= 1)"
+
+            if persistent_memory and hasattr(persistent_memory, "auto_save_interval"):
+                old_interval = persistent_memory.auto_save_interval
+                persistent_memory.auto_save_interval = new_interval
+                return True, f"auto_save_interval retuned: {old_interval} -> {new_interval}"
+            # Fallback: try on the store directly
+            if persistent_memory and hasattr(persistent_memory, "store"):
+                store = persistent_memory.store
+                if hasattr(store, "auto_save_interval"):
+                    old_interval = store.auto_save_interval
+                    store.auto_save_interval = new_interval
+                    return True, f"auto_save_interval retuned (store): {old_interval} -> {new_interval}"
+            return False, "organism.persistent_memory has no auto_save_interval attribute"
+
+        elif action == "deactivate_type":
+            mem_type = params.get("memory_type", "")
+            if not mem_type:
+                return False, "memory_type required in params"
+
+            # Validar que es un MemoryType valido
+            try:
+                from ..memory.memory_types import MemoryType
+                mt = MemoryType(mem_type)
+            except ValueError:
+                valid_types = [m.value for m in MemoryType]
+                return False, f"invalid memory_type '{mem_type}'. Valid: {valid_types}"
+
+            # Almacenar tipos desactivados en un set del organism
+            if not hasattr(organism, "_deactivated_memory_types"):
+                organism._deactivated_memory_types = set()
+            organism._deactivated_memory_types.add(mem_type)
+
+            return True, f"memory type '{mem_type}' deactivated (new entries will be redirected to 'semantic')"
+
+        elif action == "activate_type":
+            mem_type = params.get("memory_type", "")
+            if not mem_type:
+                return False, "memory_type required in params"
+
+            if hasattr(organism, "_deactivated_memory_types"):
+                if mem_type in organism._deactivated_memory_types:
+                    organism._deactivated_memory_types.discard(mem_type)
+                    return True, f"memory type '{mem_type}' reactivated"
+                return False, f"memory type '{mem_type}' was not deactivated"
+            return False, "no deactivated memory types to activate"
+
+        else:
+            return False, f"unknown action '{action}'. Valid: resize, retune_save_interval, deactivate_type, activate_type"
 
     def get_architectural_changes(self) -> List[Dict[str, Any]]:
         """Devuelve historial de cambios arquitecturales."""

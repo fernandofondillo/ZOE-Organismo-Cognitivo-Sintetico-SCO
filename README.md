@@ -314,6 +314,41 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 ---
 
+## Gaps Resueltos (Auditoria ZOE-SPEC-002)
+
+Tres gaps identificados en la auditoria fundacional han sido resueltos sin deconstruir ni romper backward compatibility:
+
+| Gap | Archivo | Estado |
+|-----|---------|--------|
+| `merge_subagents` no implementado | `zoe/alma/ontogenetic_motor_v2.py` | **Resuelto** |
+| `reorganize_memory` no implementado | `zoe/alma/ontogenetic_motor_v2.py` | **Resuelto** |
+| `serve.py` usa V4 (sin ACD ni persistencia) | `zoe/serve.py` | **Resuelto** |
+
+### merge_subagents (OntogeneticMotorV2)
+
+Fusiona dos sub-agentes del mismo tipo funcional en uno solo. Transferencia de estado interno (listas y diccionarios de atributos privados), eliminacion del source, verificacion de que ambos son del mismo tipo. Ahora las 7 mutaciones arquitecturales estan implementadas: add_subagent, remove_subagent, merge_subagents, modify_threshold, adjust_workspace_capacity, adjust_metabolism_threshold, reorganize_memory.
+
+### reorganize_memory (OntogeneticMotorV2)
+
+Reorganiza la estructura de la memoria en runtime. Acciones soportadas:
+- **resize**: cambia LivingMemory.max_entries (olvida entradas si hay overflow)
+- **retune_save_interval**: cambia auto_save_interval de PersistentMemoryStore
+- **deactivate_type**: desactiva un MemoryType (nuevas entradas van a semantica)
+- **activate_type**: reactiva un MemoryType previamente desactivado
+
+Diferente de LivingMemory.think() y DeepConsolidation.consolidate() que reorganizan el CONTENIDO automaticamente. reorganize_memory cambia la ESTRUCTURA.
+
+### serve.py migrado a V5
+
+El entrypoint de produccion ahora usa CognitiveLoopV5 (hereda V4, backward-compatible):
+- **ACD**: Adaptive Cognitive Depth con DepthClassifier
+- **CognitiveCache**: idempotencia para entradas repetidas
+- **LanguageDetector**: deteccion automatica de idioma
+- **Persistencia**: identidad y trayectoria se cargan/guardan de disco entre reinicios
+- **V5 sin V5-components** = V4: si no se pasan depth_classifier ni cognitive_cache, V5 se comporta como V4
+
+---
+
 ## Requisitos
 
 ### Software
@@ -340,6 +375,7 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 |--------|------|------------|
 | ✅ | Fases 0-5 + Sprints 1-5.11 | Bucle cognitivo, ALMA, 12 sub-agentes, ACD, cápsulas, marketplace |
 | ✅ | ZOE OMEGA Correcciones | Seguridad hardening, infraestructura producción, dashboard refactorizado |
+| ✅ | ZOE-SPEC-002 Gaps | merge_subagents, reorganize_memory, serve.py V5 |
 | 🔄 | Pasarela de pagos | Stripe/PayPal para marketplace |
 | 📋 | Chaos engineering avanzado | Load testing, fuzzing, penetración profesional |
 | 📋 | v2.0.0 GA | Production Ready tras hardening final |
