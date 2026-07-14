@@ -246,18 +246,26 @@ Al final veras:
   Tipo: SSD Crucial X9
 
   Scripts de lanzador creados en: /Volumes/CrucialX9/ZOE/
-  - ZOE-Smart.command        (menu completo)
-  - INICIAR-ZOE.command      (chat en terminal, un click)
-  - INICIAR-DASHBOARD.command (dashboard web, un click)
+  - INICIAR-DASHBOARD.command  (dashboard web, deteccion automatica backend)
+  - INICIAR-ZOE.command        (chat terminal, deteccion automatica backend)
+  - ZOE-Dashboard-Ollama.command (dashboard con ACD Router, solo Ollama)
+  - ZOE-Chat-Ollama.command    (chat con ACD Router, solo Ollama)
+  - ZOE-Dashboard.command      (dashboard con PatternSpeaker, sin IA)
+  - ZOE-Chat.command           (chat con PatternSpeaker, sin IA)
 ```
+
+> **Cual launcher usar?** Para uso diario, usa **`INICIAR-DASHBOARD.command`** (interfaz web) o **`INICIAR-ZOE.command`** (chat terminal). Estos detectan automaticamente que backend tienes (Ollama > OpenAI > Anthropic > PatternSpeaker) y configuran todo. Los otros 4 lanzadores (`ZOE-Dashboard-Ollama`, `ZOE-Chat-Ollama`, `ZOE-Dashboard`, `ZOE-Chat`) son para forzar un backend especifico.
 
 ### Paso 7: Verifica que todo funciona
 
 Abre **Finder > CrucialX9 > ZOE**. Veras:
 
-- `ZOE-Smart.command` — Menu completo de inicio.
-- `INICIAR-ZOE.command` — Chat rapido en Terminal.
-- `INICIAR-DASHBOARD.command` — Interfaz web en tu navegador.
+- `INICIAR-DASHBOARD.command` — **Recomendado.** Abre el dashboard web en tu navegador.
+- `INICIAR-ZOE.command` — Chat rapido en Terminal con deteccion automatica.
+- `ZOE-Dashboard-Ollama.command` — Dashboard forzando Ollama (ACD Router).
+- `ZOE-Chat-Ollama.command` — Chat forzando Ollama (ACD Router).
+- `ZOE-Dashboard.command` — Dashboard forzando PatternSpeaker (offline sin IA).
+- `ZOE-Chat.command` — Chat forzando PatternSpeaker (offline sin IA).
 - `venv/` — Entorno virtual de Python (no tocar).
 - `zoe/` — Codigo del organismo (no tocar).
 - `data/` — Tu memoria, identidad y configuracion. **Aqui vive ZOE.**
@@ -448,8 +456,9 @@ Abre **Finder > CrucialX9 > ZOE**. Veras:
   OK Ollama detectado -- ACD Router activo (5 niveles cognitivos)
 
   URL del Dashboard: http://localhost:8642/
-  El token se mostrara abajo al arrancar ZOE.
-  Copia la URL completa (con ?token=...) al navegador.
+  Abriendo navegador automaticamente con token embebido...
+  (Si no se abre, copia el token del archivo de abajo y abre
+   http://localhost:8642/?token=TU_TOKEN manualmente)
   Pulsa Ctrl+C para detener ZOE.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -458,21 +467,29 @@ Abre **Finder > CrucialX9 > ZOE**. Veras:
   ZOE v2.1.2 -- Web Dashboard
 ============================================================
   URL (abrir en navegador):
-    http://localhost:8642/?token=AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
+    http://localhost:8642/?token=<token-embebido-en-url>
 
   LLM: ollama
   Identity: 2920c734f0ffcd92...
   Memory: 0 entries
-  Auth token (manual si la URL de arriba falla): AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
+  Token persistido en: /Volumes/CrucialX9/ZOE/data/dashboard_token.txt (chmod 0600)
 
-  Abre tu navegador en la URL de arriba (incluye el token).
+  Abriendo navegador automaticamente con token embebido...
+  (Si no se abre, copia el token del archivo de arriba y abre
+   http://localhost:8642/?token=TU_TOKEN manualmente)
   Presiona Ctrl+C para detener.
 ============================================================
 ```
 
-4. **Copia la URL completa** (incluyendo `?token=...`) y pegala en Safari o Chrome.
+4. **El navegador se abre automaticamente** con el token embebido en la URL. No necesitas copiar ni pegar nada.
 
-> **Por que hay un token?** ZOE protege el dashboard con un token para que nadie en tu red pueda acceder sin permiso. Es como una llave. El token se guarda en `data/dashboard_token.txt` y se mantiene estable entre reinicios.
+> **Sprint 5.13 B6 — Seguridad del token:** El token NO se imprime en la Terminal ni en los logs. El navegador recibe la URL completa (con `?token=XXX`), el JavaScript del dashboard extrae el token, lo guarda en `localStorage`, y limpia la URL con `history.replaceState`. Asi el token nunca aparece en pantalla ni en logs.
+
+> **Si el navegador no se abre automaticamente** (servidor headless, SSH, etc.):
+> 1. Abre el archivo `data/dashboard_token.txt` en tu SSD (tendra algo como `AbCdEfGhIjKlMnOpQrStUvWxYz1234567890`).
+> 2. Abre tu navegador y pega: `http://localhost:8642/?token=EL_TOKEN_DEL_ARCHIVO`
+
+> **Por que hay un token?** ZOE protege el dashboard con un token criptografico (32 bytes aleatorios, generado con `secrets.token_urlsafe`) para que nadie en tu red pueda acceder sin permiso. La comparacion del token usa `hmac.compare_digest` (timing-safe, previene timing attacks). El token se guarda en `data/dashboard_token.txt` con permisos `0600` (solo tu usuario puede leerlo) y se mantiene estable entre reinicios.
 
 5. Veras el Dashboard de ZOE en tu navegador (ver seccion 7 para detalle).
 
@@ -842,7 +859,7 @@ El Dashboard expone **81 endpoints REST**. Algunos utiles:
 | `/metrics` | GET | Metricas Prometheus (publico) |
 | `/manifest.json` | GET | PWA manifest (publico) |
 | `/stats` | GET | Estadisticas del loop cognitivo |
-| `/memory` | GET | Ver memoria (filtrable por tipo) |
+| `/memory` | GET | Ver memoria (filtrable por tipo, con paginacion `?limit=50&offset=0`, max 200) |
 | `/identity` | GET | Identidad SHA-256 de ZOE |
 | `/state` | GET | Estado metabolico actual |
 | `/history` | GET | Historial de conversacion |
@@ -1836,6 +1853,12 @@ Edita `data/.env` en tu SSD:
 | `ZOE_CLOUD_BUDGET` | Presupuesto diario cloud ($) | `1.0` |
 | `OLLAMA_MODELS` | Directorio modelos Ollama | (auto SSD) |
 | `ZOE_DASHBOARD_PORT` | Puerto del dashboard | `8642` |
+| `ZOE_REDIS_URL` | Redis para distributed rate limiting (multi-pod) | (none = in-memory) |
+| `ZOE_STORAGE_TYPE` | `sqlite` o `postgres` (detectado en /health) | `sqlite` |
+| `ZOE_JSON_LOGS` | `1` = logs en JSON (produccion), `0` = humano | `0` |
+| `ZOE_ENV` | `production` activa JSON logs + otras opciones prod | (none) |
+| `ZOE_HEALTH_PORT` | Puerto del servidor de health/probes (serve.py) | `8080` |
+| `ZOE_AUTH_TOKEN` | Token de auth del dashboard (si no se especifica, auto-generado) | (auto) |
 
 ### Configuracion del ReflectionEngine
 
@@ -1982,10 +2005,11 @@ bash zoe/scripts/backup.sh
 
 #### "El Dashboard pide token"
 
-- **Causa:** Es normal. ZOE protege el dashboard con un token de autenticacion.
-- **Solucion 1:** Copia la URL completa con `?token=XXX` de la Terminal donde iniciaste ZOE.
-- **Solucion 2:** Si perdiste el token, abre `data/dashboard_token.txt` en tu SSD. Copia el contenido y pegalo en el modal.
-- **Solucion 3:** Si quieres desactivar auth (NO recomendado), inicia con `--auth-token ""`.
+- **Causa:** Es normal. ZOE protege el dashboard con un token criptografico (32 bytes, `secrets.token_urlsafe`).
+- **Solucion 1 (normal):** El navegador se abre automaticamente con el token embebido en la URL. No necesitas hacer nada.
+- **Solucion 2 (si el navegador no se abre):** Lee el token del archivo `data/dashboard_token.txt` en tu SSD. Abre tu navegador y pega: `http://localhost:8642/?token=EL_TOKEN_DEL_ARCHIVO`
+- **Solucion 3 (modal del navegador):** Si ves un modal pidiendo el token, copia el contenido de `data/dashboard_token.txt` y pegalo ahi. El navegador lo guardara en `localStorage` para no volver a pedirlo.
+- **Seguridad:** El token usa `hmac.compare_digest` (timing-safe). El archivo tiene permisos `0600` (solo tu usuario puede leerlo).
 
 #### "No veo el indicador de 'pensando'"
 
