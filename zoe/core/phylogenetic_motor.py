@@ -174,9 +174,14 @@ class PhylogeneticMotor:
     - Incorporar mejoras validadas
     """
 
-    def __init__(self, zoe_id: str, pool: Optional[PhylogeneticPool] = None):
+    def __init__(self, zoe_id: str, pool_path: Optional[str] = None):
         self.zoe_id = zoe_id
-        self.pool = pool or PhylogeneticPool.get_instance()
+        if pool_path:
+            # Import lazy para evitar circular import
+            from .distributed_phylogenetic_pool import DistributedPhylogeneticPool
+            self.pool = DistributedPhylogeneticPool(pool_path)
+        else:
+            self.pool = PhylogeneticPool.get_instance()
         self._next_improvement_id = 0
 
     def publish_improvement(

@@ -1,0 +1,15 @@
+[run]
+source = zoe
+omit =
+    zoe/tests/*
+    zoe/examples/*
+    zoe/phases/*
+    */__pycache__/*
+
+[report]
+show_missing = True
+precision = 2
+skip_covered = False
+
+[html]
+directory = htmlcov

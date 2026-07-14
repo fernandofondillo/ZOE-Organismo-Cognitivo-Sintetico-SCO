@@ -112,6 +112,10 @@ class LivingMemory:
         if len(self._entries) > self.max_entries:
             self._forget_low_salience(n=10)
 
+        # Invalidar cache semantica si existe
+        if hasattr(self, "_semantic_search") and self._semantic_search:
+            self._semantic_search.invalidate_cache(entry_id)
+
         return entry_id
 
     def get(self, entry_id: str) -> Optional[MemoryEntry]:
@@ -122,8 +126,33 @@ class LivingMemory:
             entry.access_count += 1
         return entry
 
-    def search(self, query: str, n: int = 5) -> List[MemoryEntry]:
-        """Busca entries por similitud de texto (Jaccard simple)."""
+    def search(
+        self, query: str, n: int = 5, use_semantic: bool = False
+    ) -> List[MemoryEntry]:
+        """Busca entries por similitud de texto (Jaccard + embeddings opcionales)."""
+        # Si se solicita busqueda semantica, intentar primero
+        if use_semantic:
+            try:
+                from ..memory.semantic_search import SemanticSearch
+
+                # Singleton lazy
+                if not hasattr(self, "_semantic_search"):
+                    self._semantic_search = SemanticSearch()
+                if self._semantic_search.is_available:
+                    results = self._semantic_search.search(
+                        query, self._entries, n=n
+                    )
+                    if results:
+                        logger.debug(
+                            f"SemanticSearch: {len(results)} results for "
+                            f"'{query[:30]}...'"
+                        )
+                        return [entry for _, entry in results]
+                    # Si no hay resultados semanticos, fallback a Jaccard
+            except ImportError:
+                pass  # Fallback a Jaccard
+
+        # Jaccard (default, backward-compatible)
         query_words = set(query.lower().split())
         scored = []
         for entry in self._entries.values():

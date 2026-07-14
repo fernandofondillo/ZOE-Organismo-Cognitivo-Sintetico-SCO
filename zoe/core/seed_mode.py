@@ -52,6 +52,7 @@ import logging
 import os
 import platform
 import shutil
+import sys
 import time
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -185,6 +186,8 @@ class GerminationReport:
     duration_ms: float = 0.0
     host_info: Dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
+    auto_started: bool = False
+    auto_start_status: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -533,6 +536,7 @@ class ZOESeed:
         custom_paths: Optional[List[str]] = None,
         acd_level: Optional[str] = None,
         force_allow_cloud: bool = True,
+        auto_start: bool = False,
     ) -> GerminationReport:
         """
         Germina una semilla ZOE en el host actual.
@@ -757,6 +761,31 @@ class ZOESeed:
             f"(host={host_info.get('hostname', '?')}, "
             f"backend={emb.backend_name}, capsules={len(capsules_loaded)})"
         )
+
+        # 10. Auto-start (opt-in)
+        if auto_start:
+            try:
+                from ..cli_chat import ZoeChat
+                chat = ZoeChat(
+                    backend="ollama" if manifest.requires_ollama else "mock",
+                    db_path=os.path.join(vol.volume_path, "zoe_data", "memory.db"),
+                )
+                # Importar asyncio y arrancar
+                import asyncio
+                loop_async = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop_async)
+                loop_async.run_until_complete(chat.initialize())
+                report.auto_started = True
+                report.auto_start_status = "running"
+                logger.info("ZOESeed: ZOE auto-started after germination")
+            except Exception as e:
+                report.auto_started = False
+                report.auto_start_status = f"failed: {e}"
+                logger.warning(f"ZOESeed: auto-start failed: {e}")
+        else:
+            report.auto_started = False
+            report.auto_start_status = "skipped (auto_start=False)"
+
         return report
 
     # ------------------------------------------------------------
@@ -874,3 +903,70 @@ class ZOESeed:
             "capsules_status": capsules_status,
             "host_info": self._get_host_info(),
         }
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="ZOE Seed Mode — Germinar una semilla ZOE")
+    parser.add_argument(
+        "--paths",
+        nargs="+",
+        help="Rutas personalizadas para buscar la semilla",
+    )
+    parser.add_argument(
+        "--acd-level",
+        default=None,
+        help="Nivel ACD para el embodiment (ej: L0_FAST, L1_BASIC, L2_STANDARD, L3_DEEP)",
+    )
+    parser.add_argument(
+        "--auto-start",
+        action="store_true",
+        dest="auto_start",
+        help="Arrancar ZOE automaticamente tras germinar",
+    )
+    parser.add_argument(
+        "--inspect",
+        action="store_true",
+        help="Inspeccionar la semilla sin germinarla",
+    )
+    parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Mostrar logs detallados",
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+    )
+
+    seed = ZOESeed()
+
+    if args.inspect:
+        result = seed.inspect(custom_paths=args.paths)
+        print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        return
+
+    print("ZOE Seed Mode — Germinando...")
+    report = seed.germinate(
+        custom_paths=args.paths,
+        acd_level=args.acd_level,
+        auto_start=args.auto_start,
+    )
+
+    print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False, default=str))
+
+    if report.success:
+        print("\nGerminacion exitosa. ZOE esta viva.")
+        if report.auto_started:
+            print(f"Auto-start: {report.auto_start_status}")
+        elif not args.auto_start:
+            print("Pasa --auto-start para arrancar ZOE automaticamente.")
+    else:
+        print(f"\nGerminacion fallida: {report.error}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -169,6 +170,27 @@ class ZoeChat:
         _vault_path = str(_data_dir / "identity_vault.json")
         _chain_path = str(_data_dir / "trajectory_chain.json")
         _capsules_path = str(_data_dir / "loaded_capsules.json")
+
+        # Fase 7D: Verificar si hay un plan de embodiment previo
+        _plan_path = _data_dir / "embodiment_plan.json"
+        _embodiment_config = {}
+        if _plan_path.exists():
+            try:
+                with open(_plan_path, "r", encoding="utf-8") as f:
+                    _embodiment_config = json.load(f)
+                print(f"  Embodiment plan loaded: {_plan_path}")
+                # Aplicar configuraciones del plan
+                if "memory" in _embodiment_config:
+                    mem_cfg = _embodiment_config["memory"]
+                    if "max_entries" in mem_cfg:
+                        config.setdefault("memory", {})["max_entries"] = mem_cfg["max_entries"]
+                if "tick_interval" in _embodiment_config:
+                    config.setdefault("organism", {})["tick_interval"] = _embodiment_config["tick_interval"]
+                if "broadcast_capacity" in _embodiment_config:
+                    # Se aplicara al GlobalWorkspace mas abajo
+                    pass
+            except Exception as e:
+                print(f"  Warning: could not load embodiment plan: {e}")
 
         # Cargar identidad existente o crear nueva
         vault = IdentityVault.load_from_disk(_vault_path)
@@ -1019,7 +1041,35 @@ def main():
     )
     parser.add_argument("--api-key", help="API key para backends cloud")
     parser.add_argument("--base-url", help="URL base para APIs compatibles")
+    parser.add_argument(
+        "--compose",
+        action="store_true",
+        help="Ejecutar EmbodimentComposer una vez y guardar el plan",
+    )
     args = parser.parse_args()
+
+    if args.compose:
+        # Ejecutar composer y salir
+        from .core.embodiment_composer import EmbodimentComposer
+        composer = EmbodimentComposer()
+        plan = composer.compose(
+            acd_level=args.acd_level if hasattr(args, 'acd_level') else None,
+            metabolismo={"fatigue_rate": 0.01},
+        )
+        # Guardar plan
+        _plan_path = Path(args.db_path).parent / "embodiment_plan.json" if args.db_path else Path("zoe_data/embodiment_plan.json")
+        _plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_dict = {
+            "composed_at": time.time(),
+            "memory": {"max_entries": plan.memory_config.get("max_entries", 5000)},
+            "tick_interval": plan.tick_interval if hasattr(plan, 'tick_interval') else 3.0,
+            "subagents_selected": [s.__class__.__name__ for s in plan.subagents] if hasattr(plan, 'subagents') else [],
+        }
+        with open(_plan_path, "w", encoding="utf-8") as f:
+            json.dump(plan_dict, f, indent=2, ensure_ascii=False)
+        print(f"Embodiment plan saved: {_plan_path}")
+        print("Run without --compose to use this plan.")
+        return
 
     logging.basicConfig(level=logging.WARNING, format="%(asctime)s [%(levelname)s] %(message)s")
 

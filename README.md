@@ -349,6 +349,100 @@ El entrypoint de produccion ahora usa CognitiveLoopV5 (hereda V4, backward-compa
 
 ---
 
+## Mejoras ZOE-SPEC-002 (6 puntos)
+
+Seis mejoras implementadas siguiendo el principio "añadir, no reemplazar; opt-in, no obligatorio":
+
+### 1. Busqueda semantica (embeddings opcionales)
+
+**Problema:** `LivingMemory.search()` usaba Jaccard (coincidencia lexica). "madre" y "progenitora" = similitud 0.
+
+**Solucion:** `SemanticSearch` en `zoe/memory/semantic_search.py`:
+- Usa `sentence-transformers` (instalacion: `pip install sentence-transformers`)
+- Embeddings cacheados por entry_id
+- Similitud coseno entre query y entries
+- Fallback automatico a Jaccard si no esta instalado
+- `memory.search("query", use_semantic=True)` — parametro opt-in
+
+```python
+from zoe.core.living_memory import LivingMemory
+lm = LivingMemory()
+results = lm.search("gato durmiendo")           # Jaccard (default)
+results = lm.search("gato durmiendo", use_semantic=True)  # Semantico
+```
+
+### 2. Cobertura de tests medida
+
+**Problema:** 1,381+ tests sin saber que porcentaje del codigo cubren.
+
+**Solucion:** Configuracion completa:
+- `pytest-cov>=4.1.0` en `extras_require["test"]`
+- `.coveragerc`: source=zoe, omite tests/examples/phases, show_missing
+- `pytest.ini`: testpaths, asyncio_mode
+
+```bash
+pip install -e ".[test]"
+pytest --cov=zoe --cov-report=term-missing --cov-report=html
+```
+
+### 3. PhylogeneticMotor con persistencia
+
+**Problema:** Pool en memoria; ZOEs en procesos diferentes no comparten mejoras.
+
+**Solucion:** `DistributedPhylogeneticPool` en `zoe/core/distributed_phylogenetic_pool.py`:
+- Persistencia JSON atomica (write tmp + replace)
+- Lazy reload antes de cada read
+- Misma interfaz que `PhylogeneticPool`
+- Opt-in via `pool_path` en `PhylogeneticMotor.__init__()`
+
+```python
+from zoe.core.phylogenetic_motor import PhylogeneticMotor
+motor = PhylogeneticMotor(zoe_id="zoe_A", pool_path="/ssd/zoe/phylogenetic_pool.json")
+```
+
+### 4. EmbodimentComposer en CLI
+
+**Problema:** 772 LOC de composer no se usaban en el flujo principal.
+
+**Solucion:** `--compose` en `cli_chat.py`:
+- `python -m zoe.cli_chat --compose` ejecuta composer, guarda plan, sale
+- Proximo arranque lee `embodiment_plan.json` y aplica configuraciones
+- Ajusta `max_entries`, `tick_interval` segun el hardware detectado
+- Opt-in: sin plan, usa defaults actuales
+
+### 5. SeedMode auto-start
+
+**Problema:** `germinate()` devolvia reporte pero no arrancaba ZOE.
+
+**Solucion:** Parametro `auto_start: bool = False` en `ZOESeed.germinate()`:
+- `python -m zoe.core.seed_mode --auto-start` germina y arranca en un paso
+- Crea `ZoeChat` con backend segun manifiesto, inicializa y corre
+- `GerminationReport` incluye `auto_started` y `auto_start_status`
+- Default `False`: comportamiento existente preservado
+
+### 6. Federation discovery
+
+**Problema:** Registro manual de pares (90 configuraciones para 10 ZOEs).
+
+**Solucion:** `FederationDiscovery` en `zoe/core/federation_discovery.py`:
+- Modo `manual` (default): comportamiento existente
+- Modo `filesystem`: `peers.json` en SSD compartido
+  - `announce()`: escribe URL + organism_id en peers.json
+  - `discover()`: lee peers, filtra stale (>5min), skip self
+  - `cleanup_stale()`: elimina peers antiguos
+- Integrado en `EpistemicFederationServer` via `discovery_mode`
+
+```python
+server = EpistemicFederationServer(
+    federation_manager=fed,
+    discovery_mode="filesystem",
+    peers_file="/ssd/zoe/peers.json",
+)
+server.discover_peers()  # Registra peers descubiertos automaticamente
+```
+
+---
+
 ## Requisitos
 
 ### Software
@@ -375,7 +469,8 @@ El entrypoint de produccion ahora usa CognitiveLoopV5 (hereda V4, backward-compa
 |--------|------|------------|
 | ✅ | Fases 0-5 + Sprints 1-5.11 | Bucle cognitivo, ALMA, 12 sub-agentes, ACD, cápsulas, marketplace |
 | ✅ | ZOE OMEGA Correcciones | Seguridad hardening, infraestructura producción, dashboard refactorizado |
-| ✅ | ZOE-SPEC-002 Gaps | merge_subagents, reorganize_memory, serve.py V5 |
+| ✅ | ZOE-SPEC-002 Gaps (3) | merge_subagents, reorganize_memory, serve.py V5 |
+| ✅ | ZOE-SPEC-002 Mejoras (6) | SemanticSearch, cobertura tests, Phylo persistencia, Composer CLI, Seed auto-start, Federation discovery |
 | 🔄 | Pasarela de pagos | Stripe/PayPal para marketplace |
 | 📋 | Chaos engineering avanzado | Load testing, fuzzing, penetración profesional |
 | 📋 | v2.0.0 GA | Production Ready tras hardening final |

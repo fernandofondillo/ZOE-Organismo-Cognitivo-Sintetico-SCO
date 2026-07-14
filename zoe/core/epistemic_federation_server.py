@@ -60,10 +60,38 @@ class EpistemicFederationServer:
     Se integra con el Web Dashboard existente.
     """
     
-    def __init__(self, federation_manager, quarantine=None):
+    def __init__(
+        self,
+        federation_manager,
+        quarantine=None,
+        discovery_mode: str = "manual",
+        peers_file: Optional[str] = None,
+        organism_id: str = "zoe",
+        base_url: str = "http://localhost:8642",
+    ):
         self.federation = federation_manager
         self.quarantine = quarantine
         self._peers: Dict[str, PeerEndpoint] = {}
+        self.discovery_mode = discovery_mode
+
+        # Inicializar discovery si no es manual
+        if discovery_mode != "manual":
+            try:
+                from .federation_discovery import FederationDiscovery
+
+                self._discovery = FederationDiscovery(
+                    organism_id=organism_id,
+                    base_url=base_url,
+                    discovery_mode=discovery_mode,
+                    peers_file=peers_file,
+                )
+                self._discovery.announce()
+                logger.info(f"FederationDiscovery: mode={discovery_mode}")
+            except Exception as e:
+                logger.warning(f"FederationDiscovery init failed: {e}")
+                self._discovery = None
+        else:
+            self._discovery = None
     
     def register_peer(self, organism_id: str, base_url: str, auth_token: str = None) -> bool:
         """Registra un peer para federación epistémica."""
@@ -136,11 +164,21 @@ class EpistemicFederationServer:
         self.register_peer(organism_id, base_url, auth_token)
         return {"status": "ok", "registered": organism_id}
     
+    def discover_peers(self) -> List[Dict[str, Any]]:
+        """Descubre peers via el mecanismo configurado."""
+        if self._discovery:
+            discovered = self._discovery.discover()
+            for pdata in discovered:
+                self.register_peer(pdata["organism_id"], pdata["base_url"])
+            return discovered
+        return []
+
     def get_stats(self) -> Dict[str, Any]:
         return {
             "peers_count": len(self._peers),
             "peers": self.list_peers(),
             "federation_stats": self.federation.get_stats(),
+            "discovery_mode": self.discovery_mode,
         }
 
 
