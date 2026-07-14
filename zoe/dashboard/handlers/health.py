@@ -1,5 +1,6 @@
 """Handlers de health checks: /health, /ready, /live, /metrics (4 endpoints)."""
 
+import os
 from datetime import datetime, timezone
 import sqlite3
 from typing import Any
