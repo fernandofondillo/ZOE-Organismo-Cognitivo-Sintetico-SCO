@@ -1,0 +1,52 @@
+# Sprint 5.18 F4.1 — PodDisruptionBudget para ZOE.
+#
+# Garantiza que durante mantenimientos voluntarios (drain de nodos,
+# upgrades de cluster), siempre haya al menos 1 pod de ZOE disponible.
+#
+# Aplicar con: kubectl apply -f k8s/pod-disruption-budget.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: zoe-pdb
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: organism
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoe
+      app.kubernetes.io/component: organism
+---
+# PDB para Ollama (asegura que el LLM este disponible durante drains)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: zoe-ollama-pdb
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-ollama
+    app.kubernetes.io/component: llm
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoe-ollama
+      app.kubernetes.io/component: llm
+---
+# PDB para PostgreSQL (asegura que la BD este disponible durante drains)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: zoe-postgres-pdb
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe-postgres
+    app.kubernetes.io/component: database
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoe-postgres
+      app.kubernetes.io/component: database

@@ -1,0 +1,46 @@
+# Sprint 5.18 F4.3 — ServiceMonitor para Prometheus Operator.
+#
+# Permite que Prometheus descubra automaticamente el endpoint /metrics
+# de ZOE y recoja metricas sin configuracion manual.
+#
+# Aplicar con: kubectl apply -f k8s/service-monitor.yaml
+# Requiere Prometheus Operator instalado en el cluster.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: zoe-monitor
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: monitoring
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zoe
+      app.kubernetes.io/component: organism
+  endpoints:
+    # Metrics endpoint en puerto health (8080)
+    - port: health
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+      params:
+        module: [http_2xx]
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+    # Tambien scrapear el dashboard (puerto 8642) si esta expuesto
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace

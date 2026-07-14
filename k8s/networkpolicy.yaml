@@ -13,6 +13,24 @@ spec:
     - Egress
 
 ---
+# Sprint 5.18 F4.4 — Denegar todo el trafico entre pods del namespace zoe
+# por defecto. Solo se permite lo explicitamente allow-listado en las
+# politicas siguientes.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-inter-pod-default
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
 # Permitir trafico a ZOE desde el Ingress Controller
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

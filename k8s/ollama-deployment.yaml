@@ -29,6 +29,9 @@ spec:
         runAsGroup: 1000
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
+        # Sprint 5.18 F4.5: seccompProfile para endurecimiento
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
         - name: ollama
@@ -87,6 +90,10 @@ spec:
             failureThreshold: 30  # 10 * 30 = 300s para descargar modelos
           securityContext:
             allowPrivilegeEscalation: false
+            # Sprint 5.18 F4.5: readOnlyRootFilesystem + seccompProfile
+            # Ollama escribe en /var/lib/ollama (PVC) y /tmp (emptyDir).
+            # El resto del filesystem puede ser read-only.
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
