@@ -24,13 +24,28 @@ async def _handle_stats(server, request) -> Any:
 
 
 async def _handle_memory(server, request) -> Any:
-    """Devuelve entradas de memoria."""
+    """Devuelve entradas de memoria con paginación.
+
+    Sprint 5.16 F2.2: Añadido paginación limit/offset para evitar
+    respuestas enormes cuando ZOE tiene miles de entradas.
+    Default: limit=50, offset=0. Max: limit=200.
+    """
     mem_type = request.query.get("type")
-    entries = []
+    # Sprint 5.16 F2.2: paginación
+    try:
+        limit = int(request.query.get("limit", 50))
+        offset = int(request.query.get("offset", 0))
+    except ValueError:
+        limit, offset = 50, 0
+    # Cap limit to prevent abuse
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+
+    all_entries = []
     for entry in server.chat.memory.all_entries():
         if mem_type and entry.type != mem_type:
             continue
-        entries.append({
+        all_entries.append({
             "id": entry.id,
             "type": entry.type,
             "content": entry.content[:200],
@@ -39,7 +54,17 @@ async def _handle_memory(server, request) -> Any:
             "provenance": entry.provenance,
             "timestamp": entry.timestamp,
         })
-    return web.json_response({"entries": entries, "count": len(entries)})
+
+    total = len(all_entries)
+    paginated = all_entries[offset:offset + limit]
+    return web.json_response({
+        "entries": paginated,
+        "count": len(paginated),
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": (offset + limit) < total,
+    })
 
 
 async def _handle_identity(server, request) -> Any:

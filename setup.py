@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="zoe-sco",
-    version="1.8.0",
+    version="2.1.2",
     author="Fernando Fondillo",
     author_email="fernandofondillo@users.noreply.github.com",
     description="ZOE — Synthetic Cognitive Organism (SCO). El primer organismo cognitivo digital.",

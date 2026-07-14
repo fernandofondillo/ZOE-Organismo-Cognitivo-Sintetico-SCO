@@ -59,12 +59,19 @@ async def _handle_health(server, request) -> Any:
     healthy = True
 
     # Check 1: SQLite responde
+    # Sprint 5.16 F2.6: Usar asyncio.to_thread para no bloquear el event loop
+    # con sqlite3.connect (que es sincrono).
     try:
-        conn = sqlite3.connect(server.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1")
-        cursor.fetchone()
-        conn.close()
+        import asyncio
+        def _check_sqlite():
+            conn = sqlite3.connect(server.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+            finally:
+                conn.close()
+        await asyncio.to_thread(_check_sqlite)
     except Exception as e:
         checks["memory_db"] = f"error: {e}"
         healthy = False
@@ -99,12 +106,18 @@ async def _handle_ready(server, request) -> Any:
     ready = True
 
     # Check 1: memory_db esta accesible
+    # Sprint 5.16 F2.6: Usar asyncio.to_thread para no bloquear el event loop.
     try:
-        conn = sqlite3.connect(server.db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1")
-        cursor.fetchone()
-        conn.close()
+        import asyncio
+        def _check_sqlite():
+            conn = sqlite3.connect(server.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+            finally:
+                conn.close()
+        await asyncio.to_thread(_check_sqlite)
     except Exception as e:
         checks["memory_db"] = f"error: {e}"
         ready = False

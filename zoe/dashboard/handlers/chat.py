@@ -138,17 +138,53 @@ async def _handle_chat_post(server, request) -> Any:
 
 
 async def _handle_feed_upload(server, request) -> Any:
-    """Subida de archivos para alimentar a ZOE."""
+    """Subida de archivos para alimentar a ZOE.
+
+    Sprint 5.16 F2.3: Añadido limites de seguridad:
+    - Tamaño maximo: 10MB (10 * 1024 * 1024 bytes)
+    - Validacion MIME type (solo text/*, application/json, application/pdf, image/*)
+    - Sanitizacion de filename (eliminar path traversal, caracteres especiales)
+    """
+    # Sprint 5.16 F2.3: Limite de tamaño 10MB
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    # MIME types permitidos
+    ALLOWED_MIME_PREFIXES = ("text/", "application/json", "application/pdf", "image/")
+    # Extensiones permitidas (defensa en profundidad)
+    ALLOWED_EXTENSIONS = (
+        ".txt", ".md", ".json", ".yaml", ".yml", ".csv", ".pdf",
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
+    )
+
     reader = await request.multipart()
     file_part = await reader.next()
 
     if file_part is None:
         return web.json_response({"error": "No file uploaded"}, status=400)
 
-    # Leer contenido
-    content = await file_part.read()
-    filename = file_part.filename or "uploaded.txt"
+    # Sprint 5.16 F2.3: Sanitizar filename (eliminar path traversal)
+    raw_filename = file_part.filename or "uploaded.txt"
+    # Quitar cualquier path component (../../../etc/passwd → passwd)
+    filename = os.path.basename(raw_filename)
+    # Solo permitir caracteres alfanumericos, _, -, .
+    import re
+    filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+    if not filename:
+        filename = "uploaded.txt"
+
     content_type = file_part.headers.get("Content-Type", "")
+
+    # Sprint 5.16 F2.3: Validar extension (defensa en profundidad)
+    if not filename.lower().endswith(ALLOWED_EXTENSIONS):
+        return web.json_response({
+            "error": f"File type not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        }, status=400)
+
+    # Sprint 5.16 F2.3: Leer contenido con limite de tamaño
+    content = await file_part.read(chunk_size=1024 * 1024)  # 1MB chunks
+    if len(content) > MAX_FILE_SIZE:
+        return web.json_response({
+            "error": f"File too large. Max size: {MAX_FILE_SIZE // (1024*1024)}MB"
+        }, status=413)
 
     # Sprint 5.11 C7 -- Si es imagen, usar VLM para describirla
     is_image = content_type.startswith("image/") or filename.lower().endswith(

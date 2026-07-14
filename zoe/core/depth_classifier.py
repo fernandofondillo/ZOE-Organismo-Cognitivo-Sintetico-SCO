@@ -80,7 +80,11 @@ class ClassificationResult:
 # ---- Heurísticas ----
 
 # L0 — Reflejos. Tokens que NO requieren pensar.
-_L0_TOKENS = {
+# Sprint 5.16 F2.1: Separados en dos sets:
+# - _L0_TOKENS_STRICT: solo válidos como frase completa ("hola", "gracias", "ok")
+# - _L0_TOKENS_AMBIGUOUS: válidos solo si son la ÚNICA palabra ("si", "no", "sí")
+#   NO válidos como primera palabra de frase más larga ("no me gusta" NO es L0).
+_L0_TOKENS_STRICT = {
     # Saludos
     "hola", "holaa", "hello", "hi", "hey", "buenas", "buenosdias",
     "buenastardes", "buenasnoches", "quétal", "quetal", "quepasa",
@@ -88,12 +92,22 @@ _L0_TOKENS = {
     "adios", "adiós", "chao", "bye", "hastaluego", "nosvemos", "agur",
     # Acknowledgements
     "ok", "okay", "vale", "venga", "bien", "genial", "perfecto",
-    "entendido", "claro", "sip", "sí", "si", "no", "nop", "nose",
+    "entendido", "claro", "sip", "nop", "nose",
     "gracias", "thanks", "thankyou", "muchasgracias", "denada",
-    "nada", "nade", "de", "nada2",
+    "nada", "nade", "nada2",
     # Siglas / abreviaciones
-    "k", "kk", "jeje", "jaja", "lol", "xD", "xd",
+    "k", "kk", "jeje", "jaja", "lol", "xd",
 }
+
+# Tokens ambiguos: solo L0 si son la UNICA palabra de la frase.
+# "si" = L0_REFLEX (afirmación corta). "si, pero estoy triste" = L1+ (no es L0).
+# "no" = L0_REFLEX (negación corta). "no me gusta" = L1+ (no es L0).
+_L0_TOKENS_AMBIGUOUS = {
+    "si", "sí", "no",
+}
+
+# Compat: union de ambos para checks que aceptaban cualquier L0 token.
+_L0_TOKENS = _L0_TOKENS_STRICT | _L0_TOKENS_AMBIGUOUS
 
 # L3 — Indicadores de profundidad. Palabras que piden análisis.
 _L3_KEYWORDS = {
@@ -238,13 +252,28 @@ class DepthClassifier:
             )
 
         # 2. Tokens L0 al inicio + poca longitud
+        # Sprint 5.16 F2.1: Si hay más de 1 palabra, solo _L0_TOKENS_STRICT
+        # cuenta como L0. _L0_TOKENS_AMBIGUOUS ("si", "no", "sí") solo cuenta
+        # si es la UNICA palabra. Asi "no me gusta" NO se clasifica como L0.
         first_word = normalized.lower().split()[0] if normalized.split() else ""
-        if first_word in _L0_TOKENS and len(normalized) <= self.l0_max_length:
-            reasons.append(f"l0_short_with_token:{first_word}")
-            return self._make_result(
-                CognitiveLevel.L0_REFLEX, 0.10,
-                reasons, normalized
-            )
+        word_count = len(normalized.split())
+        if word_count == 1:
+            # Frase de 1 palabra: cualquier L0 token (strict o ambiguous)
+            if first_word in _L0_TOKENS and len(normalized) <= self.l0_max_length:
+                reasons.append(f"l0_single_word:{first_word}")
+                return self._make_result(
+                    CognitiveLevel.L0_REFLEX, 0.10,
+                    reasons, normalized
+                )
+        elif word_count <= 3:
+            # Frase corta (2-3 palabras): solo _L0_TOKENS_STRICT como primera palabra
+            # "hola zoe" = L0. "no me gusta" = NO L0 (first_word="no" es ambiguous).
+            if first_word in _L0_TOKENS_STRICT and len(normalized) <= self.l0_max_length:
+                reasons.append(f"l0_short_with_strict_token:{first_word}")
+                return self._make_result(
+                    CognitiveLevel.L0_REFLEX, 0.10,
+                    reasons, normalized
+                )
 
         # 3. Detectar keywords L3
         text_lower = normalized.lower()

@@ -33,7 +33,7 @@ Fases del proyecto:
   del LLM antes de llamarlo. 3 capas aditivas sin deconstruir nada.
 """
 
-__version__ = "1.8.0"
+__version__ = "2.1.2"
 __phase__ = "sprint5"
 __author__ = "Fernando Fondillo"
 __license__ = "Apache-2.0"

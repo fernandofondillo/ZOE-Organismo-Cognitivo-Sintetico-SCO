@@ -90,6 +90,16 @@ async def _handle_capsule_validate(server, request) -> Any:
     """
     name = request.match_info["name"]
 
+    # Sprint 5.16 F2.4: Validar name para prevenir argument injection.
+    # Si name empieza con '-', subprocess.run lo interpretaria como flag.
+    # Solo permitir caracteres alfanumericos, _, - (no al inicio).
+    import re
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', name):
+        return web.json_response({
+            "valid": False,
+            "errors": ["invalid_capsule_name: must start with letter, only [a-zA-Z0-9_-]"],
+        }, status=400)
+
     # Localizar la capsula (sanitizado para prevenir path traversal)
     capsules_dir = Path(__file__).resolve().parent.parent.parent / "capsules"
     try:
@@ -232,6 +242,22 @@ async def _handle_capsule_create(server, request) -> Any:
 
     if not name:
         return web.json_response({"error": "name required"}, status=400)
+
+    # Sprint 5.16 F2.4: Validar name y todos los campos para prevenir argument injection.
+    import re
+    _SAFE_PATTERN = r'^[a-zA-Z0-9_\-. ]+$'
+    for field_name, field_value in [("name", name), ("domain", domain),
+                                     ("trust_level", trust_level),
+                                     ("components", components)]:
+        if field_value and not re.match(_SAFE_PATTERN, str(field_value)):
+            return web.json_response({
+                "error": f"invalid {field_name}: must match {_SAFE_PATTERN}",
+            }, status=400)
+    # name specifically must start with letter (no leading - or .)
+    if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', name):
+        return web.json_response({
+            "error": "invalid name: must start with letter, only [a-zA-Z0-9_-]",
+        }, status=400)
 
     cmd = [
         sys.executable, "-m", "zoe.capsules.scaffold", "create",
