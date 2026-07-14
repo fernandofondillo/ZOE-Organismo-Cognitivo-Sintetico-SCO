@@ -147,7 +147,9 @@ def main():
         help="Token required for all requests (Bearer token)")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+    # Sprint 5.17 F3.1: Usar structured logging (JSON en produccion).
+    from .core.structured_logging import setup_logging
+    setup_logging(level="INFO")
 
     try:
         asyncio.run(run_dashboard(

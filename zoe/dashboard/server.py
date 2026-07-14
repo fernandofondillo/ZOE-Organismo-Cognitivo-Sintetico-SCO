@@ -75,6 +75,9 @@ class DashboardServer:
         self._app = None
         self._runner = None
         self._background_broadcaster = None
+        # Sprint 5.17 F3.2: Track start time for /live liveness probe
+        import time
+        self._start_time = time.time()
         # Sprint 5.13 B4-bis — Bound _conversation_history to prevent memory leak.
         # Antes: List[Dict] = [] (unbounded, grows with every chat message).
         # Ahora: deque(maxlen=500) — keeps last 500 messages, discards oldest.

@@ -27,22 +27,9 @@ def setup_logging(
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 5,
 ):
-    handlers = [logging.StreamHandler(sys.stdout)]
-    if log_file:
-        from logging.handlers import RotatingFileHandler
-        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
-        handlers.append(RotatingFileHandler(
-            log_file,
-            maxBytes=max_bytes,
-            backupCount=backup_count,
-        ))
-
-    logging.basicConfig(
-        level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        handlers=handlers,
-    )
+    """Sprint 5.17 F3.1: Delega a zoe.core.structured_logging para JSON output."""
+    from .core.structured_logging import setup_logging as _setup
+    _setup(level=level, log_file=log_file, max_bytes=max_bytes, backup_count=backup_count)
 
 
 async def serve(config_path: str = None, env: str = None):

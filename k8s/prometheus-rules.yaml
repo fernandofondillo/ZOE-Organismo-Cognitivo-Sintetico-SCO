@@ -1,0 +1,99 @@
+# Sprint 5.17 F3.4 — PrometheusRule con alertas basicas para ZOE.
+#
+# Aplicar con: kubectl apply -f k8s/prometheus-rules.yaml
+# Requiere Prometheus Operator instalado en el cluster.
+#
+# Alertas definidas:
+# 1. ZoeDown: ZOE no responde a /health durante 2 minutos.
+# 2. ZoeHighMemory: ZOE usa >90% de memoria del nodo.
+# 3. ZoeHighDiskUsage: Disco de ZOE >90% lleno.
+# 4. ZoeCognitiveLoopStalled: Cognitive loop no avanza durante 5 minutos.
+# 5. ZoeHighErrorRate: Rate de errores 5xx >10% durante 5 minutos.
+# 6. ZoeLLMUnavailable: LLM backend no responde durante 5 minutos.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: zoe-alerts
+  namespace: zoe
+  labels:
+    app.kubernetes.io/name: zoe
+    app.kubernetes.io/component: monitoring
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: zoe.rules
+      rules:
+        # 1. ZOE no responde
+        - alert: ZoeDown
+          expr: up{job="zoe"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            team: zoe
+          annotations:
+            summary: "ZOE is down"
+            description: "ZOE has been down for more than 2 minutes."
+            runbook: "https://github.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/blob/main/docs/13_TROUBLESHOOTING.md"
+
+        # 2. Memoria alta
+        - alert: ZoeHighMemory
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            team: zoe
+          annotations:
+            summary: "High memory usage on ZOE node"
+            description: "Memory usage is above 90% for 5 minutes. ZOE may OOM soon."
+
+        # 3. Disco lleno
+        - alert: ZoeHighDiskUsage
+          expr: |
+            (1 - (node_filesystem_avail_bytes{mountpoint="/data"} / node_filesystem_size_bytes{mountpoint="/data"})) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            team: zoe
+          annotations:
+            summary: "High disk usage for ZOE data"
+            description: "Disk usage for /data is above 90%. ZOE may fail to write memory/identity."
+
+        # 4. Cognitive loop estancado
+        - alert: ZoeCognitiveLoopStalled
+          expr: |
+            rate(zoe_cognitive_loop_iterations_total[5m]) == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: zoe
+          annotations:
+            summary: "ZOE cognitive loop has stalled"
+            description: "The cognitive loop has not advanced in 5 minutes. ZOE may be hung."
+
+        # 5. Rate de errores alto
+        - alert: ZoeHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{job="zoe", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{job="zoe"}[5m]))
+            ) * 100 > 10
+          for: 5m
+          labels:
+            severity: warning
+            team: zoe
+          annotations:
+            summary: "High error rate for ZOE"
+            description: "More than 10% of requests are returning 5xx errors."
+
+        # 6. LLM no disponible
+        - alert: ZoeLLMUnavailable
+          expr: zoe_llm_available == 0
+          for: 5m
+          labels:
+            severity: warning
+            team: zoe
+          annotations:
+            summary: "ZOE LLM backend unavailable"
+            description: "The LLM backend has been unavailable for 5 minutes. ZOE is using PatternSpeaker fallback."
