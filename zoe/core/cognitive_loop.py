@@ -89,7 +89,11 @@ class CognitiveLoop:
 
         # Historial
         self.observations: List[Observation] = []
+        # Sprint 5.13 B4-bis — Bound self.thoughts to prevent memory leak.
+        # NO usamos deque (no soporta slicing self.thoughts[-5:]).
+        # Usamos list con truncado manual en append.
         self.thoughts: List[Thought] = []
+        self._max_thoughts = 1000  # limite para prevenir memory leak
         self.predictions: List[Dict[str, Any]] = []
 
         # Control
@@ -155,6 +159,9 @@ class CognitiveLoop:
             thought = await self._act(decision, observations, surprise)
             if thought:
                 self.thoughts.append(thought)
+                # Sprint 5.13 B4-bis — Truncar thoughts para prevenir memory leak.
+                if hasattr(self, '_max_thoughts') and len(self.thoughts) > self._max_thoughts:
+                    del self.thoughts[:-self._max_thoughts]
                 self.state.register_thought()
                 if self.on_thought_callback:
                     await self.on_thought_callback(thought)

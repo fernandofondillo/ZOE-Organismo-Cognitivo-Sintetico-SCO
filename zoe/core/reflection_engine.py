@@ -550,21 +550,33 @@ class ReflectionEngine:
             confidence += 0.1
 
         # Validación por MentorAgent si disponible
+        # Sprint 5.13 B3: evaluate_thought es SINCRONO y devuelve Optional[Dict],
+        # no un score numerico. Antes: `await self._mentor.evaluate_thought(insight)`
+        # provocaba TypeError (no se puede await un Dict) silenciado por try/except.
+        # Ahora: llamamos sin await, interpretamos el Dict de intervencion.
         if self._mentor is not None and hasattr(self._mentor, 'evaluate_thought'):
             try:
-                mentor_score = await self._mentor.evaluate_thought(insight)
-                confidence += mentor_score * 0.1
-            except Exception:
-                pass
+                intervention = self._mentor.evaluate_thought(insight)
+                if intervention is not None:
+                    # El mentor intervino — penalizar la confianza del insight
+                    severity = intervention.get("severity", "medium")
+                    if severity == "critical":
+                        confidence -= 0.3
+                    elif severity == "medium":
+                        confidence -= 0.15
+                    else:
+                        confidence -= 0.05
+                else:
+                    # El mentor no intervino — ligero bonus (pensamiento alineado)
+                    confidence += 0.05
+            except Exception as e:
+                logger.debug(f"Mentor evaluation failed: {e}")
 
         # Validación por KnowledgeQuarantine si disponible
-        if self._quarantine is not None and hasattr(self._quarantine, 'validate'):
-            try:
-                quarantine_result = await self._quarantine.validate(insight)
-                if not quarantine_result.get("approved", True):
-                    confidence -= 0.3
-            except Exception:
-                pass
+        # Sprint 5.13 B3: KnowledgeQuarantine no tiene metodo validate().
+        # El metodo correcto es verify(entry_id, source, confidence) que requiere
+        # un entry_id ya existente. Aqui estamos validando un insight NUEVO antes
+        # de persistirlo, asi que no aplica. Se elimina el bloque muerto.
 
         return max(0.0, min(1.0, confidence))
 

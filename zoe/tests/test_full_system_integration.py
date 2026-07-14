@@ -482,8 +482,8 @@ async def test_full_fase2_meta_cognition_decides_system2(full_organism):
 async def test_full_fase2_global_workspace_competes(full_organism):
     """Fase 2: Global Workspace selecciona ganadores."""
     gw = full_organism["global_workspace"]
-    gw.submit(Proposal(subagent_name="Speaker", action="think", content="test A", relevance=0.5))
-    gw.submit(Proposal(subagent_name="Creativity", action="explore", content="test B", relevance=0.9))
+    gw.submit(Proposal(subagent_name="Speaker", content="test A", relevance=0.5))
+    gw.submit(Proposal(subagent_name="Creativity", content="test B", relevance=0.9))
     winners = gw.compete(available_energy=1.0)
     assert len(winners) >= 1
     assert winners[0].subagent_name == "Creativity"

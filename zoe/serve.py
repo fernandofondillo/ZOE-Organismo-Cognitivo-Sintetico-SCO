@@ -279,6 +279,58 @@ async def serve(config_path: str = None, env: str = None):
     logger.info(f"Identity Vault: {vault.summary()}")
     logger.info(f"Memory entries loaded: {memory.count()}")
 
+    # Sprint 5.13 B4 — Iniciar servidor HTTP minimo para k8s probes.
+    # El Docker ENTRYPOINT es `python -m zoe.serve`, pero k8s livenessProbe
+    # y readinessProbe apuntan a http://:8080/health y /ready. Sin este
+    # servidor, los probes fallan y el pod entra en CrashLoopBackOff.
+    # El servidor expone SOLO /health, /ready, /live, /metrics — sin dashboard
+    # completo (eso requiere python -m zoe.web_dashboard).
+    from aiohttp import web
+    health_app = web.Application()
+
+    async def _handle_health(request):
+        """Liveness probe — el proceso responde."""
+        return web.json_response({"status": "ok", "iterations": loop.state.iteration_count})
+
+    async def _handle_ready(request):
+        """Readiness probe — el organismo tiene identidad y memoria cargadas."""
+        try:
+            _mem_count = memory.count()
+            _id_hash = vault.identity_hash[:16] if vault else "missing"
+            return web.json_response({
+                "status": "ready",
+                "identity": _id_hash,
+                "memory_entries": _mem_count,
+            })
+        except Exception as e:
+            return web.json_response({"status": "not_ready", "error": str(e)}, status=503)
+
+    async def _handle_live(request):
+        """Liveness probe — verifica que el cognitive loop avanza."""
+        _iter = loop.state.iteration_count
+        # Si no ha avanzado en 60s, probablemente esta colgado
+        return web.json_response({"status": "alive", "iterations": _iter})
+
+    async def _handle_metrics(request):
+        """Prometheus metrics endpoint."""
+        try:
+            from .core.metrics import generate_metrics
+            return web.Response(text=generate_metrics(), content_type="text/plain")
+        except Exception:
+            return web.Response(text="# metrics not available\n", content_type="text/plain")
+
+    health_app.router.add_get("/health", _handle_health)
+    health_app.router.add_get("/ready", _handle_ready)
+    health_app.router.add_get("/live", _handle_live)
+    health_app.router.add_get("/metrics", _handle_metrics)
+
+    health_runner = web.AppRunner(health_app)
+    await health_runner.setup()
+    health_port = int(__import__("os").environ.get("ZOE_HEALTH_PORT", "8080"))
+    health_site = web.TCPSite(health_runner, "0.0.0.0", health_port)
+    await health_site.start()
+    logger.info(f"Health/Probes server started on http://0.0.0.0:{health_port}/health")
+
     # Pensamiento de nacimiento
     logger.info("ZOE is alive. Starting cognitive loop...")
 
@@ -288,6 +340,9 @@ async def serve(config_path: str = None, env: str = None):
     except KeyboardInterrupt:
         logger.info("Shutdown requested via keyboard")
     finally:
+        # Detener servidor de health
+        await health_runner.cleanup()
+
         # Graceful shutdown con persistencia
         logger.info("Saving memory to disk...")
         persistent_mem.save_to_disk()

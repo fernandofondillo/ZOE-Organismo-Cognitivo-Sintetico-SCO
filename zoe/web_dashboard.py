@@ -65,23 +65,46 @@ async def run_dashboard(
     await server.initialize()
     await server.start()
 
-    # Sprint 5.12 -- Imprimir URL CON el token embebido. El navegador
-    # al abrirla guarda el token en localStorage y luego lo limpia de la
-    # URL automaticamente. Asi el usuario no tiene que copiar/pegar nada.
+    # Sprint 5.13 B6: NEVER print the auth_token to stdout. Logs are captured
+    # by container log aggregators and would leak the bearer token.
+    # Instead, build the URL with the token (browser auto-strips it via JS)
+    # and tell the user where to find the token if they need it manually.
+    from pathlib import Path
+    _token_file = Path(server.db_path).parent / "dashboard_token.txt" if server.db_path else None
+    _token_loc = str(_token_file) if _token_file else "data/dashboard_token.txt"
+
     print("=" * 60)
     print("  ZOE v2.1.2 -- Web Dashboard")
     print("=" * 60)
     print(f"  URL (abrir en navegador):")
-    print(f"    http://localhost:{port}/?token={server.auth_token}")
+    print(f"    http://localhost:{port}/?token=<token-embebido-en-url>")
     print()
     print(f"  LLM: {backend}")
     print(f"  Identity: {server.chat.vault.identity_hash[:16]}...")
     print(f"  Memory: {server.chat.memory.count()} entries")
-    print(f"  Auth token (manual si la URL de arriba falla): {server.auth_token}")
+    print(f"  Token persistido en: {_token_loc} (chmod 0600)")
     print()
-    print("  Abre tu navegador en la URL de arriba (incluye el token).")
+    print("  Abriendo navegador automaticamente con token embebido...")
+    print("  (Si no se abre, copia el token del archivo de arriba y abre")
+    print(f"   http://localhost:{port}/?token=TU_TOKEN manualmente)")
     print("  Presiona Ctrl+C para detener.")
     print("=" * 60)
+
+    # Sprint 5.13 B6: Abrir el navegador CON el token embebido en la URL.
+    # El navegador recibe la URL completa (con token), el JS del dashboard
+    # lo extrae, lo guarda en localStorage, y limpia la URL con
+    # history.replaceState. Asi el token NO aparece en logs.
+    import threading
+    import webbrowser
+    def _open_browser():
+        import time
+        time.sleep(2.0)  # esperar a que el servidor arranque
+        url_with_token = f"http://localhost:{port}/?token={server.auth_token}"
+        try:
+            webbrowser.open(url_with_token)
+        except Exception:
+            pass  # navegador no disponible (headless, server, etc.)
+    threading.Thread(target=_open_browser, daemon=True).start()
 
     # Mantener corriendo
     try:

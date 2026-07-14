@@ -8,15 +8,24 @@ que todos los metodos funcionan correctamente.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Skip si asyncpg no esta disponible
+# Sprint 5.13 B8 — Fix skipif detection.
+# Antes: el try/except capturaba la importacion del MODULO postgres_backend,
+# que SI importa correctamente (asyncpg = None cuando no instalado).
+# Pero PostgreSQLBackend.__init__ lanza ImportError al instanciar.
+# Por eso HAS_ASYNCpg = True pero los tests fallaban al instanciar.
+# Ahora: verificamos directamente si asyncpg esta disponible.
 try:
-    from zoe.storage.postgres_backend import PostgreSQLBackend
-    HAS_ASYNCpg = True
+    import asyncpg as _asyncpg_check
+    HAS_ASYNCPG = _asyncpg_check is not None
 except ImportError:
-    HAS_ASYNCpg = False
+    HAS_ASYNCPG = False
+
+# Solo importar PostgreSQLBackend si asyncpg esta disponible (evita errores)
+if HAS_ASYNCPG:
+    from zoe.storage.postgres_backend import PostgreSQLBackend
 
 
-pytestmark = pytest.mark.skipif(not HAS_ASYNCpg, reason="asyncpg not installed")
+pytestmark = pytest.mark.skipif(not HAS_ASYNCPG, reason="asyncpg not installed")
 
 
 class TestPostgreSQLBackend:

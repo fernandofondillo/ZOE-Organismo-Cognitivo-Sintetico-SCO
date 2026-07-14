@@ -59,12 +59,13 @@ class DashboardServer:
         self.base_url = base_url
         self.host = host
         # SECURITY FIX: Auth is now MANDATORY by default.
+        # Sprint 5.13 B6: NEVER log the auth_token. Only log that it was generated.
         if auth_token is None:
             self.auth_token = secrets.token_urlsafe(32)
             logger.warning(
-                "SECURITY: No auth_token provided. Auto-generated token: %s "
-                "(Store this securely -- it is required for all endpoints except /, /manifest.json, /health, /ready, /live)",
-                self.auth_token,
+                "SECURITY: No auth_token provided. Auto-generated token (hidden for security). "
+                "Required for all endpoints except /, /manifest.json, /health, /ready, /live. "
+                "Token persisted to data/dashboard_token.txt (chmod 0600) — read it from there."
             )
         else:
             self.auth_token = auth_token
@@ -74,7 +75,11 @@ class DashboardServer:
         self._app = None
         self._runner = None
         self._background_broadcaster = None
-        self._conversation_history: List[Dict[str, Any]] = []
+        # Sprint 5.13 B4-bis — Bound _conversation_history to prevent memory leak.
+        # Antes: List[Dict] = [] (unbounded, grows with every chat message).
+        # Ahora: deque(maxlen=500) — keeps last 500 messages, discards oldest.
+        from collections import deque
+        self._conversation_history: deque = deque(maxlen=500)
 
         # Rate limiting (injected by middleware factory)
         self._rate_limit_middleware = None

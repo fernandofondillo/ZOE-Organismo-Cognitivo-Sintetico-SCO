@@ -275,9 +275,11 @@ class ZoeChat:
         store = PersistentMemoryStore(db_path=self.db_path, auto_save_interval=20)
         persistent_mem = PersistentLivingMemory(memory, store)
 
-        # Si se creo backend PostgreSQL, exponerlo en el loop para uso futuro
-        if storage_backend is not None:
-            loop._storage_backend = storage_backend
+        # Sprint 5.13 B1 — Guardar referencia al storage_backend para asignarla
+        # DESPUES de crear el loop (antes estaba antes de la asignacion de loop,
+        # causando UnboundLocalError cuando storage_type=postgres).
+        # La asignacion loop._storage_backend = storage_backend se hace tras
+        # crear el loop mas abajo.
         deep_consolidation = DeepConsolidation(memory=memory, scientific_engine=scientific)
 
         tick_interval = config.get("organism", {}).get("tick_interval", 3.0)
@@ -350,6 +352,11 @@ class ZoeChat:
             model_profile_router=model_profile_router,
             active_profile=active_profile,
         )
+
+        # Sprint 5.13 B1 — Asignar storage_backend al loop DESPUES de crearlo.
+        # Antes esto estaba antes de la creacion del loop (UnboundLocalError).
+        if storage_backend is not None:
+            loop._storage_backend = storage_backend
 
         # Sprint 5.10 C8 — Inyectar LanguageDetector en el bucle
         loop._language_detector = language_detector
@@ -426,6 +433,43 @@ class ZoeChat:
         self.mentor = MentorAgent()
         self.mentor.set_config_path(mentor_config_path)
         self.mentor.load_config()
+
+        # Sprint 5.13 B2 — Cablear ReflectionEngine en produccion.
+        # Antes: ReflectionEngine solo existia en tests. La afirmacion del README
+        # "Ejecuta durante SLEEPING con DeepSeek-R1:32B" era FALSE.
+        # Ahora: se instancia y se conecta al metabolism via attach_reflection_hook.
+        # Cuando ZOE entra en SLEEPING, metabolism.tick() llama a
+        # _run_reflection_during_sleep() que dispara reflection_hook.on_sleeping()
+        # que ejecuta reflection_engine.run_during_sleeping().
+        self.reflection_engine = None
+        try:
+            from .core.reflection_engine import ReflectionEngine, ReflectionConfig
+            # Detectar modelo L4 segun RAM (IQ2_M para 8GB, Q4_K_M para 16GB+)
+            _ram_gb = 8  # default conservador
+            try:
+                import psutil
+                _ram_gb = int(psutil.virtual_memory().total / (1024**3))
+            except Exception:
+                pass
+            _reflection_model = "deepseek-r1:32b-iq2" if _ram_gb < 16 else "deepseek-r1:32b-q4km"
+            _reflection_config = ReflectionConfig(
+                model_tag=_reflection_model,
+                model_fallback_tag="qwq-32b-iq2",
+            )
+            self.reflection_engine = ReflectionEngine(
+                config=_reflection_config,
+                llm_peripheral=self.llm,
+                memory=memory,
+                mentor=self.mentor,
+                quarantine=self.knowledge_quarantine,
+            )
+            # Conectar al metabolism — cuando ZOE duerme, se dispara la reflexion
+            metabolism.attach_reflection_hook(self.reflection_engine)
+            logger.info(f"ReflectionEngine wired to metabolism (model={_reflection_model})")
+            print(f"  ✅ ReflectionEngine activo (modelo L4: {_reflection_model})")
+        except Exception as e:
+            logger.warning(f"Could not wire ReflectionEngine: {e}")
+            self.reflection_engine = None
 
         # Sprint 5.12.1 — Cargar cápsulas BASE SIEMPRE.
         # Estas 5 cápsulas constituyen el conocimiento fundamental de ZOE

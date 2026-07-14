@@ -55,21 +55,21 @@ class TestWindowsResourceDiscovery:
 class TestPWAManifest:
 
     def test_manifest_handler_exists(self):
-        """El handler _handle_manifest existe en DashboardServer."""
-        from zoe.web_dashboard import DashboardServer
-        assert hasattr(DashboardServer, "_handle_manifest")
+        """Sprint 5.13 B8: El handler _handle_manifest existe en dashboard/handlers/hardware.py."""
+        from zoe.dashboard.handlers.hardware import _handle_manifest
+        assert callable(_handle_manifest)
 
     def test_manifest_handler_is_coroutine(self):
-        """El handler es async."""
+        """Sprint 5.13 B8: El handler es async."""
         import inspect
-        from zoe.web_dashboard import DashboardServer
-        assert inspect.iscoroutinefunction(DashboardServer._handle_manifest)
+        from zoe.dashboard.handlers.hardware import _handle_manifest
+        assert inspect.iscoroutinefunction(_handle_manifest)
 
     def test_manifest_route_registered(self):
-        """La ruta /manifest.json está registrada."""
+        """Sprint 5.13 B8: La ruta /manifest.json está registrada en routes.py."""
         import inspect
-        from zoe.web_dashboard import DashboardServer
-        source = inspect.getsource(DashboardServer.start)
+        from zoe.dashboard.routes import register_routes
+        source = inspect.getsource(register_routes)
         assert "/manifest.json" in source
 
     def test_dashboard_html_has_manifest_link(self):

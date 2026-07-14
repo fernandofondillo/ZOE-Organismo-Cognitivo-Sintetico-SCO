@@ -81,7 +81,13 @@ class CognitiveLoopV05:
 
         # Historial (compatible con Fase 0)
         self.observations: List[Observation] = []
+        # Sprint 5.13 B4-bis — Bound self.thoughts to prevent memory leak.
+        # Antes: List[Thought] = [] (unbounded, ~6GB/year en produccion).
+        # Ahora: List[Thought] con truncado automatico en _add_thought().
+        # NO usamos deque porque el codigo existente hace self.thoughts[-5:]
+        # (slicing) que deque no soporta.
         self.thoughts: List[Thought] = []
+        self._max_thoughts = 1000  # limite para prevenir memory leak
         self.predictions: List[Dict[str, Any]] = []
 
         # Nuevos históricos Fase 0.5
@@ -183,6 +189,10 @@ class CognitiveLoopV05:
             thought = await self._act(decision, observations, surprise)
             if thought:
                 self.thoughts.append(thought)
+                # Sprint 5.13 B4-bis — Truncar thoughts para prevenir memory leak.
+                # Mantener solo los ultimos 1000 (self._max_thoughts).
+                if hasattr(self, '_max_thoughts') and len(self.thoughts) > self._max_thoughts:
+                    del self.thoughts[:-self._max_thoughts]
                 self.state.register_thought()
                 # Almacenar en Living Memory (Fase 0.5)
                 self.memory.add(

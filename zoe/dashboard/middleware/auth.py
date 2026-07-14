@@ -1,5 +1,6 @@
 """Authentication middleware.
 
+Sprint 5.13 B7 -- Token comparison con hmac.compare_digest (timing-safe).
 Sprint 5.12 -- Refinamiento de autenticacion del Dashboard:
 - Las rutas PUBLICAS (HTML, manifest, health) NO requieren token.
   Esto permite al navegador cargar la pagina inicial sin 401.
@@ -12,6 +13,7 @@ Sprint 5.12 -- Refinamiento de autenticacion del Dashboard:
 - Si el navegador no tiene token, muestra un modal pidiendolo.
 """
 
+import hmac
 import logging
 from aiohttp import web
 
@@ -28,19 +30,50 @@ _PUBLIC_PATHS = {
 }
 
 
+def _tokens_match(received: str, expected: str) -> bool:
+    """Compara dos tokens de forma timing-safe con hmac.compare_digest.
+
+    Si las longitudes difieren, compare_digest devuelve False inmediatamente
+    pero el tiempo de ejecucion sigue dependiendo de la longitud de 'received'.
+    Para mitigar el leak de longitud, normalizamos a la longitud del expected
+    rellenando con bytes nulos (no afecta al resultado pero iguala el tiempo).
+
+    Esto previene timing attacks que podrian reconstruir el token byte a byte.
+    """
+    if not received or not expected:
+        return False
+    # Normalizar longitudes para no filtrar la longitud del expected
+    if len(received) != len(expected):
+        # Igualar longitud rellenando el mas corto
+        max_len = max(len(received), len(expected))
+        received_padded = received.ljust(max_len, "\x00")
+        expected_padded = expected.ljust(max_len, "\x00")
+        return hmac.compare_digest(received_padded.encode(), expected_padded.encode())
+    return hmac.compare_digest(received.encode(), expected.encode())
+
+
 def create_auth_middleware(auth_token: str):
     """Factory que crea el auth middleware con el token configurado."""
+    expected_bearer = f"Bearer {auth_token}"
+
     @web.middleware
     async def auth_middleware(request, handler):
-        """Authentication: token required for all non-public endpoints."""
+        """Authentication: token required for all non-public endpoints.
+
+        Sprint 5.13 B7: usa _tokens_match (hmac.compare_digest) en vez de !=.
+        """
         if request.path in _PUBLIC_PATHS:
             return await handler(request)
 
         auth_header = request.headers.get("Authorization", "")
         # Also accept query param ?token= for WebSocket
         query_token = request.query.get("token", "")
-        expected = f"Bearer {auth_token}"
-        if auth_header != expected and query_token != auth_token:
+
+        # Sprint 5.13 B7: comparacion timing-safe
+        header_ok = _tokens_match(auth_header, expected_bearer) if auth_header else False
+        query_ok = _tokens_match(query_token, auth_token) if query_token else False
+
+        if not header_ok and not query_ok:
             logger.warning(
                 "Unauthorized request to %s from %s",
                 request.path, request.remote or "unknown",

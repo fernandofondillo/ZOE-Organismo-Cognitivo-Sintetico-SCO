@@ -163,6 +163,9 @@ class CognitiveLoopV3(CognitiveLoopV05):
             thought = await self._act_v3(decision, observations, surprise, winners)
             if thought:
                 self.thoughts.append(thought)
+                # Sprint 5.13 B4-bis — Truncar thoughts para prevenir memory leak.
+                if hasattr(self, '_max_thoughts') and len(self.thoughts) > self._max_thoughts:
+                    del self.thoughts[:-self._max_thoughts]
                 self.state.register_thought()
 
                 # Almacenar en Living Memory

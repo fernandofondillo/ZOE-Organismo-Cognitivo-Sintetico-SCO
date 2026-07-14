@@ -315,31 +315,42 @@ class TestHardwareSystemEndpoint:
 
 class TestDashboardServerHandlerRegistration:
     """
-    Verifica que los 4 handlers de Fase 7G estén registrados
-    correctamente en DashboardServer sin necesidad de levantar
-    el servidor completo.
+    Sprint 5.13 B8: Verifica que los handlers de Fase 7G estén registrados
+    en routes.py (dashboard modularizado). Antes verificaba metodos en
+    DashboardServer, pero el dashboard fue modularizado en Sprint 5.12
+    y los handlers ahora son funciones en dashboard/handlers/hardware.py.
     """
 
     def test_dashboard_server_has_hardware_handlers(self):
-        """DashboardServer tiene los 4 handlers de Fase 7G como métodos."""
-        from zoe.web_dashboard import DashboardServer
-        assert hasattr(DashboardServer, "_handle_hardware_ssds")
-        assert hasattr(DashboardServer, "_handle_hardware_token_rates")
-        assert hasattr(DashboardServer, "_handle_hardware_cable_warning")
-        assert hasattr(DashboardServer, "_handle_hardware_system")
+        """Sprint 5.13 B8: Los 4 handlers de hardware existen como funciones en dashboard/handlers/hardware.py."""
+        from zoe.dashboard.handlers.hardware import (
+            _handle_hardware_ssds,
+            _handle_hardware_token_rates,
+            _handle_hardware_cable_warning,
+            _handle_hardware_system,
+        )
+        # Si importan sin error, existen
+        assert callable(_handle_hardware_ssds)
+        assert callable(_handle_hardware_token_rates)
+        assert callable(_handle_hardware_cable_warning)
+        assert callable(_handle_hardware_system)
 
     def test_dashboard_server_handlers_are_coroutines(self):
-        """Los handlers son corrutinas (async def)."""
+        """Sprint 5.13 B8: Los handlers son corrutinas (async def)."""
         import inspect
-        from zoe.web_dashboard import DashboardServer
-        for handler_name in (
-            "_handle_hardware_ssds",
-            "_handle_hardware_token_rates",
-            "_handle_hardware_cable_warning",
-            "_handle_hardware_system",
+        from zoe.dashboard.handlers.hardware import (
+            _handle_hardware_ssds,
+            _handle_hardware_token_rates,
+            _handle_hardware_cable_warning,
+            _handle_hardware_system,
+        )
+        for handler in (
+            _handle_hardware_ssds,
+            _handle_hardware_token_rates,
+            _handle_hardware_cable_warning,
+            _handle_hardware_system,
         ):
-            handler = getattr(DashboardServer, handler_name)
-            assert inspect.iscoroutinefunction(handler), f"{handler_name} should be async"
+            assert inspect.iscoroutinefunction(handler), f"{handler.__name__} should be async"
 
     def test_handlers_call_model_optimizer_apis(self):
         """Los handlers usan ModelOptimizer (no lógica duplicada)."""
