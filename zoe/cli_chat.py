@@ -427,16 +427,42 @@ class ZoeChat:
         self.mentor.set_config_path(mentor_config_path)
         self.mentor.load_config()
 
-        # Cargar cápsula basal SIEMPRE (conocimiento fundamental de ZOE)
-        try:
-            self.capsule_manager.load("zoe_basal_knowledge")
-        except Exception as e:
-            logger.warning(f"Could not load basal capsule: {e}")
+        # Sprint 5.12.1 — Cargar cápsulas BASE SIEMPRE.
+        # Estas 5 cápsulas constituyen el conocimiento fundamental de ZOE
+        # al nacer: identidad, comunicación empática, ética, psicología
+        # básica y patrones lingüísticos. Sin ellas, ZOE es solo un
+        # organismo cognitivo sin habilidades sociales.
+        #
+        # 1. zoe_basal_knowledge  — Identidad, valores, propósito, tono.
+        # 2. communication_skills  — NVC, escucha activa, validación emocional.
+        # 3. base_ethics           — Principios éticos operacionales.
+        # 4. basic_psychology      — Patrones emocionales, motivación, sesgos.
+        # 5. language_patterns     — Patrones de respuesta por idioma.
+        #
+        # Carga tolerante a fallos: si una cápsula no existe (repo incompleto,
+        # instalación mínima), se registra un warning pero ZOE sigue funcionando.
+        _BASE_CAPSULES = [
+            "zoe_basal_knowledge",
+            "communication_skills",
+            "base_ethics",
+            "basic_psychology",
+            "language_patterns",
+        ]
+        _loaded_base = []
+        for _cap_name in _BASE_CAPSULES:
+            try:
+                self.capsule_manager.load(_cap_name)
+                _loaded_base.append(_cap_name)
+            except Exception as e:
+                logger.warning(f"Could not load base capsule '{_cap_name}': {e}")
+        if _loaded_base:
+            print(f"  ✅ Cápsulas base cargadas: {', '.join(_loaded_base)}")
 
         # Sprint 5.8 — Recargar cápsulas que estaban cargadas en la sesión anterior
+        # (excluyendo las base que ya se cargaron arriba)
         _saved_capsules = self.capsule_manager.load_loaded_state(_capsules_path)
         for _cap_name in _saved_capsules:
-            if _cap_name == "zoe_basal_knowledge":
+            if _cap_name in _BASE_CAPSULES:
                 continue  # ya cargada arriba
             try:
                 self.capsule_manager.load(_cap_name)

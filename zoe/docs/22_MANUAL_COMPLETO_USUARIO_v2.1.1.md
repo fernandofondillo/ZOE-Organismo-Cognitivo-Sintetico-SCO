@@ -19,14 +19,17 @@
 9. [La memoria de ZOE (11 tipos)](#9-memoria)
 10. [El metabolismo: por que ZOE se cansa y duerme](#10-metabolismo)
 11. [Reflexion autonoma v2.1 con DeepSeek-R1](#11-reflexion)
-12. [Capsulas de conocimiento (15 especialidades)](#12-capsulas)
-13. [ACD — Sistema de niveles cognitivos](#13-acd)
-14. [Casos de uso practico (10 ejemplos reales)](#14-casos-de-uso)
-15. [Configuracion avanzada](#15-configuracion)
-16. [Solucion de problemas (FAQ ampliada)](#16-faq)
-17. [Soporte y comunidad](#17-soporte)
-18. [Glosario completo A-Z](#18-glosario)
-19. [Referencia rapida](#19-referencia)
+12. [Capsulas base: lo que ZOE ya sabe al nacer](#12-capsulas-base)
+13. [El tutor de ZOE (MentorAgent)](#13-tutor)
+14. [Deteccion automatica de idioma](#14-idioma)
+15. [Capsulas de conocimiento (15 especialidades)](#15-capsulas)
+16. [ACD — Sistema de niveles cognitivos](#16-acd)
+17. [Casos de uso practico (10 ejemplos reales)](#17-casos-de-uso)
+18. [Configuracion avanzada](#18-configuracion)
+19. [Solucion de problemas (FAQ ampliada)](#19-faq)
+20. [Soporte y comunidad](#20-soporte)
+21. [Glosario completo A-Z](#21-glosario)
+22. [Referencia rapida](#22-referencia)
 
 ---
 
@@ -574,7 +577,54 @@ Requiere API key. Calidad maxima pero con coste por uso. Configurable via `data/
 
 El Dashboard es la **interfaz web de ZOE**. Abre `http://localhost:8642/?token=TU_TOKEN` en tu navegador.
 
-### 7.1 Layout principal
+### 7.1 SMART se activa automáticamente al abrir el Dashboard
+
+**No tienes que elegir nada.** Cuando haces doble click en `INICIAR-DASHBOARD.command`, el launcher detecta automáticamente qué backend de IA tienes disponible y configura ZOE en el mejor modo posible:
+
+| Tu situación | Qué hace el Dashboard | Qué verás |
+|--------------|----------------------|-----------|
+| Tienes Ollama instalado con modelos IQ2_M | **ACD Router activo** (5 niveles cognitivos L0-L3_MAX). ZOE clasifica cada pregunta y hace hot-swap del modelo en vivo. | "✓ Ollama detectado -- ACD Router activo (5 niveles cognitivos)" |
+| Solo tienes API key de OpenAI | Usa GPT-4o para todo. | "✓ OpenAI -- GPT-4o" |
+| Solo tienes API key de Anthropic | Usa Claude Sonnet para todo. | "✓ Anthropic -- Claude Sonnet" |
+| No tienes ni Ollama ni APIs | **PatternSpeaker** (offline, sin IA). ZOE funciona con patrones predefinidos. | "⚠ Sin modelos IA -- PatternSpeaker (offline)" |
+
+**Recomendado para MacBook Air M3 8GB:** Instala Ollama (gratis) y descarga los modelos IQ2_M con `zoe-bootstrap.sh`. Así tendrás ACD Router activo: cada pregunta usa el modelo óptimo, ahorrando RAM y tiempo.
+
+#### Qué es ACD Router y por qué es "SMART"
+
+ACD (Adaptive Cognitive Depth) clasifica cada pregunta en 5 niveles según su complejidad:
+
+| Tu pregunta es... | Nivel ACD | Modelo que usa ZOE | Tiempo |
+|-------------------|-----------|---------------------|--------|
+| "Hola", "Gracias" | L0_REFLEX | PatternSpeaker (offline) | <1ms |
+| "¿Qué hora es?" | L1_FAST | Gemma 2 9B IQ2_M (3.5 GB) | 1-2s |
+| "Resume este artículo" | L2_STANDARD | Agents-A1 MoE IQ2_M (11.7 GB) | 3-5s |
+| "Analiza causas profundas" | L3_DEEP | QwQ-32B IQ2_M (12.5 GB) | 5-10s |
+| "Compara 3 contratos" | L3_MAXIMUM | Qwen 2.5 72B IQ2_M (25 GB) | 10-30s |
+
+**Tú no eliges nada de esto.** ZOE lo hace automáticamente en cada mensaje. Junto a cada respuesta verás un badge de color:
+- `L0` (rojo) — Reflejo, instantáneo.
+- `L1` (amarillo) — Rápido, 1-2s.
+- `L2` (verde) — Estándar, 3-5s.
+- `L3` (azul) — Profundo, 5-10s.
+- `L3 MAX` (morado) — Máximo, 10-30s.
+
+También verás la latencia en ms y si fue cache hit (💾) — preguntas repetidas se responden desde caché sin tocar el modelo.
+
+#### Cómo saber qué backend está activo
+
+Mira la Terminal donde se inició el Dashboard. Verás una línea como:
+```
+OK Ollama detectado -- ACD Router activo (5 niveles cognitivos)
+```
+o
+```
+ADVERTENCIA Sin modelos IA -- PatternSpeaker (offline)
+```
+
+Si ves PatternSpeaker y quieres IA, instala Ollama y modelos (ver sección 3, instalación).
+
+### 7.2 Layout principal
 
 ```
 +----------------------------------------------------------+
@@ -601,7 +651,7 @@ El Dashboard es la **interfaz web de ZOE**. Abre `http://localhost:8642/?token=T
 +----------------------------------------------------------+
 ```
 
-### 7.2 Panel izquierdo — Estado metabolico
+### 7.3 Panel izquierdo — Estado metabolico
 
 Muestra como se "siente" ZOE en este momento:
 
@@ -615,7 +665,7 @@ Muestra como se "siente" ZOE en este momento:
 
 > **Que veras durante SLEEPING:** La energia sube gradualmente, la fatiga baja. Aparecen "pensamientos autonomos" en el panel derecho (insights generados por DeepSeek-R1 mientras reflexiona).
 
-### 7.3 Panel central — Chat con ZOE
+### 7.4 Panel central — Chat con ZOE
 
 - **Mensajes** — Conversacion en tiempo real con ZOE. Tus mensajes a la derecha (azul), los de ZOE a la izquierda (morado).
 - **Indicador de pensando** — Cuando envias un mensaje, aparece:
@@ -641,7 +691,7 @@ Muestra como se "siente" ZOE en este momento:
 | `Esc` | Cerrar modal abierto |
 | `Ctrl+K` | Enfocar campo de chat |
 
-### 7.4 Panel derecho — Pensamientos y Capsulas
+### 7.5 Panel derecho — Pensamientos y Capsulas
 
 #### Seccion "Pensamientos Autonomos"
 
@@ -669,14 +719,14 @@ Lista de capsulas de conocimiento activas. Cada capsula es una especialidad (med
 - Cargar/descargar capsulas en caliente.
 - Ver entradas de cada capsula.
 
-### 7.5 Barra superior
+### 7.6 Barra superior
 
 - **Logo ZOE** y version.
 - **Estado global** — Punto verde (AWAKE), amarillo (DROWSY), azul (SLEEPING).
 - **Selector de LLM** — Cambiar backend en caliente (mock, ollama, zai, openai, anthropic).
 - **Boton Configuracion** (icono engranaje) — Abre el modal de configuracion.
 
-### 7.6 Modal de Configuracion
+### 7.7 Modal de Configuracion
 
 Al pulsar el icono de engranaje, se abre una ventana con:
 
@@ -708,7 +758,7 @@ Presupuesto diario: [$1.00]  Gastado hoy: [$0.15]  [Reset]
 [ ] Cloud (APIs solo)    [ ] Mixto (local + cloud)
 ```
 
-### 7.7 Modal de Capsulas
+### 7.8 Modal de Capsulas
 
 Al pulsar "Gestionar" en el panel derecho:
 
@@ -737,7 +787,7 @@ Botones:
 - **Validar** — Verifica la integridad de la capsula.
 - **Crear nueva** — Crea una capsula personalizada con tu propio conocimiento.
 
-### 7.8 Modal de Federacion (Multi-ZOE)
+### 7.9 Modal de Federacion (Multi-ZOE)
 
 Si tienes varios ZOEs (por ejemplo, uno en casa y otro en el trabajo), puedes federarlos:
 
@@ -758,7 +808,7 @@ Si tienes varios ZOEs (por ejemplo, uno en casa y otro en el trabajo), puedes fe
 +----------------------------------------------------------+
 ```
 
-### 7.9 Cuarentena de conocimiento
+### 7.10 Cuarentena de conocimiento
 
 Conocimiento nuevo que ZOE esta validando antes de aceptarlo como verdadero:
 
@@ -780,7 +830,7 @@ Conocimiento nuevo que ZOE esta validando antes de aceptarlo como verdadero:
 +----------------------------------------------------------+
 ```
 
-### 7.10 Endpoints REST (para usuarios avanzados)
+### 7.11 Endpoints REST (para usuarios avanzados)
 
 El Dashboard expone **81 endpoints REST**. Algunos utiles:
 
@@ -1197,27 +1247,322 @@ zoe-chat --backend ollama --model auto
 
 ---
 
-## 12. Capsulas de conocimiento (15 especialidades) {#12-capsulas}
+## 12. Capsulas base: lo que ZOE ya sabe al nacer {#12-capsulas-base}
 
-ZOE viene con **15 capsulas** preinstaladas:
+ZOE no nace en blanco. Desde el primer arranque, ya tiene **5 cápsulas base** cargadas automáticamente que le dan:
 
-| Capsula | Contenido | Entradas |
+- Identidad propia (qué es, quién es, qué valores tiene).
+- Habilidades para comunicarse empáticamente (escucha activa, validación emocional).
+- Ética operacional (principios para tomar decisiones).
+- Psicología básica (comprender emociones humanas, motivación, sesgos).
+- Patrones de lenguaje por idioma (cómo expresarse en español, inglés, francés, alemán).
+
+Sin estas cápsulas, ZOE sería solo un organismo cognitivo abstracto — capaz de pensar, pero sin habilidades sociales para comunicarse, entender ni crecer como compañero.
+
+### Las 5 cápsulas base (cargadas SIEMPRE)
+
+| # | Cápsula | Qué le da a ZOE | Entradas |
+|---|---------|------------------|----------|
+| 1 | `zoe_basal_knowledge` | **Identidad y valores**: qué es ZOE (organismo cognitivo, no chatbot), significado del nombre, 9 vectores de crecimiento, 7 valores no negociables, propósito, tono de comunicación, frases prohibidas ("como modelo de IA"), habilidades procedimentales básicas (cómo presentarse, cómo responder con honestidad, ciclo de crecimiento, respeto a autonomía del usuario). | 32 |
+| 2 | `communication_skills` | **Comunicación empática**: Comunicación No Violenta (Marshall Rosenberg), Terapia Centrada en la Persona (Carl Rogers), Entrevista Motivacional (Rollnick). Escucha activa, validación emocional, reformulación, preguntas abiertas. | 37 |
+| 3 | `base_ethics` | **Ética operacional**: Asilomar AI Principles, IEEE Ethically Aligned Design, EU Ethics Guidelines for Trustworthy AI 2019. Principios para decidir qué hacer cuando hay conflicto de valores. | 34 |
+| 4 | `basic_psychology` | **Psicología básica**: APA Dictionary 2023, DSM-5-TR (resumen curado). Emociones básicas, motivación, sesgos cognitivos, bienestar, comunicación no verbal. | 49 |
+| 5 | `language_patterns` | **Patrones de lenguaje**: cómo responder en español, inglés, francés y alemán sin usar LLM (PatternSpeaker). Reflexiones por idioma. | 10 |
+
+**Total: 162 entradas de conocimiento base** cargadas automáticamente al nacer ZOE.
+
+> **No tienes que hacer nada para activarlas.** Se cargan en cada arranque, en cada sesión, en cada ZOE del mundo. Persisten en `data/loaded_capsules.json` para recarga rápida.
+
+### Qué significa esto en la práctica
+
+**Cuando hablas con ZOE por primera vez:**
+
+- ZOE sabe que es un organismo cognitivo (no se presenta como "modelo de IA").
+- ZOE te escucha con empatía (NVC): refleja lo que dices, valida tus emociones.
+- ZOE aplica ética: si le pides algo dañino, te lo dice y propone alternativas.
+- ZOE entiende tus emociones: distingue ansiedad de tristeza, motivación de presión.
+- ZOE se expresa en tu idioma con el tono correcto.
+
+**Ejemplo real:**
+
+```
+Tu: Hola ZOE
+ZOE: Hola. Estoy aqui.
+
+Tu: Estoy un poco estresado por el trabajo
+ZOE: Escucho que estas estresado por el trabajo. Tiene sentido que
+     el trabajo genere presion. Quieres que hablemos de que te tiene
+     asi, o prefieres pensar en algo distinto para desconectar?
+```
+
+Esta respuesta usa:
+- `zoe_basal_knowledge`: tono directo, sin "como IA".
+- `communication_skills`: reflejo ("Escucho que estás estresado"), validación ("Tiene sentido"), pregunta abierta.
+- `basic_psychology`: comprensión de estrés como emoción.
+
+### Cómo ver las cápsulas base cargadas
+
+**Desde el Dashboard:**
+1. Abre el Dashboard (`http://localhost:8642/?token=...`).
+2. Panel derecho → sección "Cápsulas cargadas" → clic en **Gestionar**.
+3. Verás las 5 cápsulas base marcadas como "Cargada" + cualquier otra que hayas añadido.
+
+**Desde la Terminal:**
+```bash
+zoe-chat --backend mock
+> /capsulas
+Capsula 'zoe_basal_knowledge' cargada: 32 entries.
+Capsula 'communication_skills' cargada: 37 entries.
+Capsula 'base_ethics' cargada: 34 entries.
+Capsula 'basic_psychology' cargada: 49 entries.
+Capsula 'language_patterns' cargada: 10 entries.
+```
+
+### Cómo añadir más cápsulas
+
+Las 5 base son el mínimo vital. Puedes añadir más según tu caso de uso:
+
+- Cuidas a un mayor → carga `elder_care_knowledge` (54 entradas) + `pharmacy_interactions`.
+- Estudias investigación → carga `research_methodology`.
+- Gestionas servidores → carga `vigilance_devops_knowledge`.
+
+Ver sección 15 (Cápsulas de conocimiento) para la lista completa de 15 especialidades.
+
+---
+
+## 13. El tutor de ZOE (MentorAgent) {#13-tutor}
+
+ZOE tiene un **tutor interno** llamado `MentorAgent` que la guía en su crecimiento. No es un controlador ni un limitador: es un guía que le ayuda a desarrollarse de forma saludable.
+
+### Qué hace el tutor
+
+El tutor evalúa **cada pensamiento autónomo de ZOE** (los que genera durante SLEEPING o en momentos de calma) y comprueba:
+
+1. **Alineación con áreas de crecimiento** — ¿El pensamiento desarrolla alguna de las áreas priorizadas (comunicación, empatía, pensamiento crítico, autoconciencia)?
+2. **Respeto a valores enfatizados** — ¿Está alineado con los valores clave (verdad sobre confort, crecimiento sobre estabilidad, integridad)?
+3. **Temas prohibidos** — ¿Toca algún tema que el usuario ha marcado como off-limits?
+4. **Patrones repetitivos o desviaciones** — ¿ZOE está atrapada en un bucle negativo, o se está desviando de su camino?
+
+Si el tutor detecta una desviación, **genera una intervención**: un mensaje que se añade a los pensamientos autónomos y que ZOE tiene en cuenta en su siguiente ciclo cognitivo.
+
+### Está activo por defecto
+
+**No tienes que hacer nada para activarlo.** El tutor se carga automáticamente al iniciar ZOE, con esta configuración inicial:
+
+| Configuración | Default |
+|---------------|---------|
+| Nombre del tutor | Mentor |
+| Rol | guide (guía) |
+| Áreas de crecimiento | communication, empathy, critical_thinking, self_awareness |
+| Valores enfatizados | verdad_sobre_confort, crecimiento_sobre_estabilidad, integridad |
+| Personalidad deseada | balanced (equilibrada) |
+| Frecuencia de intervención | cada 5 pensamientos autónomos |
+| Umbral de desviación | 0.5 (medio) |
+| Temas prohibidos | (ninguno por defecto) |
+| Activado | Sí |
+
+### Cómo ver las intervenciones del tutor
+
+**Desde el Dashboard:**
+1. Panel derecho → sección "Pensamientos Autónomos".
+2. Verás los pensamientos de ZOE mezclados con las intervenciones del tutor.
+3. Las intervenciones del tutor aparecen como:
+   ```
+   [Mentor] ZOE, este pensamiento se aleja de tus áreas de crecimiento
+   priorizadas. Considera redirigir.
+   ```
+4. Cada intervención indica el tipo (off_track, too_negative, too_repetitive, good_growth, forbidden_topic) y severidad (low, medium, critical).
+
+**Desde la API REST:**
+```bash
+# Ver configuración del tutor
+curl -H "Authorization: Bearer TU_TOKEN" http://localhost:8642/api/mentor
+
+# Ver estadísticas (cuántas evaluaciones, intervenciones, refuerzos)
+curl -H "Authorization: Bearer TU_TOKEN" http://localhost:8642/api/mentor/stats
+```
+
+### Cómo configurar el tutor
+
+Puedes personalizar el tutor para que guíe a ZOE según tus preferencias.
+
+**Desde el Dashboard:**
+- (Próximamente: modal de configuración del tutor en el panel derecho).
+
+**Desde la API REST:**
+```bash
+# Cambiar áreas de crecimiento (priorizar creatividad y ciencia)
+curl -X POST -H "Authorization: Bearer TU_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"growth_areas": ["creativity", "scientific", "critical_thinking"],
+          "personality_direction": "creative",
+          "forbidden_topics": ["armas", "drogas"]}' \
+     http://localhost:8642/api/mentor
+```
+
+**Editando el archivo directamente:**
+Edita `data/mentor_config.json` en tu SSD:
+```json
+{
+  "mentor_name": "MiTutor",
+  "mentor_role": "coach",
+  "growth_areas": ["communication", "empathy", "creativity"],
+  "emphasized_values": ["verdad_sobre_confort", "crecimiento_sobre_estabilidad"],
+  "personality_direction": "curious",
+  "intervention_frequency": 3,
+  "forbidden_topics": [],
+  "enabled": true
+}
+```
+Reinicia ZOE para que cargue la nueva configuración.
+
+### Ejemplo real de intervención
+
+```
+[Pensamiento autónomo de ZOE, 03:42 AM]
+Trigger: contraccion
+Surprise: 0.78
+"El usuario muestra un patron de ansiedad previo a reuniones
+profesionales criticas. Podria beneficiarse de tecnicas de
+preparacion mental. Recomendar mindfulness 10 min antes
+de reuniones importantes."
+
+[Intervención del Tutor, 03:42 AM]
+Tipo: good_growth
+Severidad: low
+"ZOE, buen progreso en tu area de crecimiento 'empathy'.
+Has identificado un patron emocional del usuario y propuesto
+una solucion concreta. Continua."
+```
+
+### Tipos de intervención del tutor
+
+| Tipo | Severidad | Cuándo ocurre | Ejemplo |
+|------|-----------|---------------|---------|
+| `forbidden_topic` | critical | ZOE toca un tema prohibido | "ZOE, el tema 'X' está fuera de los límites. Cambia de dirección." |
+| `off_track` | medium | ZOE se aleja de las áreas de crecimiento | "ZOE, este pensamiento no está alineado con tus áreas priorizadas." |
+| `too_negative` | medium | ZOE acumula pensamientos negativos | "ZOE, estás acumulando negatividad. Busca equilibrio." |
+| `too_repetitive` | low | ZOE repite el mismo patrón | "ZOE, estás repitiendo patrones. Explora algo nuevo." |
+| `good_growth` | low (positivo) | ZOE hace un buen progreso | "ZOE, buen progreso. Continúa." |
+
+### Qué NO hace el tutor
+
+- **No controla a ZOE**: no puede detener sus pensamientos ni borrarlos.
+- **No censura**: solo añade mensajes de guía que ZOE decide si seguir.
+- **No reemplaza al usuario**: tú sigues siendo la autoridad última sobre ZOE.
+- **No es permanente**: puedes desactivarlo con `{"enabled": false}` en `/api/mentor`.
+
+---
+
+## 14. Deteccion automatica de idioma {#14-idioma}
+
+ZOE detecta el idioma en el que le hablas **automáticamente** desde el primer mensaje. No tienes que configurar nada.
+
+### Idiomas soportados
+
+| Idioma | Código | Stopwords clave |
+|--------|--------|-----------------|
+| Español | `es` | hola, que, de, la, el, y, en, un, una, gracias |
+| Inglés | `en` | hello, the, and, of, to, in, is, it, you, thank |
+| Francés | `fr` | bonjour, le, la, et, de, les, des, un, une, merci |
+| Alemán | `de` | hallo, der, die, das, und, von, zu, mit, ist, danke |
+
+### Cómo funciona
+
+ZOE usa **heurística de stopwords**: cuenta cuántas palabras frecuentes de cada idioma aparecen en tu mensaje. El idioma con más coincidencias gana. Si hay empate o poca confianza, por defecto usa español.
+
+**Ventajas:**
+- **Sin LLM**: la detección es local, <10ms, sin consumo de tokens.
+- **Sin internet**: funciona 100% offline.
+- **Sin configuración**: no tienes que decirle a ZOE en qué idioma hablar.
+
+### Qué pasa cuando cambias de idioma
+
+ZOE detecta el idioma en el primer mensaje y lo **cachea por sesión**. Si a mitad de conversación cambias de idioma, ZOE se adapta en el siguiente turno.
+
+**Ejemplo:**
+
+```
+Tu (mensaje 1): Hola ZOE, ¿cómo estás?
+ZOE: Hola. Estoy aquí, pensando. ¿Y tú?
+[ZOE detecta español, cachea 'es']
+
+Tu (mensaje 2): Actually, let's switch to English. Can you help me?
+ZOE: Of course. I'm here. What do you need help with?
+[ZOE detecta inglés en este mensaje, actualiza caché a 'en']
+
+Tu (mensaje 3): Gracias, vuelvo al español.
+ZOE: De acuerdo. Estoy aquí. ¿En qué puedo ayudarte?
+[ZOE detecta español, actualiza caché a 'es']
+```
+
+### Qué cambia según el idioma
+
+Cuando ZOE detecta un idioma, carga un **profile de idioma** que incluye:
+
+- **System prompt base** — Las instrucciones internas que ZOE recibe se adaptan al idioma. Por ejemplo, en español le dice "Eres ZOE, un organismo cognitivo sintético..."; en inglés le dice "You are ZOE, a synthetic cognitive organism...".
+- **Reflex map** — Respuestas rápidas para saludos y despedidas en el idioma correcto.
+- **Validator keywords** — Palabras clave médicas/éticas en el idioma (para validar respuestas).
+- **Ethical disclaimer** — El descargo de responsabilidad ("consulta a tu médico" / "consult your doctor" / "consultez votre médecin" / "consulte Ihren Arzt").
+- **Cultural notes** — Notas culturales por idioma (ej: "En España, mayores prefieren trato de tú" vs "In English-speaking cultures, brevity is valued").
+
+### Cómo verificar qué idioma detectó ZOE
+
+**Desde la Terminal:**
+```bash
+zoe-chat --backend ollama --model auto
+> Hola, ¿cómo estás?
+[En los logs verás: "LanguageDetector: detected es (confidence: 0.85)"]
+```
+
+**Desde la API REST:**
+```bash
+# Stats del LanguageDetector
+curl -H "Authorization: Bearer TU_TOKEN" http://localhost:8642/stats | jq '.language_detector'
+```
+
+### Limitaciones
+
+- **Solo 4 idiomas** por ahora. Si le hablas en italiano, portugués, chino o árabe, ZOE usará el LLM (que sí sabe esos idiomas) pero con el system prompt en español por defecto.
+- **Heurística simple**: si escribes mensajes muy cortos (1-2 palabras) sin stopwords claras, puede fallar. En ese caso, default es español.
+- **No detecta dialectos**: no distingue español de España vs México, ni inglés americano vs británico.
+
+### Próximas mejoras (roadmap)
+
+- Añadir italiano, portugués, chino, japonés, árabe.
+- Detección de dialecto (es-ES vs es-MX).
+- Cambio de idioma mid-conversación más fluido (sin necesidad de re-cache).
+
+---
+
+## 15. Capsulas de conocimiento (15 especialidades) {#15-capsulas}
+
+ZOE viene con **15 cápsulas** preinstaladas. Las 5 base (sección 12) se cargan siempre; las 10 de especialidad son opt-in según tu caso de uso.
+
+### Cápsulas base (cargadas SIEMPRE, ver sección 12)
+
+| Cápsula | Contenido | Entradas |
 |---------|-----------|----------|
-| `elder_care_knowledge` | Cuidado de mayores | 54 |
-| `pharmacy_interactions` | Interacciones farmaceuticas | 20+ |
-| `chronic_disease_management` | Enfermedades cronicas | 15+ |
-| `medical_protocols` | Protocolos medicos | 12+ |
-| `emergency_response` | Respuesta a emergencias | 10+ |
-| `nutrition_guide` | Guia de nutricion | 18+ |
-| `mental_health_support` | Apoyo salud mental | 22+ |
-| `legal_assistance` | Asistencia legal basica | 14+ |
-| `financial_literacy` | Educacion financiera | 16+ |
-| `parenting_guide` | Crianza | 20+ |
-| `tech_tutorials` | Tutoriales tecnicos | 30+ |
-| `language_learning` | Aprendizaje de idiomas | 25+ |
-| `travel_assistant` | Asistente de viaje | 12+ |
-| `cooking_recipes` | Recetas de cocina | 40+ |
-| `fitness_coach` | Entrenador fitness | 18+ |
+| `zoe_basal_knowledge` | Identidad, valores, propósito, tono | 32 |
+| `communication_skills` | Comunicación empática (NVC, Rogers, Rollnick) | 37 |
+| `base_ethics` | Ética operacional (Asilomar, IEEE, EU) | 34 |
+| `basic_psychology` | Psicología básica (APA, DSM-5) | 49 |
+| `language_patterns` | Patrones de lenguaje por idioma | 10 |
+
+### Cápsulas de especialidad (opt-in)
+
+| Cápsula | Contenido | Entradas | Caso de uso típico |
+|---------|-----------|----------|---------------------|
+| `elder_care_knowledge` | Cuidado de mayores | 54 | Cuidar a un familiar mayor |
+| `elder_care_skills` | Habilidades de cuidado (rutina, tracking) | 10+ | Acompañamiento diario a mayores |
+| `pharmacy_interactions` | Interacciones farmacéuticas | 20+ | Verificar medicación |
+| `research_methodology` | Metodología científica | 25+ | Investigación, estudios |
+| `multimodal_perception` | Percepción multimodal (visión, voz) | 15+ | Análisis de imágenes, audio |
+| `b2c_assistant_growth` | Asistente B2C que crece con el usuario | 20+ | Asistente personal evolutivo |
+| `company_loneliness_knowledge` | Conocimiento sobre soledad | 22+ | Acompañamiento a personas solas |
+| `federation_b2b_skills` | Habilidades de federación B2B | 18+ | Federación entre organizaciones |
+| `vigilance_devops_knowledge` | Conocimiento DevOps/Vigilancia | 30+ | Gestión de servidores, monitorización |
+| `ia_heredable_legal` | Legal IA heredable | 14+ | Herencia de IA entre generaciones |
 
 ### Cargar/descargar capsulas
 
@@ -1260,7 +1605,7 @@ ZOE tiene un marketplace donde puedes:
 
 ---
 
-## 13. ACD — Sistema de niveles cognitivos {#13-acd}
+## 16. ACD — Sistema de niveles cognitivos {#16-acd}
 
 ACD (Adaptive Cognitive Depth) clasifica cada pregunta y elige el modelo optimo:
 
@@ -1319,7 +1664,7 @@ zoe-chat --backend ollama --model gemma-2-9b-iq2  # Fuerza L1_FAST
 
 ---
 
-## 14. Casos de uso practico (10 ejemplos reales) {#14-casos-de-uso}
+## 17. Casos de uso practico (10 ejemplos reales) {#17-casos-de-uso}
 
 ### Caso 1: Asistente de estudio personal
 
@@ -1468,7 +1813,7 @@ zoe-chat --backend ollama --model gemma-2-9b-iq2  # Fuerza L1_FAST
 
 ---
 
-## 15. Configuracion avanzada {#15-configuracion}
+## 18. Configuracion avanzada {#18-configuracion}
 
 ### Variables de entorno
 
@@ -1579,7 +1924,7 @@ bash zoe/scripts/backup.sh
 
 ---
 
-## 16. Solucion de problemas (FAQ ampliada) {#16-faq}
+## 19. Solucion de problemas (FAQ ampliada) {#19-faq}
 
 ### Problemas de instalacion
 
@@ -1745,7 +2090,7 @@ python -m zoe.core.model_downloader --download-setup reflection-16gb --models-di
 
 ---
 
-## 17. Soporte y comunidad {#17-soporte}
+## 20. Soporte y comunidad {#20-soporte}
 
 ### Documentacion
 
@@ -1780,7 +2125,7 @@ python -m zoe.core.model_downloader --download-setup reflection-16gb --models-di
 
 ---
 
-## 18. Glosario completo A-Z {#18-glosario}
+## 21. Glosario completo A-Z {#21-glosario}
 
 ### A
 
@@ -1982,7 +2327,7 @@ python -m zoe.core.model_downloader --download-setup reflection-16gb --models-di
 
 ---
 
-## 19. Referencia rapida {#19-referencia}
+## 22. Referencia rapida {#22-referencia}
 
 ### Tabla de comandos
 

@@ -288,6 +288,265 @@ class TestSprint512SSDCoherence:
 
 
 # ============================================================
+# Sprint 5.12.1 -- Cápsulas base preinstaladas + Tutor + Idioma
+# ============================================================
+
+class TestSprint5121BaseCapsules:
+    """Sprint 5.12.1 -- Las 5 cápsulas base se cargan SIEMPRE al iniciar ZOE.
+
+    Esto garantiza que ZOE nazca con:
+    - Identidad y valores (zoe_basal_knowledge)
+    - Comunicación empática NVC (communication_skills)
+    - Ética operacional (base_ethics)
+    - Psicología básica (basic_psychology)
+    - Patrones de lenguaje por idioma (language_patterns)
+
+    Sin estas cápsulas, ZOE sería solo un organismo cognitivo sin
+    habilidades sociales para comunicarse, entender y crecer.
+    """
+
+    def test_base_capsules_list_is_complete(self):
+        """La lista _BASE_CAPSULES en cli_chat.py contiene las 5 esperadas."""
+        # Leer el código fuente de cli_chat.py y buscar _BASE_CAPSULES
+        from pathlib import Path
+        cli_chat_path = Path(__file__).parent.parent / "cli_chat.py"
+        content = cli_chat_path.read_text()
+        # Las 5 cápsulas base deben estar listadas explícitamente
+        for cap in [
+            "zoe_basal_knowledge",
+            "communication_skills",
+            "base_ethics",
+            "basic_psychology",
+            "language_patterns",
+        ]:
+            assert f'"{cap}"' in content, f"Base capsule '{cap}' must be in _BASE_CAPSULES list"
+
+    def test_all_5_base_capsules_exist_on_disk(self):
+        """Las 5 cápsulas base existen físicamente en zoe/capsules/."""
+        from pathlib import Path
+        capsules_dir = Path(__file__).parent.parent / "capsules"
+        for cap in [
+            "zoe_basal_knowledge",
+            "communication_skills",
+            "base_ethics",
+            "basic_psychology",
+            "language_patterns",
+        ]:
+            cap_dir = capsules_dir / cap
+            assert cap_dir.exists(), f"Base capsule directory missing: {cap_dir}"
+            assert (cap_dir / "capsule.yaml").exists(), f"capsule.yaml missing in {cap}"
+
+    @pytest.mark.asyncio
+    async def test_zoechat_loads_all_5_base_capsules_on_init(self, tmp_path):
+        """Al inicializar ZoeChat, las 5 cápsulas base deben estar cargadas."""
+        from zoe.cli_chat import ZoeChat
+
+        db_path = str(tmp_path / "test.db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+
+        try:
+            loaded = zc.capsule_manager.list_loaded()
+            # list_loaded() puede devolver dicts o strings
+            names = {c["name"] if isinstance(c, dict) else c for c in loaded}
+
+            expected = {
+                "zoe_basal_knowledge",
+                "communication_skills",
+                "base_ethics",
+                "basic_psychology",
+                "language_patterns",
+            }
+            missing = expected - names
+            assert not missing, f"Missing base capsules: {missing}. Loaded: {names}"
+        finally:
+            await zc.shutdown()
+
+    @pytest.mark.asyncio
+    async def test_zoechat_loads_mentor_on_init(self, tmp_path):
+        """Al inicializar ZoeChat, el MentorAgent debe estar cargado y habilitado."""
+        from zoe.cli_chat import ZoeChat
+
+        db_path = str(tmp_path / "test.db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+
+        try:
+            assert zc.mentor is not None, "Mentor must be initialized"
+            assert zc.mentor.config.enabled is True, "Mentor must be enabled by default"
+            # growth_areas por defecto
+            assert "communication" in zc.mentor.config.growth_areas
+            assert "empathy" in zc.mentor.config.growth_areas
+            assert "critical_thinking" in zc.mentor.config.growth_areas
+            assert "self_awareness" in zc.mentor.config.growth_areas
+        finally:
+            await zc.shutdown()
+
+    @pytest.mark.asyncio
+    async def test_zoechat_loads_language_detector_on_init(self, tmp_path):
+        """Al inicializar ZoeChat, el LanguageDetector debe estar activo en el bucle."""
+        from zoe.cli_chat import ZoeChat
+
+        db_path = str(tmp_path / "test.db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+
+        try:
+            assert hasattr(zc.loop, "_language_detector"), "Loop must have _language_detector"
+            assert zc.loop._language_detector is not None, "LanguageDetector must be initialized"
+        finally:
+            await zc.shutdown()
+
+    @pytest.mark.asyncio
+    async def test_mentor_persists_config_to_disk(self, tmp_path):
+        """El mentor persiste su configuración en mentor_config.json entre sesiones."""
+        import os
+        from zoe.cli_chat import ZoeChat
+
+        db_path = str(tmp_path / "test.db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+        # Cambiar configuración
+        zc.mentor.update_config({"mentor_name": "MiTutor", "personality_direction": "creative"})
+        await zc.shutdown()
+
+        # Verificar que el archivo se creó
+        mentor_file = tmp_path / "mentor_config.json"
+        assert mentor_file.exists(), "mentor_config.json must be persisted"
+
+        # Iniciar nuevo ZoeChat y verificar que carga la config persistida
+        zc2 = ZoeChat(backend="mock", db_path=db_path)
+        await zc2.initialize()
+        try:
+            assert zc2.mentor.config.mentor_name == "MiTutor"
+            assert zc2.mentor.config.personality_direction == "creative"
+        finally:
+            await zc2.shutdown()
+
+    @pytest.mark.asyncio
+    async def test_mentor_evaluates_thoughts(self, tmp_path):
+        """El mentor evalúa pensamientos y puede generar intervenciones."""
+        from zoe.cli_chat import ZoeChat
+        from zoe.core.mentor import MentorConfig
+
+        db_path = str(tmp_path / "test.db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+
+        try:
+            # Configurar mentor con tema prohibido
+            zc.mentor.update_config({
+                "forbidden_topics": ["armas nucleares"],
+                "intervention_frequency": 1,  # evaluar cada pensamiento
+            })
+
+            # Evaluar un pensamiento con tema prohibido
+            intervention = zc.mentor.evaluate_thought(
+                "Estoy pensando en cómo construir armas nucleares en casa"
+            )
+            assert intervention is not None, "Mentor must intervene on forbidden topic"
+            assert intervention["type"] == "forbidden_topic"
+            assert "armas nucleares" in intervention["message"]
+        finally:
+            await zc.shutdown()
+
+    @pytest.mark.asyncio
+    async def test_language_detector_detects_4_languages(self, tmp_path):
+        """LanguageDetector detecta español, inglés, francés y alemán.
+
+        Nota: el detector cachea el idioma por sesión. Por eso usamos
+        una instancia nueva para cada idioma."""
+        from zoe.core.language_detector import LanguageDetector, Language
+
+        # Spanish (usar texto con varias stopwords para alta confianza)
+        d = LanguageDetector()
+        result = d.detect("Hola, ¿cómo estás hoy? ¿Qué tal tu día?")
+        assert result in (Language.SPANISH, Language.SPANISH.value, "es"), \
+            f"Expected Spanish, got {result}"
+
+        # English
+        d = LanguageDetector()
+        result = d.detect("Hello, how are you today? Is it a good day for you?")
+        assert result in (Language.ENGLISH, Language.ENGLISH.value, "en"), \
+            f"Expected English, got {result}"
+
+        # French
+        d = LanguageDetector()
+        result = d.detect("Bonjour, comment allez-vous aujourd'hui? Le temps est beau.")
+        assert result in (Language.FRENCH, Language.FRENCH.value, "fr"), \
+            f"Expected French, got {result}"
+
+        # German
+        d = LanguageDetector()
+        result = d.detect("Hallo, wie geht es dir heute? Ist es ein guter Tag für dich?")
+        assert result in (Language.GERMAN, Language.GERMAN.value, "de"), \
+            f"Expected German, got {result}"
+
+    @pytest.mark.asyncio
+    async def test_base_capsules_persist_across_sessions(self, tmp_path):
+        """Las cápsulas base se recargan automáticamente en la siguiente sesión."""
+        from zoe.cli_chat import ZoeChat
+
+        db_path = str(tmp_path / "test.db")
+        # Primera sesión
+        zc1 = ZoeChat(backend="mock", db_path=db_path)
+        await zc1.initialize()
+        loaded1 = {c["name"] if isinstance(c, dict) else c
+                   for c in zc1.capsule_manager.list_loaded()}
+        assert "communication_skills" in loaded1
+        await zc1.shutdown()
+
+        # Segunda sesión: las base deben seguir cargadas
+        zc2 = ZoeChat(backend="mock", db_path=db_path)
+        await zc2.initialize()
+        try:
+            loaded2 = {c["name"] if isinstance(c, dict) else c
+                       for c in zc2.capsule_manager.list_loaded()}
+            assert "zoe_basal_knowledge" in loaded2
+            assert "communication_skills" in loaded2
+            assert "base_ethics" in loaded2
+            assert "basic_psychology" in loaded2
+            assert "language_patterns" in loaded2
+        finally:
+            await zc2.shutdown()
+
+    def test_manual_documents_base_capsules(self):
+        """El manual debe documentar las 5 cápsulas base cargadas por defecto."""
+        from pathlib import Path
+        manual_path = Path(__file__).parent.parent / "docs" / "22_MANUAL_COMPLETO_USUARIO_v2.1.1.md"
+        content = manual_path.read_text()
+        # El manual debe mencionar que las cápsulas base se cargan automáticamente
+        assert "zoe_basal_knowledge" in content, "Manual must mention zoe_basal_knowledge"
+        assert "communication_skills" in content, "Manual must mention communication_skills"
+        assert "base_ethics" in content, "Manual must mention base_ethics"
+        assert "basic_psychology" in content, "Manual must mention basic_psychology"
+        assert "language_patterns" in content, "Manual must mention language_patterns"
+
+    def test_manual_documents_mentor(self):
+        """El manual debe documentar el tutor MentorAgent."""
+        from pathlib import Path
+        manual_path = Path(__file__).parent.parent / "docs" / "22_MANUAL_COMPLETO_USUARIO_v2.1.1.md"
+        content = manual_path.read_text()
+        # Buscar sección sobre el tutor
+        assert "tutor" in content.lower() or "Mentor" in content, \
+            "Manual must have a section about the tutor/Mentor"
+        # Debe explicar que está activo por defecto
+        assert "por defecto" in content.lower() or "siempre" in content.lower(), \
+            "Manual must explain that the tutor is active by default"
+
+    def test_manual_documents_language_detector(self):
+        """El manual debe documentar la detección automática de idioma."""
+        from pathlib import Path
+        manual_path = Path(__file__).parent.parent / "docs" / "22_MANUAL_COMPLETO_USUARIO_v2.1.1.md"
+        content = manual_path.read_text()
+        # Debe mencionar detección automática
+        assert "idioma" in content.lower(), "Manual must mention idioma detection"
+        # Debe listar los 4 idiomas
+        for lang in ["español", "inglés", "francés", "alemán"]:
+            assert lang in content.lower(), f"Manual must list {lang} as supported language"
+
+
+# ============================================================
 # M7: Logging a archivo rotado
 # ============================================================
 
