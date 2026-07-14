@@ -85,14 +85,91 @@ class EpistemicFederationServer:
                     discovery_mode=discovery_mode,
                     peers_file=peers_file,
                 )
-                self._discovery.announce()
+                # announce() se invoca en start(), no aqui
                 logger.info(f"FederationDiscovery: mode={discovery_mode}")
             except Exception as e:
                 logger.warning(f"FederationDiscovery init failed: {e}")
                 self._discovery = None
         else:
             self._discovery = None
-    
+
+        # Guardar organism_id para filtrar self-discovery
+        self.organism_id = organism_id
+
+    async def start(self) -> None:
+        """
+        Inicia el servidor de federacion.
+
+        Si discovery_mode != "manual", anuncia esta ZOE
+        y descubre peers existentes.
+        """
+        if self._discovery:
+            # Anunciar esta ZOE
+            try:
+                self._discovery.announce()
+                logger.info("Federation: announced this ZOE")
+            except Exception as e:
+                logger.debug(f"Federation: announce failed: {e}")
+
+            # Descubrir peers existentes
+            try:
+                peers = self._discovery.discover()
+                for peer in peers:
+                    peer_id = peer.get("organism_id", "")
+                    peer_url = peer.get("base_url", "")
+                    if peer_id and peer_url and peer_id != getattr(self, "organism_id", ""):
+                        try:
+                            from .federation import FederationManager
+                            if hasattr(self.federation, 'register_peer'):
+                                self.federation.register_peer(peer_url, peer_id)
+                                logger.info(f"Federation: auto-registered peer {peer_id} @ {peer_url}")
+                        except Exception as e:
+                            logger.debug(f"Federation: failed to register peer {peer_id}: {e}")
+            except Exception as e:
+                logger.debug(f"Federation: initial discovery failed: {e}")
+
+            # Iniciar refresh periodico
+            self._start_discovery_refresh()
+
+    async def stop(self) -> None:
+        """Detiene el servidor y limpia discovery."""
+        if self._discovery:
+            try:
+                self._discovery.cleanup_stale(max_age_seconds=0)
+                logger.info("Federation: discovery cleanup completed")
+            except Exception as e:
+                logger.debug(f"Federation: cleanup failed: {e}")
+
+    def _start_discovery_refresh(self, interval_seconds: int = 60) -> None:
+        """Inicia refresh periodico de peers en background."""
+        if not self._discovery:
+            return
+
+        async def _refresh_loop():
+            while True:
+                await asyncio.sleep(interval_seconds)
+                try:
+                    peers = self._discovery.discover()
+                    for peer in peers:
+                        peer_id = peer.get("organism_id", "")
+                        peer_url = peer.get("base_url", "")
+                        if peer_id and peer_url:
+                            # Solo registrar si no existe
+                            if peer_id not in getattr(self.federation, '_peers', {}):
+                                if hasattr(self.federation, 'register_peer'):
+                                    self.federation.register_peer(peer_url, peer_id)
+                                    logger.info(f"Federation: discovered new peer {peer_id}")
+                except Exception as e:
+                    logger.debug(f"Federation: refresh failed: {e}")
+
+        # No bloquear: crear task en background
+        try:
+            loop = asyncio.get_event_loop()
+            loop.create_task(_refresh_loop())
+            logger.info(f"Federation: discovery refresh started ({interval_seconds}s)")
+        except Exception as e:
+            logger.warning(f"Federation: could not start refresh: {e}")
+
     def register_peer(self, organism_id: str, base_url: str, auth_token: str = None) -> bool:
         """Registra un peer para federación epistémica."""
         self._peers[organism_id] = PeerEndpoint(

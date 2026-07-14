@@ -134,6 +134,7 @@ class DistributedPhylogeneticPool:
         rejection_reason: str = "",
     ) -> None:
         """Registra resultado y sincroniza."""
+        self._load()  # Recargar para no perder updates de otras ZOEs
         self._pool.record_test_result(
             improvement_id, zoe_id, passed,
             metrics_before, metrics_after, rejection_reason,
@@ -142,6 +143,7 @@ class DistributedPhylogeneticPool:
 
     def mark_incorporated(self, improvement_id: str, zoe_id: str) -> None:
         """Marca incorporada y sincroniza."""
+        self._load()  # Recargar para no perder updates de otras ZOEs
         self._pool.mark_incorporated(improvement_id, zoe_id)
         self._save()
 

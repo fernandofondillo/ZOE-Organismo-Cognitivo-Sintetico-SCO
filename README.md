@@ -443,6 +443,32 @@ server.discover_peers()  # Registra peers descubiertos automaticamente
 
 ---
 
+## ZOE-SPEC-002: 8 items resueltos (4 experimentales + 4 endurecimiento)
+
+### Experimentales
+
+| # | Item | Problema | Solucion | Archivos |
+|---|------|----------|----------|----------|
+| 1 | **EmbodimentComposer CLI** | Llamada incorrecta a compose(), plan incompleto, broadcast_capacity no aplicado | Crea ResourcePlan con RAM detectada, usa embodiment.to_dict() completo, aplica broadcast_capacity al GlobalWorkspace | cli_chat.py |
+| 2 | **SeedMode auto_start** | Event loop se cerraba, backend hardcodeado, no mantenia vivo | Loop con while True + sleep, detecta backend (ollama/zai/pattern), captura CancelledError | seed_mode.py |
+| 3 | **Federation discovery** | Inicializado pero nunca invocado (codigo inerte) | start() llama announce()+discover(), refresh periodico cada 60s, registra peers automaticamente | epistemic_federation_server.py, cli_chat.py |
+| 4 | **PostgreSQL tests** | 669 LOC sin tests, sin CI, factory no conectada | 28 tests unitarios con AsyncMock, CI job con postgres:16 service container, factory integrada en CLI opt-in | test_postgres_backend.py, ci.yml, cli_chat.py |
+
+### Endurecimiento
+
+| # | Item | Que se hizo | Tests |
+|---|------|-------------|-------|
+| 1 | **Federacion multi-instancia** | Dos ZOEs con peers.json compartido se descubren mutuamente, validan mejoras filogeneticas | test_federation_integration.py: 4 tests (discovery bidireccional, stale filtering, cleanup, pool compartido) |
+| 2 | **PostgreSQL CI** | Job postgres-integration con service container postgres:16, health check pg_isready | ci.yml: job independiente con variables ZOE_POSTGRES_* |
+| 3 | **Cobertura CI** | Verificado: --cov-fail-under=55, upload a Codecov | ci.yml: ya estaba configurado correctamente |
+| 4 | **EmbodimentComposer por hardware** | Tests parametrizados: Mac 8GB sin/con Ollama, VPS 64GB, sin GPU | test_embodiment_hardware_profiles.py: 5 tests (perfiles + to_dict) |
+
+### Bug extra corregido
+
+**Lost update en DistributedPhylogeneticPool:** `record_test_result()` y `mark_incorporated()` no recargaban desde disco antes de modificar, causando que una ZOE sobrescribiera los cambios de otra. Añadido `self._load()` al inicio de ambos metodos.
+
+---
+
 ## Requisitos
 
 ### Software
@@ -471,6 +497,8 @@ server.discover_peers()  # Registra peers descubiertos automaticamente
 | ✅ | ZOE OMEGA Correcciones | Seguridad hardening, infraestructura producción, dashboard refactorizado |
 | ✅ | ZOE-SPEC-002 Gaps (3) | merge_subagents, reorganize_memory, serve.py V5 |
 | ✅ | ZOE-SPEC-002 Mejoras (6) | SemanticSearch, cobertura tests, Phylo persistencia, Composer CLI, Seed auto-start, Federation discovery |
+| ✅ | ZOE-SPEC-002 Experimentales (4) | EmbodimentComposer fix, SeedMode auto_start fix, Federation discovery activado, PostgreSQL tests |
+| ✅ | ZOE-SPEC-002 Endurecimiento (4) | Tests federacion multi-instancia, PostgreSQL CI, cobertura CI, Tests EmbodimentComposer por hardware |
 | 🔄 | Pasarela de pagos | Stripe/PayPal para marketplace |
 | 📋 | Chaos engineering avanzado | Load testing, fuzzing, penetración profesional |
 | 📋 | v2.0.0 GA | Production Ready tras hardening final |

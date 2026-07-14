@@ -766,18 +766,39 @@ class ZOESeed:
         if auto_start:
             try:
                 from ..cli_chat import ZoeChat
+                import asyncio
+                import shutil
+
+                # Detectar backend disponible (no hardcodear)
+                backend = "mock"
+                if manifest.requires_ollama and shutil.which("ollama"):
+                    backend = "ollama"
+                elif shutil.which("z-ai"):
+                    backend = "zai"
+                else:
+                    backend = "pattern"
+
                 chat = ZoeChat(
-                    backend="ollama" if manifest.requires_ollama else "mock",
+                    backend=backend,
                     db_path=os.path.join(vol.volume_path, "zoe_data", "memory.db"),
                 )
-                # Importar asyncio y arrancar
-                import asyncio
+
+                # Inicializar y mantener el loop vivo
+                async def _run_seed():
+                    await chat.initialize()
+                    logger.info("ZOESeed: ZOE initialized, keeping loop alive...")
+                    # Mantener vivo hasta senal de terminacion
+                    while True:
+                        await asyncio.sleep(1)
+
                 loop_async = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop_async)
-                loop_async.run_until_complete(chat.initialize())
+                loop_async.run_until_complete(_run_seed())
+
+            except asyncio.CancelledError:
                 report.auto_started = True
-                report.auto_start_status = "running"
-                logger.info("ZOESeed: ZOE auto-started after germination")
+                report.auto_start_status = "stopped_gracefully"
+                logger.info("ZOESeed: auto-start stopped gracefully")
             except Exception as e:
                 report.auto_started = False
                 report.auto_start_status = f"failed: {e}"

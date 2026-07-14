@@ -180,14 +180,20 @@ class ZoeChat:
                     _embodiment_config = json.load(f)
                 print(f"  Embodiment plan loaded: {_plan_path}")
                 # Aplicar configuraciones del plan
-                if "memory" in _embodiment_config:
+                if "memory" in _embodiment_config and isinstance(_embodiment_config["memory"], dict):
                     mem_cfg = _embodiment_config["memory"]
                     if "max_entries" in mem_cfg:
                         config.setdefault("memory", {})["max_entries"] = mem_cfg["max_entries"]
-                if "tick_interval" in _embodiment_config:
-                    config.setdefault("organism", {})["tick_interval"] = _embodiment_config["tick_interval"]
+                if "available_ram_gb" in _embodiment_config:
+                    ram = _embodiment_config["available_ram_gb"]
+                    if ram < 12:
+                        config.setdefault("organism", {})["tick_interval"] = 5.0
+                    elif ram > 32:
+                        config.setdefault("organism", {})["tick_interval"] = 2.0
+                if "strategy" in _embodiment_config:
+                    config.setdefault("organism", {})["strategy"] = _embodiment_config["strategy"]
                 if "broadcast_capacity" in _embodiment_config:
-                    # Se aplicara al GlobalWorkspace mas abajo
+                    # Se aplica al GlobalWorkspace tras su instanciacion
                     pass
             except Exception as e:
                 print(f"  Warning: could not load embodiment plan: {e}")
@@ -223,6 +229,9 @@ class ZoeChat:
         ai = ActiveInferenceLoop()
         mc = MetaCognition()
         gw = GlobalWorkspace()
+        # Aplicar broadcast_capacity del embodiment plan si existe
+        if _embodiment_config and "broadcast_capacity" in _embodiment_config:
+            gw.broadcast_capacity = _embodiment_config["broadcast_capacity"]
 
         memorialist = Memorialist(memory=memory)
         learner = Learner()
@@ -238,9 +247,26 @@ class ZoeChat:
             causal, emotional, ethical, scientific,
         ]
 
+        # Detectar backend de storage (SQLite default, PostgreSQL opt-in)
+        storage_type = config.get("storage", {}).get("type", "sqlite")
+        storage_backend = None
+        if storage_type == "postgres":
+            try:
+                from zoe.storage.factory import get_storage_backend
+                pg_config = config.get("storage", {}).get("postgres", {})
+                storage_backend = get_storage_backend({"type": "postgres", **pg_config})
+                print(f"  PostgreSQL backend: {pg_config.get('host', 'localhost')}")
+            except Exception as e:
+                print(f"  Warning: PostgreSQL failed ({e}), falling back to SQLite")
+                storage_type = "sqlite"
+
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         store = PersistentMemoryStore(db_path=self.db_path, auto_save_interval=20)
         persistent_mem = PersistentLivingMemory(memory, store)
+
+        # Si se creo backend PostgreSQL, exponerlo en el loop para uso futuro
+        if storage_backend is not None:
+            loop._storage_backend = storage_backend
         deep_consolidation = DeepConsolidation(memory=memory, scientific_engine=scientific)
 
         tick_interval = config.get("organism", {}).get("tick_interval", 3.0)
@@ -377,6 +403,11 @@ class ZoeChat:
             quarantine=self.knowledge_quarantine,
             validator=self.epistemic_validator,
         )
+        # Iniciar discovery de peers federados
+        try:
+            await self.epistemic_federation_server.start()
+        except Exception as e:
+            logger.debug(f"Federation server start failed: {e}")
         # Fase 6C: Tutor Mentor Digital
         from .core.mentor import MentorAgent, MentorConfig
         from pathlib import Path as _Path
@@ -1051,23 +1082,41 @@ def main():
     if args.compose:
         # Ejecutar composer y salir
         from .core.embodiment_composer import EmbodimentComposer
+        from .core.resource_planner import ResourcePlanner
+        import psutil
+
         composer = EmbodimentComposer()
-        plan = composer.compose(
-            acd_level=args.acd_level if hasattr(args, 'acd_level') else None,
-            metabolismo={"fatigue_rate": 0.01},
+        planner = ResourcePlanner()
+
+        # Detectar RAM disponible
+        ram_gb = psutil.virtual_memory().total / (1024**3)
+
+        # Crear un plan adecuado al hardware
+        plan = planner.plan(
+            acd_level="L2_STANDARD",
+            metabolic_state="awake",
+            available_ram_gb=ram_gb,
         )
-        # Guardar plan
-        _plan_path = Path(args.db_path).parent / "embodiment_plan.json" if args.db_path else Path("zoe_data/embodiment_plan.json")
-        _plan_path.parent.mkdir(parents=True, exist_ok=True)
-        plan_dict = {
-            "composed_at": time.time(),
-            "memory": {"max_entries": plan.memory_config.get("max_entries", 5000)},
-            "tick_interval": plan.tick_interval if hasattr(plan, 'tick_interval') else 3.0,
-            "subagents_selected": [s.__class__.__name__ for s in plan.subagents] if hasattr(plan, 'subagents') else [],
-        }
-        with open(_plan_path, "w", encoding="utf-8") as f:
+
+        # Componer el cuerpo
+        embodiment = composer.compose(plan)
+
+        # Guardar plan completo usando to_dict()
+        plan_path = Path(args.db_path).parent / "embodiment_plan.json" if args.db_path else Path("zoe_data/embodiment_plan.json")
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+
+        plan_dict = embodiment.to_dict()
+        plan_dict["composed_at"] = time.time()
+        plan_dict["source"] = "embodiment_composer_cli"
+
+        with open(plan_path, "w", encoding="utf-8") as f:
             json.dump(plan_dict, f, indent=2, ensure_ascii=False)
-        print(f"Embodiment plan saved: {_plan_path}")
+
+        print(f"Embodiment plan saved: {plan_path}")
+        print(f"Status: {embodiment.status}")
+        print(f"Backend: {embodiment.backend_name}")
+        print(f"Strategy: {embodiment.strategy}")
+        print(f"RAM detected: {ram_gb:.1f} GB")
         print("Run without --compose to use this plan.")
         return
 
