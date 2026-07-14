@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import secrets
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Set
 
 from aiohttp import web
@@ -61,7 +63,7 @@ class DashboardServer:
             self.auth_token = secrets.token_urlsafe(32)
             logger.warning(
                 "SECURITY: No auth_token provided. Auto-generated token: %s "
-                "(Store this securely -- it is required for all endpoints except /health, /ready, /live)",
+                "(Store this securely -- it is required for all endpoints except /, /manifest.json, /health, /ready, /live)",
                 self.auth_token,
             )
         else:
@@ -76,6 +78,24 @@ class DashboardServer:
 
         # Rate limiting (injected by middleware factory)
         self._rate_limit_middleware = None
+
+        # Sprint 5.12 -- Persistir el token a un archivo para que los
+        # lanzadores .command puedan leerlo y abrir el navegador con
+        # ?token=XXX en la URL. Se guarda junto al db_path.
+        try:
+            data_dir = Path(self.db_path).parent if self.db_path else Path("zoe_data")
+            data_dir.mkdir(parents=True, exist_ok=True)
+            token_file = data_dir / "dashboard_token.txt"
+            token_file.write_text(self.auth_token)
+            # Permisos solo-lectura-dueno (0600) para no exponer el token
+            try:
+                token_file.chmod(0o600)
+            except Exception:
+                # Windows no soporta chmod Unix; ignoralo silenciosamente.
+                pass
+            logger.info("Auth token persisted to %s", token_file)
+        except Exception as e:
+            logger.warning("Could not persist auth token to disk: %s", e)
 
 
     async def initialize(self) -> None:

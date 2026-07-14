@@ -14,7 +14,7 @@ def _get_dashboard_html() -> str:
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0f">
 <link rel="manifest" href="/manifest.json">
-<title>ZOE v1.7 -- Synthetic Cognitive Organism</title>
+<title>ZOE v2.1.2 -- Synthetic Cognitive Organism</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; overflow: hidden; }
@@ -250,13 +250,115 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 
 <input type="file" id="fileInput" style="display:none" onchange="uploadFile(event)">
 
+<!-- ZOE v2.1.2 — Modal de autenticacion (si falta token) -->
+<div id="authModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:#0d0d14;border:1px solid #7c4dff;border-radius:12px;padding:32px;max-width:480px;color:#e0e0e0;text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">&#128274;</div>
+    <h2 style="color:#7c4dff;margin-bottom:12px;font-size:20px;">Autenticacion requerida</h2>
+    <p style="color:#aaa;font-size:14px;margin-bottom:20px;line-height:1.5;">
+      ZOE protege el dashboard con un token. Pegalo abajo para acceder.
+      <br><br>
+      <span style="color:#666;font-size:12px;">El token se muestra en la terminal donde iniciaste ZOE, en una linea como:<br>
+      <code style="background:#1a1a2a;padding:4px 8px;border-radius:4px;color:#7c4dff;">SECURITY: ... Auto-generated token: XXXX</code><br>
+      o en la URL <code>http://localhost:8642/?token=XXXX</code>.</span>
+    </p>
+    <input id="authTokenInput" type="password" placeholder="Pega tu token aqui" style="width:100%;background:#1a1a2a;color:#e0e0e0;border:1px solid #3a3a4a;padding:10px 14px;border-radius:6px;font-size:14px;margin-bottom:12px;box-sizing:border-box;">
+    <button onclick="saveAuthToken()" style="background:#7c4dff;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;width:100%;">Acceder</button>
+    <p style="color:#666;font-size:11px;margin-top:16px;">El token se guarda en localStorage para no volver a pedirlo.</p>
+  </div>
+</div>
+
 <script>
+// ============================================================
+// ZOE v2.1.2 -- Gestion de token de autenticacion del Dashboard
+// ============================================================
+// El dashboard protege TODAS las rutas excepto: /, /manifest.json,
+// /health, /ready, /live. El navegador recibe el HTML inicial sin
+// token, pero todas las llamadas fetch y el WebSocket deben enviarlo.
+//
+// Estrategia:
+//   1. Al cargar, buscar token en ?token=XXX (URL) -> guardarlo en localStorage.
+//   2. Si no hay en URL, leer de localStorage.
+//   3. Si no hay en ninguno, mostrar modal pidiendolo.
+//   4. Sobreescribir window.fetch para inyectar Authorization: Bearer XXX.
+//   5. connectWS() anade ?token=XXX a la URL del WebSocket.
+// ============================================================
+
+const ZOE_TOKEN_KEY = 'zoe_auth_token';
+
+function getZoeToken() {
+  // 1. URL param (alta prioridad -- permite bookmark con token)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get('token');
+  if (urlToken && urlToken.length > 0) {
+    localStorage.setItem(ZOE_TOKEN_KEY, urlToken);
+    // Limpiar el token de la URL para no compartirlo accidentalmente
+    try {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    } catch (e) { /* ignore */ }
+    return urlToken;
+  }
+  // 2. localStorage
+  return localStorage.getItem(ZOE_TOKEN_KEY) || '';
+}
+
+function saveAuthToken() {
+  const input = document.getElementById('authTokenInput');
+  const token = input.value.trim();
+  if (!token) { alert('Pega un token valido.'); return; }
+  localStorage.setItem(ZOE_TOKEN_KEY, token);
+  document.getElementById('authModal').style.display = 'none';
+  // Recargar para aplicar el token a todas las llamadas
+  location.reload();
+}
+
+const ZOE_AUTH_TOKEN = getZoeToken();
+
+if (!ZOE_AUTH_TOKEN) {
+  // Mostrar modal -- el usuario debera pegar el token manualmente
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('authModal').style.display = 'flex';
+  });
+}
+
+// Sobreescribir fetch para inyectar Authorization header en TODAS las llamadas
+// que NO sean a rutas publicas (/, /manifest.json, /health, /ready, /live).
+const _originalFetch = window.fetch;
+const _PUBLIC_PATHS_DASH = new Set(['/', '/manifest.json', '/health', '/ready', '/live']);
+window.fetch = function(input, init) {
+  init = init || {};
+  init.headers = init.headers || {};
+  // input puede ser string o Request
+  let path = '';
+  if (typeof input === 'string') {
+    path = new URL(input, window.location.origin).pathname;
+  } else if (input instanceof Request) {
+    path = new URL(input.url, window.location.origin).pathname;
+  }
+  if (!_PUBLIC_PATHS_DASH.has(path) && ZOE_AUTH_TOKEN) {
+    // Si init.headers es Headers, clonarlo; si es objeto plano, anadir
+    if (init.headers instanceof Headers) {
+      if (!init.headers.has('Authorization')) {
+        init.headers.set('Authorization', 'Bearer ' + ZOE_AUTH_TOKEN);
+      }
+    } else {
+      if (!init.headers['Authorization']) {
+        init.headers['Authorization'] = 'Bearer ' + ZOE_AUTH_TOKEN;
+      }
+    }
+  }
+  return _originalFetch.call(this, input, init);
+};
+
 let ws = null;
 let isSleeping = false;
 
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(`${proto}//${location.host}/ws`);
+  // Sprint 5.12 -- anadir token al WS via query param
+  const tokenQuery = ZOE_AUTH_TOKEN ? ('?token=' + encodeURIComponent(ZOE_AUTH_TOKEN)) : '';
+  ws = new WebSocket(`${proto}//${location.host}/ws${tokenQuery}`);
 
   ws.onopen = () => { console.log('WS connected'); };
   ws.onclose = () => { console.log('WS disconnected, retrying...'); setTimeout(connectWS, 2000); };

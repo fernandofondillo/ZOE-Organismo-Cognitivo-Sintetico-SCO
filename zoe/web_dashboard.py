@@ -16,12 +16,26 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 
 # Re-export everything from the modular dashboard package
 from .dashboard.server import DashboardServer
 from .dashboard.utils import _sanitize_name, _safe_path
+# Sprint 5.12 — Re-export _get_dashboard_html for backward compatibility with
+# tests and external callers that import it from zoe.web_dashboard directly.
+# Source: zoe/dashboard/html/dashboard_html.py
+from .dashboard.html.dashboard_html import _get_dashboard_html
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "DashboardServer",
+    "run_dashboard",
+    "_sanitize_name",
+    "_safe_path",
+    "_get_dashboard_html",
+    "main",
+]
 
 
 async def run_dashboard(
@@ -51,15 +65,21 @@ async def run_dashboard(
     await server.initialize()
     await server.start()
 
+    # Sprint 5.12 -- Imprimir URL CON el token embebido. El navegador
+    # al abrirla guarda el token en localStorage y luego lo limpia de la
+    # URL automaticamente. Asi el usuario no tiene que copiar/pegar nada.
     print("=" * 60)
-    print("  ZOE v1.0 -- Web Dashboard")
+    print("  ZOE v2.1.2 -- Web Dashboard")
     print("=" * 60)
-    print(f"  URL: http://localhost:{port}")
+    print(f"  URL (abrir en navegador):")
+    print(f"    http://localhost:{port}/?token={server.auth_token}")
+    print()
     print(f"  LLM: {backend}")
     print(f"  Identity: {server.chat.vault.identity_hash[:16]}...")
     print(f"  Memory: {server.chat.memory.count()} entries")
+    print(f"  Auth token (manual si la URL de arriba falla): {server.auth_token}")
     print()
-    print("  Abre tu navegador en la URL de arriba.")
+    print("  Abre tu navegador en la URL de arriba (incluye el token).")
     print("  Presiona Ctrl+C para detener.")
     print("=" * 60)
 
@@ -88,7 +108,14 @@ def main():
     )
     parser.add_argument("--use-case", help="Caso de uso YAML")
     parser.add_argument("--port", type=int, default=8642)
-    parser.add_argument("--db-path", default="zoe_data/dashboard_memory.db")
+    # Sprint 5.12 GAP-R: si no se pasa --db-path, usar $ZOE_DATA/dashboard_memory.db
+    # si la variable existe (definida por los lanzadores del SSD), o el default
+    # relativo en caso contrario. Evita que ZOE se cree en el CWD del Mac.
+    _default_db = os.path.join(
+        os.environ.get("ZOE_DATA", "zoe_data"),
+        "dashboard_memory.db",
+    )
+    parser.add_argument("--db-path", default=_default_db)
     parser.add_argument("--api-key", help="API key para backends cloud")
     parser.add_argument("--base-url", help="URL base para APIs compatibles")
     parser.add_argument("--host", default="127.0.0.1",
