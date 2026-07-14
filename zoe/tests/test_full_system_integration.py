@@ -624,10 +624,10 @@ async def test_integration_global_workspace_uses_all_subagents(full_organism):
 
     # Cada sub-agente podría proponer al workspace
     # Aquí simulamos propuestas manuales
+    # Sprint 5.14: Proposal no tiene kwarg 'action' (fue removido del dataclass).
     for sa in subagents:
         gw.submit(Proposal(
             subagent_name=sa.__class__.__name__,
-            action="think",
             content=f"propuesta de {sa.__class__.__name__}",
             relevance=0.5,
         ))

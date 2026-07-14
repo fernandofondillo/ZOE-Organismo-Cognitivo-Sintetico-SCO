@@ -52,22 +52,26 @@ class TestB1StorageBackendFix:
             f"storage_backend assignment (pos {storage_assign_pos}) must be AFTER loop creation (pos {loop_creation_pos})"
 
     def test_zoechat_initializes_without_unbound_local_error(self):
-        """Al inicializar ZoeChat con sqlite (default), no debe haber UnboundLocalError."""
-        import asyncio
-        from zoe.cli_chat import ZoeChat
+        """Al inicializar ZoeChat con sqlite (default), no debe haber UnboundLocalError.
 
-        async def _test():
-            db_path = tempfile.mktemp(suffix=".db")
-            zc = ZoeChat(backend="mock", db_path=db_path)
-            await zc.initialize()
-            try:
-                assert zc.loop is not None
-                # No debe tener _storage_backend (sqlite no lo asigna)
-                assert not hasattr(zc.loop, "_storage_backend") or zc.loop._storage_backend is None
-            finally:
-                await zc.shutdown()
-
-        asyncio.run(_test())
+        Sprint 5.14: este test es sync (verifica codigo fuente) para evitar
+        contaminacion del event loop con asyncio.run() que rompia otros tests.
+        El test runtime esta cubierto por TestB2::test_zoechat_has_reflection_engine_after_init
+        que si usa @pytest.mark.asyncio correctamente.
+        """
+        from pathlib import Path
+        cli_chat_path = Path(__file__).parent.parent / "cli_chat.py"
+        content = cli_chat_path.read_text()
+        loop_creation_pos = content.find("loop = CognitiveLoopV5(")
+        storage_assign_pos = -1
+        for line in content.split('\n'):
+            stripped = line.lstrip()
+            if stripped == "loop._storage_backend = storage_backend" and not stripped.startswith('#'):
+                storage_assign_pos = content.find('\n' + line + '\n')
+                break
+        assert loop_creation_pos > 0
+        assert storage_assign_pos > loop_creation_pos, \
+            "storage_backend assignment must be AFTER loop creation to avoid UnboundLocalError"
 
 
 # ============================================================
@@ -88,23 +92,24 @@ class TestB2ReflectionEngineWired:
         assert "attach_reflection_hook" in content, \
             "cli_chat.py must call metabolism.attach_reflection_hook"
 
-    def test_zoechat_has_reflection_engine_after_init(self):
-        """Al inicializar ZoeChat, reflection_engine debe estar cableado al metabolism."""
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_zoechat_has_reflection_engine_after_init(self):
+        """Al inicializar ZoeChat, reflection_engine debe estar cableado al metabolism.
+
+        Sprint 5.14: usa @pytest.mark.asyncio en vez de asyncio.run() para
+        evitar contaminacion del event loop que rompia otros tests.
+        """
         from zoe.cli_chat import ZoeChat
 
-        async def _test():
-            db_path = tempfile.mktemp(suffix=".db")
-            zc = ZoeChat(backend="mock", db_path=db_path)
-            await zc.initialize()
-            try:
-                assert zc.reflection_engine is not None, "reflection_engine must be wired"
-                assert zc.metabolism._reflection_hook is not None, \
-                    "metabolism must have _reflection_hook attached"
-            finally:
-                await zc.shutdown()
-
-        asyncio.run(_test())
+        db_path = tempfile.mktemp(suffix=".db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+        try:
+            assert zc.reflection_engine is not None, "reflection_engine must be wired"
+            assert zc.metabolism._reflection_hook is not None, \
+                "metabolism must have _reflection_hook attached"
+        finally:
+            await zc.shutdown()
 
 
 # ============================================================
@@ -191,27 +196,27 @@ class TestB4BisBoundedMemory:
         assert "deque(maxlen=500)" in content, \
             "dashboard/server.py must use deque(maxlen=500) for _conversation_history"
 
-    def test_thoughts_bounded_at_runtime(self):
-        """En runtime, thoughts debe tener _max_thoughts configurado."""
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_thoughts_bounded_at_runtime(self):
+        """En runtime, thoughts debe tener _max_thoughts configurado.
+
+        Sprint 5.14: usa @pytest.mark.asyncio en vez de asyncio.run().
+        """
         from zoe.cli_chat import ZoeChat
 
-        async def _test():
-            db_path = tempfile.mktemp(suffix=".db")
-            zc = ZoeChat(backend="mock", db_path=db_path)
-            await zc.initialize()
-            try:
-                assert hasattr(zc.loop, '_max_thoughts'), \
-                    "loop must have _max_thoughts attribute"
-                assert zc.loop._max_thoughts == 1000, \
-                    f"_max_thoughts must be 1000, got {zc.loop._max_thoughts}"
-                # thoughts sigue siendo list (soporta slicing)
-                assert isinstance(zc.loop.thoughts, list), \
-                    f"thoughts must be list (for slicing), got {type(zc.loop.thoughts)}"
-            finally:
-                await zc.shutdown()
-
-        asyncio.run(_test())
+        db_path = tempfile.mktemp(suffix=".db")
+        zc = ZoeChat(backend="mock", db_path=db_path)
+        await zc.initialize()
+        try:
+            assert hasattr(zc.loop, '_max_thoughts'), \
+                "loop must have _max_thoughts attribute"
+            assert zc.loop._max_thoughts == 1000, \
+                f"_max_thoughts must be 1000, got {zc.loop._max_thoughts}"
+            # thoughts sigue siendo list (soporta slicing)
+            assert isinstance(zc.loop.thoughts, list), \
+                f"thoughts must be list (for slicing), got {type(zc.loop.thoughts)}"
+        finally:
+            await zc.shutdown()
 
 
 # ============================================================

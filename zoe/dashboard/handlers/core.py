@@ -93,8 +93,11 @@ async def _handle_wake(server, request) -> Any:
 
 async def _handle_history(server, request) -> Any:
     """Devuelve el historial de conversaciones."""
+    # Sprint 5.14: _conversation_history es deque(maxlen=500) que no soporta slicing.
+    # Convertir a list antes de slicear.
+    history_list = list(server._conversation_history)
     return web.json_response({
-        "conversations": server._conversation_history[-100:],
+        "conversations": history_list[-100:],
         "count": len(server._conversation_history),
     })
 
