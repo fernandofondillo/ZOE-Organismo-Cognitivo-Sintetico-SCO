@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════════
 # ZOE — Instalador para SSD Crucial X9 1TB + MacBook Air M3
-# Synthetic Cognitive Organism (SCO) v2.0.0-rc1
+# Synthetic Cognitive Organism (SCO) v2.1.2
 # ═══════════════════════════════════════════════════════════════════════════════
 # Uso: bash install_ssd_crucial_x9_mac.sh
 # Requisitos: MacBook Air M3 8GB+, SSD Crucial X9 1TB, Python 3.10+, Git
@@ -21,7 +21,7 @@ echo "   ███╔╝  ██║   ██║██╔══╝  "
 echo "  ███████╗╚██████╔╝███████╗"
 echo "  ╚══════╝ ╚═════╝ ╚══════╝"
 echo -e "${NC}"
-echo -e "${BOLD}  Synthetic Cognitive Organism (SCO) v2.0.0-rc1${NC}"
+echo -e "${BOLD}  Synthetic Cognitive Organism (SCO) v2.1.2${NC}"
 echo -e "  Instalador para ${BOLD}SSD Crucial X9 1TB${NC} + ${BOLD}MacBook Air M3${NC}"
 echo ""
 echo -e "  Tiempo estimado: 15-30 minutos (sin modelos) / 1-3 horas (con modelos)"
@@ -366,18 +366,26 @@ print_step "Crear scripts de lanzador"
 # Lanzador principal: ZOE-Smart.command (elige el mejor backend disponible)
 cat > "$ZOE_HOME/ZOE-Smart.command" << 'LAUNCHER_EOF'
 #!/bin/bash
-# ZOE Smart Launcher — Elige automáticamente el mejor backend
+# ZOE Smart Launcher v2.1.2 — Elige automáticamente el mejor backend
 ZOE_HOME="$(cd "$(dirname "$0")" && pwd)"
 cd "$ZOE_HOME/zoe"
 source "$ZOE_HOME/venv/bin/activate"
 
-# Cargar variables de entorno
+# Sprint 5.12 -- source en vez de xargs para soportar API keys con =, /, +, etc.
 if [ -f "$ZOE_HOME/data/.env" ]; then
-    export $(grep -v '^#' "$ZOE_HOME/data/.env" | xargs)
+    set -a
+    # shellcheck disable=SC1090
+    source "$ZOE_HOME/data/.env"
+    set +a
+fi
+
+# Sprint 5.12 -- apuntar OLLAMA_MODELS al SSD si existe la carpeta
+if [ -d "$ZOE_HOME/models/ollama" ]; then
+    export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
 fi
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  ZOE — Smart Launcher (v2.0.0-rc1)                      ║"
+echo "║  ZOE — Smart Launcher (v2.1.2)                          ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -504,12 +512,12 @@ case "$MODE" in
         sleep 2
         open "http://localhost:8642" 2>/dev/null || echo "  Abre manualmente: http://localhost:8642"
         echo ""
-        python -m zoe.web_dashboard --backend "$DASH_BACKEND" ${DASH_MODEL:+--model "$DASH_MODEL"}
+        python -m zoe.web_dashboard --backend "$DASH_BACKEND" ${DASH_MODEL:+--model "$DASH_MODEL"} --db-path "$ZOE_HOME/data/dashboard_memory.db" --host 127.0.0.1
         ;;
     4)
         echo ""
         echo "  Iniciando con modelos locales (Ollama)..."
-        python -m zoe.cli_chat --backend ollama --model qwen2.5:3b --db-path "$ZOE_HOME/data/zoe_memory.db"
+        python -m zoe.cli_chat --backend ollama --model auto --db-path "$ZOE_HOME/data/zoe_memory.db"
         ;;
     5)
         echo ""
@@ -533,13 +541,126 @@ chmod +x "$ZOE_HOME/ZOE-Smart.command"
 # Lanzador rápido: doble click
 cat > "$ZOE_HOME/INICIAR-ZOE.command" << 'EOF'
 #!/bin/bash
-# INICIAR ZOE — Doble click para empezar
+# INICIAR ZOE v2.1.2 — Doble click para empezar (chat en terminal)
 ZOE_HOME="$(cd "$(dirname "$0")" && pwd)"
 open -a Terminal "$ZOE_HOME/ZOE-Smart.command"
 EOF
 chmod +x "$ZOE_HOME/INICIAR-ZOE.command"
 
-print_ok "Scripts de lanzador creados"
+# Sprint 5.12 — Lanzador directo del Dashboard (navegador web)
+cat > "$ZOE_HOME/INICIAR-DASHBOARD.command" << 'DASH_EOF'
+#!/bin/bash
+# ============================================================================
+# ZOE Dashboard Launcher v2.1.2 -- macOS
+# Doble click para abrir el Dashboard de ZOE en el navegador.
+# ============================================================================
+set -e
+
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Calcular ZOE_HOME: el script vive en $ZOE_HOME/INICIAR-DASHBOARD.command
+if [ -d "$SCRIPT_DIR/venv" ] && [ -d "$SCRIPT_DIR/zoe" ]; then
+    ZOE_HOME="$SCRIPT_DIR"
+elif [ -d "$SCRIPT_DIR/../venv" ] && [ -d "$SCRIPT_DIR/../zoe" ]; then
+    ZOE_HOME="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+    ZOE_HOME="$SCRIPT_DIR"
+fi
+
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║  ZOE Dashboard v2.1.2                                   ║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  ${BOLD}ZOE_HOME:${NC} $ZOE_HOME"
+
+# Cargar variables de entorno (source en vez de xargs para API keys con =, /, +)
+ENV_FILE="$ZOE_HOME/data/.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+    echo -e "  ${GREEN}OK${NC} Variables cargadas: $ENV_FILE"
+else
+    echo -e "  ${YELLOW}ADVERTENCIA${NC} No se encontro $ENV_FILE (usando defaults)"
+fi
+
+# Activar entorno virtual
+if [ -f "$ZOE_HOME/venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$ZOE_HOME/venv/bin/activate"
+    echo -e "  ${GREEN}OK${NC} Entorno virtual activado"
+else
+    echo -e "  ${YELLOW}ADVERTENCIA${NC} No se encontro venv -- usando python del sistema"
+fi
+
+# Apuntar OLLAMA_MODELS al SSD si existe
+if [ -d "$ZOE_HOME/models/ollama" ]; then
+    export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
+    echo -e "  ${GREEN}OK${NC} OLLAMA_MODELS -> $OLLAMA_MODELS"
+fi
+
+# Detectar backend
+DASH_BACKEND="pattern"
+DASH_MODEL=""
+if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
+    DASH_BACKEND="ollama"
+    DASH_MODEL="auto"
+    echo -e "  ${GREEN}OK${NC} Ollama detectado -- ACD Router activo (5 niveles cognitivos)"
+elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    DASH_BACKEND="openai_compatible"
+    DASH_MODEL="gpt-4o"
+    echo -e "  ${GREEN}OK${NC} OpenAI configurado -- GPT-4o"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    DASH_BACKEND="anthropic"
+    DASH_MODEL="claude-sonnet-4-20250514"
+    echo -e "  ${GREEN}OK${NC} Anthropic configurado -- Claude Sonnet"
+else
+    echo -e "  ${YELLOW}ADVERTENCIA${NC} Sin modelos IA -- PatternSpeaker (offline)"
+fi
+
+# Iniciar Ollama en background si no esta corriendo
+if [ "$DASH_BACKEND" = "ollama" ]; then
+    if ! curl -s http://localhost:11434/api/tags &>/dev/null; then
+        echo -e "  ${CYAN}INFO${NC} Iniciando Ollama en background..."
+        ollama serve &>/dev/null &
+        sleep 3
+    fi
+fi
+
+PORT="${ZOE_DASHBOARD_PORT:-8642}"
+echo ""
+echo -e "  ${BOLD}URL del Dashboard:${NC}"
+echo -e "  ${CYAN}http://localhost:${PORT}/${NC}"
+echo ""
+echo -e "  ${BOLD}El token se mostrara abajo al arrancar ZOE.${NC}"
+echo -e "  ${BOLD}Copia la URL completa (con ?token=...) al navegador.${NC}"
+echo -e "  ${BOLD}Pulsa Ctrl+C para detener ZOE.${NC}"
+echo ""
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+if [ -d "$ZOE_HOME/zoe" ]; then
+    cd "$ZOE_HOME/zoe"
+fi
+
+exec python -m zoe.web_dashboard \
+    --backend "$DASH_BACKEND" \
+    ${DASH_MODEL:+--model "$DASH_MODEL"} \
+    --port "$PORT" \
+    --host "127.0.0.1" \
+    --db-path "${ZOE_DATA:-$ZOE_HOME/data}/dashboard_memory.db"
+DASH_EOF
+chmod +x "$ZOE_HOME/INICIAR-DASHBOARD.command"
+
+# Eliminar atributo quarantine de los .command para evitar warning de Gatekeeper
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    xattr -dr com.apple.quarantine "$ZOE_HOME"/*.command 2>/dev/null || true
+fi
+
+print_ok "Scripts de lanzador creados: ZOE-Smart.command, INICIAR-ZOE.command, INICIAR-DASHBOARD.command"
 
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -549,12 +670,14 @@ echo ""
 echo -e "  1. ${BOLD}Instalar Ollama${NC} (para modelos locales):"
 echo -e "     https://ollama.com → Download → Install"
 echo ""
-echo -e "  2. ${BOLD}Iniciar ZOE:${NC}"
+echo -e "  2. ${BOLD}Iniciar ZOE (chat en terminal):${NC}"
 echo -e "     Abre Finder → ${ZOE_HOME}"
 echo -e "     Doble click en: ${BOLD}INICIAR-ZOE.command${NC}"
 echo ""
-echo -e "  3. ${BOLD}Abrir Dashboard:${NC}"
-echo -e "     http://localhost:8642 (después de iniciar ZOE)"
+echo -e "  3. ${BOLD}Iniciar Dashboard (interfaz web):${NC}"
+echo -e "     Abre Finder → ${ZOE_HOME}"
+echo -e "     Doble click en: ${BOLD}INICIAR-DASHBOARD.command${NC}"
+echo -e "     (se abre http://localhost:8642 en el navegador automáticamente)"
 echo ""
 
 if [[ "$INSTALL_TYPE" == "ssd_crucial" ]]; then

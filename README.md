@@ -14,8 +14,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.1-blue?style=flat-square" alt="Version"></a>
-  <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1381%2B-brightgreen?style=flat-square" alt="Tests"></a>
+  <a href="docs/REFERENCE/CHANGELOG.md"><img src="https://img.shields.io/badge/version-2.1.2-blue?style=flat-square" alt="Version"></a>
+  <a href="docs/15_DEVELOPMENT_GUIDE.md"><img src="https://img.shields.io/badge/tests-1700%2B-brightgreen?style=flat-square" alt="Tests"></a>
   <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=github" alt="CI"></a>
   <a href="Dockerfile"><img src="https://img.shields.io/badge/docker-ready-blue?style=flat-square&logo=docker" alt="Docker"></a>
   <a href="k8s/"><img src="https://img.shields.io/badge/kubernetes-ready-blue?style=flat-square&logo=kubernetes" alt="Kubernetes"></a>
@@ -146,8 +146,24 @@ ZOE es un **framework Python de ~68,000 LOC** que implementa una arquitectura co
 ### Opción A — Instalador automático (SSD/Pendrive, recomendado)
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/install_ssd_crucial_x9_mac.sh)
+bash <(curl -sL https://raw.githubusercontent.com/fernandofondillo/ZOE-Organismo-Cognitivo-Sintetico-SCO/main/zoe/scripts/zoe-bootstrap.sh)
 ```
+
+Tras la instalación tendrás **seis lanzadores de doble click** en el SSD:
+
+- `INICIAR-DASHBOARD.command` — Abre el Dashboard web en tu navegador (recomendado para usuarios no técnicos).
+- `INICIAR-ZOE.command` — Abre el chat en Terminal con detección automática de backend.
+- `ZOE-Dashboard-Ollama.command` — Dashboard con ACD Router (5 niveles cognitivos) usando Ollama.
+- `ZOE-Chat-Ollama.command` — Chat con ACD Router en Terminal.
+- `ZOE-Dashboard.command` / `ZOE-Chat.command` — Dashboard/chat con PatternSpeaker (offline, sin IA).
+
+> **El instalador `zoe-bootstrap.sh`** detecta automáticamente tu SSD, tu RAM (8/16GB), verifica formato (exFAT/APFS), instala Ollama si falta, descarga modelos IQ2_M optimizados al SSD (configurando `OLLAMA_MODELS` via symlink), configura API keys opcionales, crea los lanzadores, y opcionalmente arranca el Dashboard. **Sin pasos manuales.**
+>
+> **Importante: coherencia SSD garantizada.** Todos los lanzadores pasan `--db-path "${ZOE_DATA:-$ZOE_HOME/data}/..."` para que el Dashboard y el Chat carguen el **mismo ZOE** (misma identidad, memoria, trayectoria) del SSD. Sin esta corrección (Sprint 5.12 GAP-Q), Dashboard y Chat crearían dos ZOEs distintos — uno en el SSD y otro en el Mac.
+>
+> **Alternativa:** `install_ssd_crucial_x9_mac.sh` es un instalador más ligero que NO instala Ollama ni descarga modelos. Úsalo solo si ya tienes Ollama instalado.
+>
+> **Manual completo paso a paso:** [`zoe/docs/22_MANUAL_COMPLETO_USUARIO_v2.1.1.md`](zoe/docs/22_MANUAL_COMPLETO_USUARIO_v2.1.1.md) — 2,090+ líneas, 19 secciones, pensado para que un no-técnico instale y use ZOE sin ninguna duda.
 
 ### Opción B — Docker (producción)
 
@@ -201,17 +217,18 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 ### Mejoras implementadas en esta evolución
 
-- **Seguridad:** 0 vulnerabilidades críticas. Auth obligatoria por defecto. Rate limiting (60/10 req/min). 7 headers de seguridad HTTP. Path traversal y Zip Slip protegidos. SHA-256 en toda la federación. 69 tests de pentesting + 44 de chaos engineering. 34 bare except eliminados, 7 MD5 -> SHA-256.
+- **Seguridad:** 0 vulnerabilidades críticas. Auth obligatoria por defecto. Rate limiting (60/10 req/min) refactorizado a middleware funcional compatible con aiohttp 3.13+. 7 headers de seguridad HTTP. Path traversal y Zip Slip protegidos. SHA-256 en toda la federación. 69 tests de pentesting + 44 de chaos engineering. 34 bare except eliminados, 7 MD5 -> SHA-256.
 - **Infraestructura:** Dockerfile multi-stage, docker-compose (ZOE + Ollama), 15 manifiestos Kubernetes, 3 workflows GitHub Actions (CI, Docker, Security), health checks (/health, /ready, /live), Prometheus metrics (/metrics), log rotation (10MB/5 backups).
 - **Backend de persistencia:** PostgreSQL opcional vía factory pattern (asyncpg, JSONB, connection pooling). SQLite con WAL mode activo. Script de backup automatizado.
-- **Dashboard refactorizado:** Monolito de 3,351 LOC → 28 módulos separados (15 handlers + 4 middleware + HTML aislado). Backward compatible.
+- **Dashboard refactorizado y utilizable:** Monolito de 3,351 LOC → 28 módulos separados (15 handlers + 4 middleware + HTML aislado). Backward compatible. **Sprint 5.12:** HTML maneja auth token automáticamente (?token= en URL → localStorage → Authorization: Bearer en fetch/XHR/WS). Modal de auth si falta token. Persistencia del token en `data/dashboard_token.txt`.
 - **Resiliencia:** Circuit Breaker para LLM (CLOSED/OPEN/HALF_OPEN) con fallback a PatternSpeaker.
 - **Integración:** MentorAgent, LanguageDetector (4 idiomas), y CognitiveOptimizationLayer conectados al bucle cognitivo V5.
-- **Instalador SSD:** Script dedicado para SSD Crucial X9 1TB + MacBook Air M3 con detección automática de hardware.
+- **Instalador SSD:** Script dedicado para SSD Crucial X9 1TB + MacBook Air M3 con detección automática de hardware. Crea 3 lanzadores universales (`INICIAR-DASHBOARD.command`, `INICIAR-ZOE.command`, `ZOE-Smart.command`) con detección automática de backend (Ollama > OpenAI > Anthropic > pattern).
 - **L4_REFLECTION adaptativo por RAM:** DeepSeek-R1 32B IQ2_M (8GB) / Q4_K_M (16GB+), detectado automáticamente.
 - **BudgetTracker:** Control de costes cloud con precios reales (OpenAI, Anthropic, DeepSeek). Límite diario configurable.
 - **Thinking indicator:** "ZOE está pensando..." con animación visual durante procesamiento LLM.
 - **Global Workspace recuperado:** Teoría de Baars implementada en `global_workspace.py`.
+- **Manual de usuario completo:** 2,078 líneas en `docs/22_MANUAL_COMPLETO_USUARIO_v2.1.1.md`, 19 secciones, pensado para que un no-técnico instale ZOE en SSD + Mac sin ninguna duda.
 
 > **Informes completos de auditoría en:** [`zoe/docs/ZOE_OMEGA_AUDITORIA_FINAL.md`](zoe/docs/ZOE_OMEGA_AUDITORIA_FINAL.md)
 
@@ -221,22 +238,23 @@ En julio 2026, ZOE fue sometida a una auditoría integral independiente (ZOE OME
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos Python | 202+ |
-| Líneas de código | ~68,000 |
-| Tests | 1,381+ (1,292 pasando) |
-| Archivos de test | 61 |
-| LOC de tests | ~26,000 |
+| Archivos Python | 210+ |
+| Líneas de código | ~70,000 |
+| Tests | 1,700+ (Sprint 5.12 añadió 8 tests) |
+| Archivos de test | 62 |
+| LOC de tests | ~28,000 |
 | Cápsulas | 15 |
 | Sub-agentes | 12 |
 | Endpoints REST | 81 (+ health checks + metrics + reflections) |
 | ReflectionEngine v2.1 | Sí — Reflexión autónoma durante SLEEPING |
-| Documentos | 41+ |
+| Documentos | 42+ (Manual de usuario ampliado a 2,078 líneas) |
 | Backends LLM | 6 |
 | Plataformas | macOS, Linux, Windows, Docker, Kubernetes, PWA, Telegram, SSD portátil |
 | Idiomas | ES, EN, FR, DE (auto-detectado) |
 | Vulnerabilidades críticas | 0 |
 | except:pass restantes | 0 |
 | CI/CD | GitHub Actions (CI + Docker + Security) |
+| Lanzadores macOS | 6 (.command) + 6 en Linux (.sh) |
 
 ---
 
@@ -469,6 +487,56 @@ server.discover_peers()  # Registra peers descubiertos automaticamente
 
 ---
 
+## Sprint 5.12 — Dashboard utilizable + macOS SSD launchers
+
+Sprint 5.12 resuelve **8 gaps criticos de usabilidad** que impedian que un usuario real pudiera usar el Dashboard en macOS con SSD. Todos los cambios son **backward-compatibles**: no rompen ninguna API existente, solo anaden funcionalidad y corrigen bugs.
+
+### Que se resolvio
+
+| # | Gap | Solucion | Tests anadidos |
+|---|-----|----------|----------------|
+| **A** | Dashboard HTML no manejaba el token de auth → 401 en todas las llamadas fetch | HTML sirve sin token en `/`; JS lee `?token=` o `localStorage`, sobreescribe `window.fetch` para inyectar `Authorization: Bearer`, y WebSocket usa `?token=` | 4 tests en `TestSprint512AuthRefinements` |
+| **B** | `tests/test_web_dashboard.py` no podia importar `_get_dashboard_html` del shim | Re-exportada desde `zoe/web_dashboard.py` | 1 test |
+| **C** | `INICIAR-DASHBOARD.command` tenia paths rotos para encontrar `venv/` | Logica robusta: busca `venv/` en `$SCRIPT_DIR`, `$SCRIPT_DIR/..`, `$SCRIPT_DIR/../..` | — |
+| **D** | Lanzadores usaban `xargs` para cargar `.env`, rompiendo API keys con `=` `/` `+` | Cambio a `set -a; source .env; set +a` en todos los lanzadores | — |
+| **E** | HTML del Dashboard decia "v1.7" (obsoleto) | Actualizado a "v2.1.2" | — |
+| **F** | `install_ssd_crucial_x9_mac.sh` no creaba `INICIAR-DASHBOARD.command` ni `INICIAR-ZOE.command` universales | Crea los 3 lanzadores: `ZOE-Smart.command`, `INICIAR-ZOE.command`, `INICIAR-DASHBOARD.command` con deteccion automatica de backend | — |
+| **G** | `zoe-bootstrap.sh` solo creaba 4 lanzadores (ZOE-Chat, ZOE-Chat-Ollama, ZOE-Dashboard, ZOE-Dashboard-Ollama) | Ahora crea 6 lanzadores en macOS y 6 en Linux (anade INICIAR-DASHBOARD e INICIAR-ZOE con deteccion automatica) | — |
+| **H** | Rate limit middleware roto en aiohttp 3.13+ (class-based middleware deprecated) | Refactorizado a **middleware funcional** con `@web.middleware` (compatible con aiohttp 3.9-3.14+) | 69 tests de seguridad + 44 chaos engineering ahora pasan (antes fail) |
+
+### Persistencia del token de auth
+
+El `DashboardServer` ahora persiste su token a `data/dashboard_token.txt` (permisos 0600) en cada arranque. Los lanzadores `.command` leen este archivo y abren el navegador con `?token=XXX` embebido en la URL, **para que el usuario no tenga que copiar/pegar nada manualmente**.
+
+### Tests Sprint 5.12
+
+Nueva clase `TestSprint512AuthRefinements` en `zoe/tests/test_sprint5_9_security.py` con 8 tests:
+
+- `test_index_path_is_public` — La ruta `/` es publica.
+- `test_health_paths_still_public` — `/health`, `/ready`, `/live` siguen publicos.
+- `test_data_endpoints_not_public` — `/stats`, `/memory`, `/chat`, `/ws`, `/api/capsules` requieren token.
+- `test_dashboard_persists_auth_token_to_disk` — Token se persiste en `dashboard_token.txt`.
+- `test_dashboard_html_has_token_handling` — HTML contiene `getZoeToken`, `saveAuthToken`, `authModal`.
+- `test_dashboard_html_ws_uses_token_query` — WebSocket usa `?token=` en la URL.
+- `test_dashboard_html_overrides_fetch` — HTML sobreescribe `window.fetch` para inyectar `Authorization: Bearer`.
+- `test_web_dashboard_shim_reexports_get_html` — Shim re-exporta `_get_dashboard_html` para compatibilidad.
+
+### Smoke test end-to-end
+
+Script `smoke_test_dashboard.py` verifica end-to-end:
+
+1. `GET /` sin token → 200 (HTML servido).
+2. `GET /health` sin token → 200.
+3. `GET /manifest.json` sin token → 200.
+4. `GET /stats` sin token → 401.
+5. `GET /stats` con `Authorization: Bearer` → 200.
+6. `GET /stats?token=XXX` → 200 (para WebSocket).
+7. `data/dashboard_token.txt` existe y contiene el token correcto.
+
+**Resultado:** 6/6 tests pasan, 161 tests del subset relacionado pasan sin regresiones.
+
+---
+
 ## Requisitos
 
 ### Software
@@ -499,6 +567,7 @@ server.discover_peers()  # Registra peers descubiertos automaticamente
 | ✅ | ZOE-SPEC-002 Mejoras (6) | SemanticSearch, cobertura tests, Phylo persistencia, Composer CLI, Seed auto-start, Federation discovery |
 | ✅ | ZOE-SPEC-002 Experimentales (4) | EmbodimentComposer fix, SeedMode auto_start fix, Federation discovery activado, PostgreSQL tests |
 | ✅ | ZOE-SPEC-002 Endurecimiento (4) | Tests federacion multi-instancia, PostgreSQL CI, cobertura CI, Tests EmbodimentComposer por hardware |
+| ✅ | Sprint 5.12 (Julio 2026) | Dashboard utilizable (auth automática), launchers macOS universales, rate_limit refactor, manual 2,078 líneas |
 | 🔄 | Pasarela de pagos | Stripe/PayPal para marketplace |
 | 📋 | Chaos engineering avanzado | Load testing, fuzzing, penetración profesional |
 | 📋 | v2.0.0 GA | Production Ready tras hardening final |
@@ -510,6 +579,7 @@ server.discover_peers()  # Registra peers descubiertos automaticamente
 ### Para todos
 | Documento | Contenido |
 |-----------|-----------|
+| [`docs/22_MANUAL_COMPLETO_USUARIO_v2.1.1.md`](zoe/docs/22_MANUAL_COMPLETO_USUARIO_v2.1.1.md) | **Manual completo (2,078 líneas, 19 secciones)** — Instalación paso a paso en Mac+SSD, Dashboard explicado, 10 casos de uso prácticos, FAQ ampliada, glosario A-Z. Pensado para no técnicos. |
 | [`docs/20_ZOE_GUIA_USUARIO.md`](zoe/docs/20_ZOE_GUIA_USUARIO.md) | Guía de usuario completa (instalación, dashboard, casos de uso, FAQ) |
 | [`docs/18_ZOE_EXPLICACION_NO_TECNICOS.md`](zoe/docs/18_ZOE_EXPLICACION_NO_TECNICOS.md) | Qué es ZOE, cómo piensa, por qué es diferente a ChatGPT |
 
@@ -563,8 +633,8 @@ Licensed under the Apache License, Version 2.0.
 ---
 
 <p align="center">
-  <b>ZOE v2.1.1 — Synthetic Cognitive Organism</b><br>
-  1,381+ tests · 202+ archivos Python · 15 cápsulas · 12 sub-agentes · 81 endpoints · 6 backends LLM · 4 idiomas<br>
-  Docker · Kubernetes · SSD portátil · 100% offline<br>
+  <b>ZOE v2.1.2 — Synthetic Cognitive Organism</b><br>
+  1,700+ tests · 210+ archivos Python · 15 cápsulas · 12 sub-agentes · 81 endpoints · 6 backends LLM · 4 idiomas<br>
+  Docker · Kubernetes · SSD portátil · 100% offline · Dashboard web con auth automática<br>
   <i>"ZOE no es un modelo que responde. Es un organismo que existe."</i>
 </p>

@@ -746,7 +746,8 @@ if [ "$PLATFORM" = "Darwin" ]; then
 ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend pattern
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD para que ZOE carge vault/trayectoria/memoria del SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend pattern --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/zoe_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat.command"
     
@@ -762,7 +763,8 @@ if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
     sleep 3
 fi
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model auto
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model auto --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/zoe_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat-Ollama.command"
     
@@ -772,7 +774,8 @@ EOF
 ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend pattern
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD para que el dashboard carge el MISMO ZOE que el chat
+"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend pattern --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/dashboard_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard.command"
     
@@ -787,11 +790,153 @@ if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
     sleep 3
 fi
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model auto
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model auto --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/dashboard_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard-Ollama.command"
-    
-    print_ok "4 scripts .command creados en $ZOE_HOME"
+
+    # Sprint 5.12 -- INICIAR-DASHBOARD.command: lanzador universal que detecta
+    # automaticamente el mejor backend disponible (Ollama > OpenAI > Anthropic > pattern)
+    # y abre el navegador con el token de auth embebido en la URL.
+    cat > "$ZOE_HOME/INICIAR-DASHBOARD.command" << 'DASH_EOF'
+#!/bin/bash
+# ============================================================================
+# ZOE Dashboard Launcher v2.1.2 -- macOS
+# Doble click para abrir el Dashboard de ZOE en el navegador.
+# Detecta automaticamente el mejor backend (Ollama > OpenAI > Anthropic > pattern).
+# ============================================================================
+set -e
+
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Calcular ZOE_HOME
+if [ -d "$SCRIPT_DIR/venv" ] && [ -d "$SCRIPT_DIR/zoe" ]; then
+    ZOE_HOME="$SCRIPT_DIR"
+elif [ -d "$SCRIPT_DIR/../venv" ] && [ -d "$SCRIPT_DIR/../zoe" ]; then
+    ZOE_HOME="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+    ZOE_HOME="$SCRIPT_DIR"
+fi
+
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║  ZOE Dashboard v2.1.2                                   ║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  ${BOLD}ZOE_HOME:${NC} $ZOE_HOME"
+
+# Cargar variables de entorno (source, no xargs)
+ENV_FILE="$ZOE_HOME/data/.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+    echo -e "  ${GREEN}OK${NC} Variables cargadas"
+fi
+
+# Activar venv
+if [ -f "$ZOE_HOME/venv/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$ZOE_HOME/venv/bin/activate"
+    echo -e "  ${GREEN}OK${NC} Entorno virtual activado"
+fi
+
+# OLLAMA_MODELS al SSD
+if [ -d "$ZOE_HOME/models/ollama" ]; then
+    export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
+    echo -e "  ${GREEN}OK${NC} OLLAMA_MODELS -> $OLLAMA_MODELS"
+fi
+
+# Detectar backend
+DASH_BACKEND="pattern"
+DASH_MODEL=""
+if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
+    DASH_BACKEND="ollama"; DASH_MODEL="auto"
+    echo -e "  ${GREEN}OK${NC} Ollama detectado -- ACD Router activo (5 niveles cognitivos)"
+elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    DASH_BACKEND="openai_compatible"; DASH_MODEL="gpt-4o"
+    echo -e "  ${GREEN}OK${NC} OpenAI -- GPT-4o"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    DASH_BACKEND="anthropic"; DASH_MODEL="claude-sonnet-4-20250514"
+    echo -e "  ${GREEN}OK${NC} Anthropic -- Claude Sonnet"
+else
+    echo -e "  ${YELLOW}ADVERTENCIA${NC} Sin modelos IA -- PatternSpeaker (offline)"
+fi
+
+# Iniciar Ollama si hace falta
+if [ "$DASH_BACKEND" = "ollama" ]; then
+    if ! curl -s http://localhost:11434/api/tags &>/dev/null; then
+        echo -e "  ${CYAN}INFO${NC} Iniciando Ollama..."
+        ollama serve &>/dev/null &
+        sleep 3
+    fi
+fi
+
+PORT="${ZOE_DASHBOARD_PORT:-8642}"
+echo ""
+echo -e "  ${BOLD}URL del Dashboard:${NC} ${CYAN}http://localhost:${PORT}/${NC}"
+echo -e "  ${BOLD}Copia la URL completa (con ?token=...) al navegador cuando arranque.${NC}"
+echo -e "  ${BOLD}Pulsa Ctrl+C para detener ZOE.${NC}"
+echo ""
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+[ -d "$ZOE_HOME/zoe" ] && cd "$ZOE_HOME/zoe"
+
+exec python -m zoe.web_dashboard \
+    --backend "$DASH_BACKEND" \
+    ${DASH_MODEL:+--model "$DASH_MODEL"} \
+    --port "$PORT" \
+    --host "127.0.0.1" \
+    --db-path "${ZOE_DATA:-$ZOE_HOME/data}/dashboard_memory.db"
+DASH_EOF
+    chmod +x "$ZOE_HOME/INICIAR-DASHBOARD.command"
+
+    # Sprint 5.12 -- INICIAR-ZOE.command: lanzador universal chat terminal
+    cat > "$ZOE_HOME/INICIAR-ZOE.command" << 'CHAT_EOF'
+#!/bin/bash
+# ZOE Chat Launcher v2.1.2 -- macOS
+# Doble click para iniciar chat ZOE en terminal con deteccion automatica de backend.
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+[ -d "$SCRIPT_DIR/venv" ] && ZOE_HOME="$SCRIPT_DIR" || ZOE_HOME="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd || echo "$SCRIPT_DIR")"
+
+[ -f "$ZOE_HOME/data/.env" ] && { set -a; source "$ZOE_HOME/data/.env"; set +a; }
+[ -f "$ZOE_HOME/venv/bin/activate" ] && source "$ZOE_HOME/venv/bin/activate"
+[ -d "$ZOE_HOME/models/ollama" ] && export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
+
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE Chat v2.1.2                                        ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo "  ZOE_HOME: $ZOE_HOME"
+echo ""
+
+BACKEND="pattern"; MODEL=""
+if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
+    BACKEND="ollama"; MODEL="auto"
+    echo "  OK Ollama detectado -- ACD Router (5 niveles cognitivos)"
+elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    BACKEND="openai_compatible"; MODEL="gpt-4o"
+    echo "  OK OpenAI configurado"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    BACKEND="anthropic"; MODEL="claude-sonnet-4-20250514"
+    echo "  OK Anthropic configurado"
+else
+    echo "  ADVERTENCIA Sin modelos IA -- PatternSpeaker (offline)"
+fi
+
+[ -d "$ZOE_HOME/zoe" ] && cd "$ZOE_HOME/zoe"
+exec python -m zoe.cli_chat --backend "$BACKEND" ${MODEL:+--model "$MODEL"} --db-path "${ZOE_DATA:-$ZOE_HOME/data}/zoe_memory.db"
+CHAT_EOF
+    chmod +x "$ZOE_HOME/INICIAR-ZOE.command"
+
+    # Eliminar quarantine de todos los .command
+    xattr -dr com.apple.quarantine "$ZOE_HOME"/*.command 2>/dev/null || true
+
+    print_ok "6 scripts .command creados en $ZOE_HOME"
 
 # --- Linux ---
 elif [ "$PLATFORM" = "Linux" ]; then
@@ -802,7 +947,8 @@ elif [ "$PLATFORM" = "Linux" ]; then
 ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend pattern
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend pattern --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/zoe_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat.sh"
     
@@ -817,7 +963,8 @@ if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
     sleep 3
 fi
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model auto
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.cli_chat --backend ollama --model auto --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/zoe_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Chat-Ollama.sh"
     
@@ -827,7 +974,8 @@ EOF
 ZOE_HOME="\$(cd "\$(dirname "\$0")" && pwd)"
 $LOAD_ENV
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend pattern
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend pattern --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/dashboard_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard.sh"
     
@@ -842,11 +990,84 @@ if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
     sleep 3
 fi
 cd "\$ZOE_HOME/zoe"
-"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model auto
+# Sprint 5.12 GAP-Q: pasar --db-path al SSD
+"\$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend ollama --model auto --db-path "\${ZOE_DATA:-\$ZOE_HOME/data}/dashboard_memory.db"
 EOF
     chmod +x "$ZOE_HOME/ZOE-Dashboard-Ollama.sh"
-    
-    print_ok "4 scripts .sh creados en $ZOE_HOME"
+
+    # Sprint 5.12 -- INICIAR-DASHBOARD.sh: lanzador universal con deteccion automatica
+    cat > "$ZOE_HOME/INICIAR-DASHBOARD.sh" << 'DASH_EOF'
+#!/bin/bash
+# ZOE Dashboard Launcher v2.1.2 -- Linux
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+[ -d "$SCRIPT_DIR/venv" ] && ZOE_HOME="$SCRIPT_DIR" || ZOE_HOME="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd || echo "$SCRIPT_DIR")"
+[ -f "$ZOE_HOME/data/.env" ] && { set -a; source "$ZOE_HOME/data/.env"; set +a; }
+[ -f "$ZOE_HOME/venv/bin/activate" ] && source "$ZOE_HOME/venv/bin/activate"
+[ -d "$ZOE_HOME/models/ollama" ] && export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
+
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE Dashboard v2.1.2                                   ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo "  ZOE_HOME: $ZOE_HOME"
+
+BACKEND="pattern"; MODEL=""
+if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
+    BACKEND="ollama"; MODEL="auto"
+    [ ! -s /tmp/ollama_ready ] && { ollama serve &>/dev/null & sleep 3; }
+    echo "  OK Ollama detectado -- ACD Router"
+elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    BACKEND="openai_compatible"; MODEL="gpt-4o"
+    echo "  OK OpenAI -- GPT-4o"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    BACKEND="anthropic"; MODEL="claude-sonnet-4-20250514"
+    echo "  OK Anthropic -- Claude"
+else
+    echo "  ADVERTENCIA Sin IA -- PatternSpeaker (offline)"
+fi
+
+PORT="${ZOE_DASHBOARD_PORT:-8642}"
+echo "  URL: http://localhost:${PORT}/"
+echo "  Copia la URL completa (con ?token=...) al navegador."
+echo ""
+
+[ -d "$ZOE_HOME/zoe" ] && cd "$ZOE_HOME/zoe"
+exec python -m zoe.web_dashboard --backend "$BACKEND" ${MODEL:+--model "$MODEL"} --port "$PORT" --host "127.0.0.1" --db-path "${ZOE_DATA:-$ZOE_HOME/data}/dashboard_memory.db"
+DASH_EOF
+    chmod +x "$ZOE_HOME/INICIAR-DASHBOARD.sh"
+
+    # INICIAR-ZOE.sh: lanzador chat universal
+    cat > "$ZOE_HOME/INICIAR-ZOE.sh" << 'CHAT_EOF'
+#!/bin/bash
+# ZOE Chat Launcher v2.1.2 -- Linux
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+[ -d "$SCRIPT_DIR/venv" ] && ZOE_HOME="$SCRIPT_DIR" || ZOE_HOME="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd || echo "$SCRIPT_DIR")"
+[ -f "$ZOE_HOME/data/.env" ] && { set -a; source "$ZOE_HOME/data/.env"; set +a; }
+[ -f "$ZOE_HOME/venv/bin/activate" ] && source "$ZOE_HOME/venv/bin/activate"
+[ -d "$ZOE_HOME/models/ollama" ] && export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
+
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  ZOE Chat v2.1.2                                        ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+
+BACKEND="pattern"; MODEL=""
+if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
+    BACKEND="ollama"; MODEL="auto"; echo "  OK Ollama detectado"
+elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    BACKEND="openai_compatible"; MODEL="gpt-4o"; echo "  OK OpenAI configurado"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    BACKEND="anthropic"; MODEL="claude-sonnet-4-20250514"; echo "  OK Anthropic configurado"
+else
+    echo "  ADVERTENCIA Sin IA -- PatternSpeaker (offline)"
+fi
+
+[ -d "$ZOE_HOME/zoe" ] && cd "$ZOE_HOME/zoe"
+exec python -m zoe.cli_chat --backend "$BACKEND" ${MODEL:+--model "$MODEL"} --db-path "${ZOE_DATA:-$ZOE_HOME/data}/zoe_memory.db"
+CHAT_EOF
+    chmod +x "$ZOE_HOME/INICIAR-ZOE.sh"
+
+    print_ok "6 scripts .sh creados en $ZOE_HOME"
 fi
 
 # ============================================================================
@@ -956,7 +1177,8 @@ if [ "$start_now" = "s" ] || [ "$start_now" = "S" ]; then
         set +a
     fi
     
-    "$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend $BACKEND $MODEL
+    # Sprint 5.12 GAP-Q: pasar --db-path al SSD para que el dashboard cargue el mismo ZOE
+    "$ZOE_HOME/venv/bin/python" -m zoe.web_dashboard --backend $BACKEND $MODEL --db-path "${ZOE_DATA:-$ZOE_HOME/data}/dashboard_memory.db"
 else
     echo ""
     echo -e "  ${GREEN}Para empezar mas tarde:${NC}"

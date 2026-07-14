@@ -56,7 +56,18 @@ class ZoeChat:
         self.backend = backend
         self.model = model
         self.use_case = use_case
-        self.db_path = db_path or "zoe_data/chat_memory.db"
+        # Sprint 5.12 GAP-R: si no se pasa db_path explicito, usar $ZOE_DATA
+        # (definido por los lanzadores del SSD) o el default relativo.
+        # Esto evita que ZOE se cree en el CWD actual del Mac cuando se olvida
+        # pasar --db-path en un launcher.
+        if db_path is None:
+            zoe_data_env = os.environ.get("ZOE_DATA")
+            if zoe_data_env:
+                self.db_path = os.path.join(zoe_data_env, "zoe_memory.db")
+            else:
+                self.db_path = "zoe_data/chat_memory.db"
+        else:
+            self.db_path = db_path
         self.api_key = api_key
         self.base_url = base_url
         self.loop = None
