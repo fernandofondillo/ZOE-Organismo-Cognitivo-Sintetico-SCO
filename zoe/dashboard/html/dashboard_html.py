@@ -264,7 +264,7 @@ function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   // Sprint 5.12 -- anadir token al WS via query param
 
-  ws = new WebSocket(proto + "//location.host + "/ws");
+  ws = new WebSocket(proto + "//" + location.host + "/ws");
 
   ws.onopen = () => { console.log('WS connected'); };
   ws.onclose = () => { console.log('WS disconnected, retrying...'); setTimeout(connectWS, 2000); };
@@ -595,7 +595,7 @@ async function validateCapsule(name) {
     msg += `Valido: ${d.valid ? '&#10003; SI' : '&#10007; NO'}\n\n`;
 
     if (d.checks && d.checks.length > 0) {
-      msg += 'Checks:\n';
+      msg += 'Checks:\\n';
       for (const c of d.checks) {
         const icon = c.status === 'pass' ? '&#10003;' : c.status === 'fail' ? '&#10007;' : c.status === 'skip' ? '&#9675;' : '&#9888;';
         msg += `  ${icon} ${c.name}: ${c.status}\n`;
@@ -603,19 +603,19 @@ async function validateCapsule(name) {
     }
 
     if (d.stats && Object.keys(d.stats).length > 0) {
-      msg += '\nEstadisticas:\n';
+      msg += '\\nEstadisticas:\\n';
       for (const [k, v] of Object.entries(d.stats)) {
         msg += `  ${k}: ${v}\n`;
       }
     }
 
     if (d.errors && d.errors.length > 0) {
-      msg += '\nErrores:\n';
+      msg += '\\nErrores:\\n';
       for (const e of d.errors) msg += `  &#10007; ${e}\n`;
     }
 
     if (d.warnings && d.warnings.length > 0) {
-      msg += '\nAvisos:\n';
+      msg += '\\nAvisos:\\n';
       for (const w of d.warnings) msg += `  &#9888; ${w}\n`;
     }
 
