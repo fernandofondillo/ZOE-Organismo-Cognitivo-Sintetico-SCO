@@ -308,6 +308,13 @@ class ZoeChat:
                     print(f"  📋 Perfil: {active_profile.name}")
                     for acd_lvl, assignment in active_profile.assignments.items():
                         print(f"     {acd_lvl:14s} → {assignment.model_tag}")
+                    # Sprint 5.21: Set Speaker's default model to L1 model (not "auto")
+                    # Para que L0_REFLEX no envie "auto" a Ollama (que no existe).
+                    l1_assignment = active_profile.assignments.get("L1_FAST")
+                    if l1_assignment and l1_assignment.model_tag != "pattern":
+                        if hasattr(self.llm, 'model'):
+                            self.llm.model = l1_assignment.model_tag
+                            logger.info(f"Speaker default model set to: {l1_assignment.model_tag}")
                 if not installed:
                     print(f"  ⚠️  Sin modelos IQ2_M en {models_dir}. El router usará PatternSpeaker para todo.")
                     print(f"     Ejecuta: python -m zoe.core.model_downloader --download-setup balanced")

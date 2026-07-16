@@ -160,38 +160,69 @@ class ModelProfileRouter:
     def detect_installed_models(self, models_dir: str) -> List[str]:
         """
         Detecta qué modelos optimizados están instalados en el SSD.
-        
+
         Verifica:
         1. Archivos .gguf en el directorio
         2. Modelos registrados en Ollama (ollama list)
-        
+        3. Sprint 5.21: Modelos instalados via ollama pull con nombres estándar
+
         Returns:
             Lista de claves de modelos instalados
         """
         installed = []
         models_path = Path(models_dir)
-        
+
         # 1. Verificar archivos .gguf en el directorio
         for key, model in self._optimized_models.items():
             gguf_path = models_path / model.hf_filename
             if gguf_path.exists():
                 installed.append(key)
                 logger.info(f"ModelProfileRouter: found {key} at {gguf_path}")
-        
+
         # 2. Verificar modelos registrados en Ollama
+        # Sprint 5.21: Mapeo de nombres estándar de Ollama a claves ZOE
+        OLLAMA_STANDARD_NAMES = {
+            "gemma2:9b": "gemma-2-9b-iq2",
+            "gemma2:2b": "gemma-2-9b-iq2",
+            "qwq": "qwq-32b-iq2",
+            "qwq:32b": "qwq-32b-iq2",
+            "deepseek-r1:32b": "deepseek-r1:32b-iq2",
+            "deepseek-r1:8b": "deepseek-r1:32b-iq2",
+            "qwen2.5:32b": "qwen2.5:32b-iq2",
+            "qwen2.5:14b": "qwen2.5:32b-iq2",
+            "qwen2.5:7b": "gemma-2-9b-iq2",
+            "qwen2.5:72b": "qwen2.5:72b-iq2",
+            "qwen2.5:3b": "gemma-2-9b-iq2",
+            "llama3.2:3b": "gemma-2-9b-iq2",
+            "llama3.1:8b": "gemma-2-9b-iq2",
+        }
+
         try:
             import subprocess
             result = subprocess.run(
                 ["ollama", "list"], capture_output=True, text=True, timeout=5
             )
             if result.returncode == 0:
+                ollama_output = result.stdout.lower()
                 for key, model in self._optimized_models.items():
-                    if model.ollama_tag in result.stdout and key not in installed:
+                    # Check ZOE tag
+                    if model.ollama_tag.lower() in ollama_output and key not in installed:
                         installed.append(key)
-                        logger.info(f"ModelProfileRouter: found {key} in Ollama")
+                        logger.info(f"ModelProfileRouter: found {key} in Ollama (tag: {model.ollama_tag})")
+
+                # Sprint 5.21: Also check standard Ollama names
+                for std_name, zoe_key in OLLAMA_STANDARD_NAMES.items():
+                    if std_name in ollama_output and zoe_key not in installed:
+                        installed.append(zoe_key)
+                        logger.info(f"ModelProfileRouter: found {zoe_key} via standard name '{std_name}' in Ollama")
+                        # Also store the actual ollama name for later use
+                        if not hasattr(self, '_ollama_name_map'):
+                            self._ollama_name_map = {}
+                        self._ollama_name_map[zoe_key] = std_name
+
         except (subprocess.SubprocessError, OSError) as e:
             logger.warning(f"Ollama model detection failed: {e}")
-        
+
         self._installed_models = installed
         logger.info(f"ModelProfileRouter: {len(installed)} models detected: {installed}")
         return installed
@@ -277,9 +308,15 @@ class ModelProfileRouter:
                         if model_key != default.get("preferred"):
                             reason = f"Modelo {model_key} asignado a {acd_level.value} (preferido no disponible)"
                         
+                        # Sprint 5.21: Use actual Ollama name if available (from ollama pull fallback)
+                        actual_tag = model.ollama_tag
+                        if hasattr(self, '_ollama_name_map') and model_key in self._ollama_name_map:
+                            actual_tag = self._ollama_name_map[model_key]
+                            logger.info(f"ModelProfileRouter: using Ollama name '{actual_tag}' for {model_key}")
+
                         profile.assignments[acd_level.value] = ModelAssignment(
                             acd_level=acd_level.value,
-                            model_tag=model.ollama_tag,
+                            model_tag=actual_tag,
                             model_key=model_key,
                             reason=reason,
                             fallback=fallback,
