@@ -1,39 +1,21 @@
 #!/bin/bash
 # ============================================================================
 # ZOE Dashboard Launcher v2.1.2 -- macOS
-# ============================================================================
 # Doble click para abrir el Dashboard de ZOE en el navegador.
-#
-# Este script debe vivir en:
-#   - $ZOE_HOME/INICIAR-DASHBOARD.command   (instalacion en SSD, junto a venv/)
-#   - zoe/scripts/INICIAR-DASHBOARD.command (repo, para referencia)
-#
-# En el primer caso, ZOE_HOME es el directorio padre del script.
-# En el segundo caso (repo), ZOE_HOME se calcula como 2 niveles arriba y
-# se busca venv ahi; si no existe, se usa el venv del repo si esta.
+# Detecta automáticamente el mejor backend (Ollama > OpenAI > Anthropic > pattern).
 # ============================================================================
 set -e
 
-# Colores
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
-# ---------------------------------------------------------------------------
-# 1. Calcular ZOE_HOME
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Caso A: script instalado en $ZOE_HOME/INICIAR-DASHBOARD.command
-#         ZOE_HOME = SCRIPT_DIR (venv esta en $ZOE_HOME/venv)
-# Caso B: script en repo (zoe/scripts/INICIAR-DASHBOARD.command)
-#         ZOE_HOME = SCRIPT_DIR/../.. (venv en $ZOE_HOME/venv si fue bootstrap)
+# Calcular ZOE_HOME
 if [ -d "$SCRIPT_DIR/venv" ] && [ -d "$SCRIPT_DIR/zoe" ]; then
     ZOE_HOME="$SCRIPT_DIR"
 elif [ -d "$SCRIPT_DIR/../venv" ] && [ -d "$SCRIPT_DIR/../zoe" ]; then
     ZOE_HOME="$(cd "$SCRIPT_DIR/.." && pwd)"
-elif [ -d "$SCRIPT_DIR/../../venv" ] && [ -d "$SCRIPT_DIR/../../zoe" ]; then
-    ZOE_HOME="$(cd "$SCRIPT_DIR/../.." && pwd)"
 else
-    # Fallback: usar el directorio del script
     ZOE_HOME="$SCRIPT_DIR"
 fi
 
@@ -43,120 +25,87 @@ echo -e "${CYAN}╚════════════════════�
 echo ""
 echo -e "  ${BOLD}ZOE_HOME:${NC} $ZOE_HOME"
 
-# ---------------------------------------------------------------------------
-# 2. Cargar variables de entorno de forma segura (sin xargs que rompe API keys)
-# ---------------------------------------------------------------------------
+# ── Paso 0: Matar cualquier proceso ZOE previo en el puerto 8642 ──────────
+echo -e "  ${CYAN}INFO${NC} Verificando puerto 8642..."
+PID_8642=$(lsof -ti:8642 2>/dev/null || true)
+if [ -n "$PID_8642" ]; then
+    echo -e "  ${YELLOW}ADVERTENCIA${NC} Puerto 8642 en uso por PID $PID_8642. Deteniendo..."
+    kill -9 $PID_8642 2>/dev/null || true
+    sleep 2
+    echo -e "  ${GREEN}OK${NC} Proceso previo detenido"
+else
+    echo -e "  ${GREEN}OK${NC} Puerto 8642 libre"
+fi
+
+# ── Paso 0b: Matar cualquier proceso ZOE previo en el puerto 8080 ─────────
+PID_8080=$(lsof -ti:8080 2>/dev/null || true)
+if [ -n "$PID_8080" ]; then
+    kill -9 $PID_8080 2>/dev/null || true
+    sleep 1
+fi
+
+# ── Paso 1: Actualizar código desde GitHub ────────────────────────────────
+echo -e "  ${CYAN}INFO${NC} Actualizando código desde GitHub..."
+cd "$ZOE_HOME/zoe"
+git pull --quiet origin main 2>/dev/null && echo -e "  ${GREEN}OK${NC} Código actualizado" || echo -e "  ${YELLOW}ADVERTENCIA${NC} No se pudo actualizar (sin internet?)"
+
+# ── Paso 2: Cargar variables de entorno ───────────────────────────────────
 ENV_FILE="$ZOE_HOME/data/.env"
 if [ -f "$ENV_FILE" ]; then
-    # Sprint 5.12 -- source en vez de xargs para soportar API keys con
-    # caracteres especiales (=, /, +, etc.) sin corrupcion.
     set -a
     # shellcheck disable=SC1090
     source "$ENV_FILE"
     set +a
-    echo -e "  ${GREEN}OK${NC} Variables cargadas: $ENV_FILE"
-else
-    echo -e "  ${YELLOW}ADVERTENCIA${NC} No se encontro $ENV_FILE (usando defaults)"
+    echo -e "  ${GREEN}OK${NC} Variables cargadas"
 fi
 
-# ---------------------------------------------------------------------------
-# 3. Activar entorno virtual Python
-# ---------------------------------------------------------------------------
+# ── Paso 3: Activar entorno virtual ───────────────────────────────────────
 if [ -f "$ZOE_HOME/venv/bin/activate" ]; then
     # shellcheck disable=SC1091
     source "$ZOE_HOME/venv/bin/activate"
     echo -e "  ${GREEN}OK${NC} Entorno virtual activado"
-elif [ -n "${VIRTUAL_ENV:-}" ]; then
-    echo -e "  ${YELLOW}ADVERTENCIA${NC} Usando VIRTUAL_ENV existente: $VIRTUAL_ENV"
-else
-    echo -e "  ${YELLOW}ADVERTENCIA${NC} No se encontro venv en $ZOE_HOME/venv -- usando python del sistema"
 fi
 
-# ---------------------------------------------------------------------------
-# 4. Configurar OLLAMA_MODELS al SSD si la estructura existe
-# ---------------------------------------------------------------------------
+# ── Paso 4: Apuntar OLLAMA_MODELS al SSD ─────────────────────────────────
 if [ -d "$ZOE_HOME/models/ollama" ]; then
     export OLLAMA_MODELS="$ZOE_HOME/models/ollama"
     echo -e "  ${GREEN}OK${NC} OLLAMA_MODELS -> $OLLAMA_MODELS"
 fi
 
-# ---------------------------------------------------------------------------
-# 5. Detectar backend disponible
-# ---------------------------------------------------------------------------
+# ── Paso 5: Detectar backend ─────────────────────────────────────────────
 DASH_BACKEND="pattern"
 DASH_MODEL=""
-
 if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
-    DASH_BACKEND="ollama"
-    DASH_MODEL="auto"
-    echo -e "  ${GREEN}OK${NC} Ollama detectado -- ACD Router activo (5 niveles cognitivos)"
-elif [ -n "${OPENAI_API_KEY:-}" ]; then
-    DASH_BACKEND="openai_compatible"
-    DASH_MODEL="gpt-4o"
-    echo -e "  ${GREEN}OK${NC} OpenAI configurado -- GPT-4o"
-elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-    DASH_BACKEND="anthropic"
-    DASH_MODEL="claude-sonnet-4-20250514"
-    echo -e "  ${GREEN}OK${NC} Anthropic configurado -- Claude Sonnet"
-else
-    echo -e "  ${YELLOW}ADVERTENCIA${NC} Sin modelos IA -- PatternSpeaker (offline, sin IA)"
-    echo -e "             Para activar IA: instala Ollama (https://ollama.com)"
-fi
-
-# ---------------------------------------------------------------------------
-# 6. Iniciar Ollama en background si esta instalado pero no corriendo
-# ---------------------------------------------------------------------------
-if [ "$DASH_BACKEND" = "ollama" ]; then
+    DASH_BACKEND="ollama"; DASH_MODEL="auto"
+    # Asegurar que Ollama está corriendo
     if ! curl -s http://localhost:11434/api/tags &>/dev/null; then
-        echo -e "  ${CYAN}INFO${NC} Iniciando Ollama en background..."
+        echo -e "  ${CYAN}INFO${NC} Iniciando Ollama..."
         ollama serve &>/dev/null &
         sleep 3
-        if curl -s http://localhost:11434/api/tags &>/dev/null; then
-            echo -e "  ${GREEN}OK${NC} Ollama corriendo"
-        else
-            echo -e "  ${YELLOW}ADVERTENCIA${NC} Ollama no responde -- dashboard usara PatternSpeaker"
-            DASH_BACKEND="pattern"
-            DASH_MODEL=""
-        fi
     fi
+    echo -e "  ${GREEN}OK${NC} Ollama detectado -- ACD Router activo (5 niveles cognitivos)"
+elif [ -n "${OPENAI_API_KEY:-}" ]; then
+    DASH_BACKEND="openai_compatible"; DASH_MODEL="gpt-4o"
+    echo -e "  ${GREEN}OK${NC} OpenAI -- GPT-4o"
+elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    DASH_BACKEND="anthropic"; DASH_MODEL="claude-sonnet-4-20250514"
+    echo -e "  ${GREEN}OK${NC} Anthropic -- Claude Sonnet"
+else
+    echo -e "  ${YELLOW}ADVERTENCIA${NC} Sin modelos IA -- PatternSpeaker (offline)"
 fi
 
-# ---------------------------------------------------------------------------
-# 7. Iniciar Dashboard (con detection de puerto libre)
-# ---------------------------------------------------------------------------
+# ── Paso 6: Arrancar Dashboard ────────────────────────────────────────────
 PORT="${ZOE_DASHBOARD_PORT:-8642}"
-
-# Verificar puerto libre; si ocupado, buscar siguiente
-check_port() {
-    python -c "import socket; s=socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(('127.0.0.1', $1))" 2>/dev/null
-}
-
-for try_port in $PORT $((PORT+1)) $((PORT+2)) $((PORT+3)); do
-    if check_port $try_port; then
-        PORT=$try_port
-        break
-    fi
-done
-
 echo ""
-echo -e "  ${BOLD}URL del Dashboard:${NC}"
-echo -e "  ${CYAN}http://localhost:${PORT}/${NC}"
-echo ""
-echo -e "  ${BOLD}El token de autenticacion se mostrara abajo cuando ZOE arranque.${NC}"
-echo -e "  ${BOLD}Copia la URL completa (con ?token=...) en tu navegador.${NC}"
+echo -e "  ${BOLD}Iniciando Dashboard en http://localhost:${PORT}/${NC}"
+echo -e "  ${BOLD}El navegador se abrirá automáticamente con el token.${NC}"
 echo -e "  ${BOLD}Pulsa Ctrl+C para detener ZOE.${NC}"
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# Asegurar que cwd es ZOE_HOME/zoe (donde esta el paquete Python)
-if [ -d "$ZOE_HOME/zoe" ]; then
-    cd "$ZOE_HOME/zoe"
-elif [ -d "$ZOE_HOME" ]; then
-    cd "$ZOE_HOME"
-fi
+[ -d "$ZOE_HOME/zoe" ] && cd "$ZOE_HOME/zoe"
 
-# Ejecutar dashboard
 exec python -m zoe.web_dashboard \
     --backend "$DASH_BACKEND" \
     ${DASH_MODEL:+--model "$DASH_MODEL"} \
