@@ -421,29 +421,94 @@ else
     
     if [ "$INSTALL_OLLAMA" = "s" ] || [ "$INSTALL_OLLAMA" = "S" ]; then
         print_info "Instalando Ollama..."
-        if curl -fsSL https://ollama.com/install.sh | sh; then
-            print_ok "Ollama instalado"
-            # Verificar instalacion
-            if ! command -v ollama &> /dev/null; then
-                print_warn "Ollama instalado pero no en PATH. Reinicia tu terminal y vuelve a ejecutar."
-            else
-                # Iniciar con retry
-                ollama serve &> /dev/null &
-                for attempt in 1 2 3; do
-                    sleep_times=(3 5 10)
-                    sleep ${sleep_times[$((attempt-1))]}
-                    if curl -s http://localhost:11434/api/tags &> /dev/null; then
-                        OLLAMA_RUNNING=true
-                        print_ok "Ollama corriendo (intento $attempt)"
-                        break
+
+        # Sprint 5.21: En macOS, curl|sh descarga el .app pero Gatekeeper
+        # bloquea su apertura. Hay que quitar quarantine y abrir manualmente.
+        if [ "$PLATFORM" = "Darwin" ]; then
+            # macOS: usar curl|sh para descargar, luego fix Gatekeeper
+            if curl -fsSL https://ollama.com/install.sh | sh; then
+                print_ok "Ollama descargado"
+                # Quitar quarantine del .app (Gatekeeper bloquea apps descargadas)
+                print_info "Eliminando quarantine de Ollama.app..."
+                xattr -cr /Applications/Ollama.app 2>/dev/null || true
+                sleep 2
+                # Abrir Ollama.app (macOS pide confirmacion la primera vez)
+                print_info "Abriendo Ollama.app..."
+                open /Applications/Ollama.app 2>/dev/null || true
+                sleep 5
+                # Verificar si el CLI ollama esta disponible
+                if command -v ollama &> /dev/null; then
+                    print_ok "Ollama CLI en PATH"
+                else
+                    # En macOS, ollama CLI puede estar dentro del .app
+                    OLLAMA_CLI="/Applications/Ollama.app/Contents/Resources/ollama"
+                    if [ -f "$OLLAMA_CLI" ]; then
+                        print_ok "Ollama CLI encontrado en .app"
+                        # Crear symlink en /usr/local/bin si es posible
+                        if [ -w /usr/local/bin ]; then
+                            ln -sf "$OLLAMA_CLI" /usr/local/bin/ollama 2>/dev/null
+                        fi
+                    else
+                        print_warn "Ollama.app instalado pero CLI no encontrado."
+                        print_warn "Abre Ollama.app manualmente desde Finder > Applications."
                     fi
-                done
-                if [ "$OLLAMA_RUNNING" != "true" ]; then
-                    print_warn "Ollama instalado. Inicia manualmente con: ollama serve"
                 fi
+            else
+                print_err "La descarga de Ollama fallo."
+                print_info "Instala manualmente desde https://ollama.com/download"
+                print_info "Descarga el .dmg, abrelo y arrastra Ollama a Applications."
             fi
         else
-            print_err "La instalacion de Ollama fallo. Instalalo manualmente desde https://ollama.com"
+            # Linux: curl|sh funciona directamente
+            if curl -fsSL https://ollama.com/install.sh | sh; then
+                print_ok "Ollama instalado"
+            else
+                print_err "La instalacion de Ollama fallo. Instalalo manualmente desde https://ollama.com"
+            fi
+        fi
+
+        # Verificar e iniciar Ollama con retry (comun para macOS y Linux)
+        if command -v ollama &> /dev/null; then
+            # Iniciar con retry
+            ollama serve &> /dev/null &
+            for attempt in 1 2 3; do
+                sleep_times=(3 5 10)
+                sleep ${sleep_times[$((attempt-1))]}
+                if curl -s http://localhost:11434/api/tags &> /dev/null; then
+                    OLLAMA_RUNNING=true
+                    print_ok "Ollama corriendo (intento $attempt)"
+                    break
+                fi
+            done
+            if [ "$OLLAMA_RUNNING" != "true" ]; then
+                print_warn "Ollama instalado pero no responde."
+                if [ "$PLATFORM" = "Darwin" ]; then
+                    print_warn "Abre Ollama.app manualmente desde Finder > Applications."
+                    print_warn "O ejecuta: open /Applications/Ollama.app"
+                else
+                    print_warn "Inicia manualmente con: ollama serve"
+                fi
+            fi
+        elif [ "$PLATFORM" = "Darwin" ] && [ -d "/Applications/Ollama.app" ]; then
+            # macOS: Ollama.app existe pero CLI no en PATH
+            # La app ya debería estar abierta desde arriba
+            for attempt in 1 2 3; do
+                sleep_times=(5 5 10)
+                sleep ${sleep_times[$((attempt-1))]}
+                if curl -s http://localhost:11434/api/tags &> /dev/null; then
+                    OLLAMA_RUNNING=true
+                    print_ok "Ollama corriendo via .app (intento $attempt)"
+                    break
+                fi
+            done
+            if [ "$OLLAMA_RUNNING" != "true" ]; then
+                print_warn "Ollama.app instalado pero no responde."
+                print_warn "Abre Finder > Applications > Ollama (doble click)."
+                print_warn "O ejecuta: open /Applications/Ollama.app"
+            fi
+        else
+            print_warn "Ollama no se pudo instalar. Continuando sin IA."
+            print_info "Instala manualmente desde https://ollama.com/download"
         fi
     else
         print_info "Ollama no instalado. ZOE funcionara con PatternSpeaker (sin IA)."
