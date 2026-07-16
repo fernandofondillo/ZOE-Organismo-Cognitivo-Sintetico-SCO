@@ -283,13 +283,17 @@ class ModelDownloader:
 
         local_path = self.models_dir / model.hf_filename
 
-        # Si ya existe, no descargar
+        # Si ya existe Y es GGUF valido, no descargar
         if local_path.exists():
-            size_gb = local_path.stat().st_size / (1024**3)
-            logger.info(f"ModelDownloader: {model_key} already downloaded ({size_gb:.1f} GB)")
-            if progress_callback:
-                progress_callback(100.0, f"Ya descargado ({size_gb:.1f} GB)")
-            return str(local_path)
+            if self._is_valid_gguf(local_path):
+                size_gb = local_path.stat().st_size / (1024**3)
+                logger.info(f"ModelDownloader: {model_key} already downloaded ({size_gb:.1f} GB)")
+                if progress_callback:
+                    progress_callback(100.0, f"Ya descargado ({size_gb:.1f} GB)")
+                return str(local_path)
+            else:
+                logger.warning(f"ModelDownloader: {model_key} exists but not valid GGUF, re-downloading")
+                local_path.unlink()
 
         if progress_callback:
             progress_callback(0.0, f"Descargando {model.display_name} ({model.size_gb:.1f} GB)...")
@@ -316,7 +320,7 @@ class ModelDownloader:
             # Esperar a que termine
             stdout, stderr = process.communicate()
 
-            if process.returncode == 0:
+            if process.returncode == 0 and self._is_valid_gguf(local_path):
                 size_gb = local_path.stat().st_size / (1024**3)
                 self._downloads += 1
                 logger.info(f"ModelDownloader: downloaded {model_key} ({size_gb:.1f} GB)")
@@ -324,13 +328,28 @@ class ModelDownloader:
                     progress_callback(100.0, f"Descarga completa ({size_gb:.1f} GB)")
                 return str(local_path)
             else:
-                logger.error(f"ModelDownloader: curl failed: {stderr.decode()}")
-                # Limpiar archivo parcial
+                # Sprint 5.21: GGUF validation failed — file is probably HTML error page
+                error_detail = ""
                 if local_path.exists():
+                    size_mb = local_path.stat().st_size / (1024**2)
+                    if size_mb < 1:
+                        # Less than 1MB = definitely not a model, probably error page
+                        with open(local_path, 'rb') as f:
+                            error_detail = f.read(200).decode('utf-8', errors='replace')
+                    logger.error(f"ModelDownloader: {model_key} download invalid (size={size_mb:.1f}MB, not GGUF)")
                     local_path.unlink()
-                if progress_callback:
-                    progress_callback(0.0, "Error en descarga")
-                return None
+
+                # Sprint 5.21: Try ollama pull as fallback
+                logger.info(f"ModelDownloader: trying ollama pull fallback for {model_key}")
+                if self._ollama_pull_fallback(model):
+                    if progress_callback:
+                        progress_callback(100.0, f"Instalado via ollama pull")
+                    return "ollama_pull"
+                else:
+                    logger.error(f"ModelDownloader: {model_key} all methods failed")
+                    if progress_callback:
+                        progress_callback(0.0, f"Error: descarga invalida y ollama pull fallo")
+                    return None
 
         except FileNotFoundError:
             logger.error("ModelDownloader: curl not found")
@@ -365,6 +384,12 @@ class ModelDownloader:
         if not model:
             logger.error(f"ModelDownloader: unknown model '{model_key}'")
             return False
+
+        # Sprint 5.21: Si el modelo se instaló via ollama pull fallback,
+        # ya está registrado — no necesitamos crear Modelfile.
+        if gguf_path == "ollama_pull":
+            logger.info(f"ModelDownloader: {model_key} already registered via ollama pull")
+            return True
 
         # Determinar path del GGUF
         if gguf_path is None:
@@ -436,6 +461,67 @@ TEMPLATE "{{{{ if .System }}}}<|im_start|>system
 
 SYSTEM "Eres ZOE, un organismo cognitivo sintético."
 """
+
+    def _is_valid_gguf(self, path: Path) -> bool:
+        """Sprint 5.21: Verifica que un archivo sea GGUF valido.
+        Los archivos GGUF empiezan con magic bytes 'GGUF' (0x46554747).
+        Si el archivo es HTML (error page de HuggingFace), no es GGUF.
+        """
+        try:
+            if not path.exists() or path.stat().st_size < 1024:
+                return False
+            with open(path, 'rb') as f:
+                magic = f.read(4)
+            return magic == b'GGUF'
+        except Exception:
+            return False
+
+    def _ollama_pull_fallback(self, model: OptimizedModel) -> bool:
+        """Sprint 5.21: Fallback — usar 'ollama pull' directamente.
+        Si la descarga desde HuggingFace falla (archivo no es GGUF),
+        intentar descargar el modelo desde el registro de Ollama.
+        Mapea el tag de ZOE al nombre estandar de Ollama.
+        """
+        # Mapeo de tags ZOE a nombres estandar de Ollama
+        OLLAMA_FALLBACK = {
+            "gemma-2-9b-iq2": "gemma2:9b",
+            "qwq-32b-iq2": "qwq",
+            "deepseek-r1-32b-iq2": "deepseek-r1:32b",
+            "qwen2.5-32b-iq2": "qwen2.5:32b",
+            "qwen2.5-72b-iq2": "qwen2.5:72b",
+            "agents-a1-iq2": "qwen2.5:32b",  # No hay Agents-A1 en Ollama, usar Qwen 32B
+        }
+
+        ollama_name = OLLAMA_FALLBACK.get(model.ollama_tag)
+        if not ollama_name:
+            logger.warning(f"ModelDownloader: no ollama fallback for {model.ollama_tag}")
+            return False
+
+        try:
+            print(f"  → Fallback: ollama pull {ollama_name}")
+            result = subprocess.run(
+                ["ollama", "pull", ollama_name],
+                capture_output=False,
+                timeout=3600,  # 1 hour max
+            )
+            if result.returncode == 0:
+                # Registrar con el tag ZOE usando ollama tag
+                subprocess.run(
+                    ["ollama", "tag", ollama_name, model.ollama_tag],
+                    capture_output=True,
+                    timeout=30,
+                )
+                print(f"  ✅ {ollama_name} instalado y etiquetado como {model.ollama_tag}")
+                return True
+            else:
+                logger.error(f"ModelDownloader: ollama pull {ollama_name} failed")
+                return False
+        except subprocess.TimeoutExpired:
+            logger.error(f"ModelDownloader: ollama pull {ollama_name} timed out")
+            return False
+        except Exception as e:
+            logger.error(f"ModelDownloader: ollama pull error: {e}")
+            return False
 
     def _is_registered_in_ollama(self, tag: str) -> bool:
         """Verifica si un modelo está registrado en Ollama."""

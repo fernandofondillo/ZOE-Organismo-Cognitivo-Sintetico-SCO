@@ -298,11 +298,12 @@ class TestOllamaRegistration:
 class TestModelDownload:
 
     def test_download_already_exists(self, tmp_path):
-        """Si el archivo ya existe, no descarga."""
+        """Si el archivo ya existe Y es GGUF valido, no descarga."""
         downloader = ModelDownloader(models_dir=str(tmp_path))
         model = OPTIMIZED_MODELS["qwen2.5:32b-iq2"]
         gguf_path = tmp_path / model.hf_filename
-        gguf_path.write_bytes(b"already here")
+        # Sprint 5.21: escribir magic bytes GGUF + contenido minimo
+        gguf_path.write_bytes(b"GGUF" + b"\x00" * 1024)
 
         result = downloader.download("qwen2.5:32b-iq2")
         assert result is not None
@@ -319,7 +320,8 @@ class TestModelDownload:
         downloader = ModelDownloader(models_dir=str(tmp_path))
         model = OPTIMIZED_MODELS["qwen2.5:32b-iq2"]
         gguf_path = tmp_path / model.hf_filename
-        gguf_path.write_bytes(b"already here")
+        # Sprint 5.21: escribir magic bytes GGUF + contenido minimo
+        gguf_path.write_bytes(b"GGUF" + b"\x00" * 1024)
 
         progress_calls = []
         def callback(pct, msg):
@@ -334,7 +336,8 @@ class TestModelDownload:
         downloader = ModelDownloader(models_dir=str(tmp_path))
         model = OPTIMIZED_MODELS["qwen2.5:32b-iq2"]
         gguf_path = tmp_path / model.hf_filename
-        gguf_path.write_bytes(b"already here")
+        # Sprint 5.21: escribir magic bytes GGUF validos
+        gguf_path.write_bytes(b"GGUF" + b"\x00" * 1024)
 
         with patch.object(downloader, "_is_registered_in_ollama", return_value=False):
             with patch("subprocess.run") as mock_run:
