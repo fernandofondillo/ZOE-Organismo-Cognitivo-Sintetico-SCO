@@ -287,19 +287,25 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 const ZOE_TOKEN_KEY = 'zoe_auth_token';
 
 function getZoeToken() {
-  // 1. URL param (alta prioridad -- permite bookmark con token)
+  // Sprint 5.21: Prioridad 1 — token inyectado por el servidor en el HTML.
+  // Esto es 100% fiable en todos los navegadores. No depende de URL params
+  // ni localStorage, que fallaban en Safari.
+  if (typeof window.ZOE_SERVER_TOKEN !== 'undefined' && window.ZOE_SERVER_TOKEN) {
+    localStorage.setItem(ZOE_TOKEN_KEY, window.ZOE_SERVER_TOKEN);
+    return window.ZOE_SERVER_TOKEN;
+  }
+  // Prioridad 2 — URL param (bookmark con token)
   const urlParams = new URLSearchParams(window.location.search);
   const urlToken = urlParams.get('token');
   if (urlToken && urlToken.length > 0) {
     localStorage.setItem(ZOE_TOKEN_KEY, urlToken);
-    // Limpiar el token de la URL para no compartirlo accidentalmente
     try {
       const cleanUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     } catch (e) { /* ignore */ }
     return urlToken;
   }
-  // 2. localStorage
+  // Prioridad 3 — localStorage (sesion persistida)
   return localStorage.getItem(ZOE_TOKEN_KEY) || '';
 }
 
@@ -309,18 +315,22 @@ function saveAuthToken() {
   if (!token) { alert('Pega un token valido.'); return; }
   localStorage.setItem(ZOE_TOKEN_KEY, token);
   document.getElementById('authModal').style.display = 'none';
-  // Recargar para aplicar el token a todas las llamadas
   location.reload();
 }
 
 const ZOE_AUTH_TOKEN = getZoeToken();
 
+// Sprint 5.21: Con server token injection, el modal ya casi nunca se muestra.
+// Solo se muestra si el servidor no inyecto token Y no hay en URL ni localStorage.
 if (!ZOE_AUTH_TOKEN) {
-  // Mostrar modal -- el usuario debera pegar el token manualmente
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('authModal').style.display = 'flex';
+    const modal = document.getElementById('authModal');
+    if (modal) modal.style.display = 'flex';
   });
 }
+
+// Log para debugging
+console.log('ZOE: token detected:', ZOE_AUTH_TOKEN ? 'YES (' + ZOE_AUTH_TOKEN.substring(0,8) + '...)' : 'NO');
 
 // Sobreescribir fetch para inyectar Authorization header en TODAS las llamadas
 // que NO sean a rutas publicas (/, /manifest.json, /health, /ready, /live).

@@ -12,8 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 async def _handle_index(server, request) -> Any:
-    """Sirve el HTML del dashboard."""
+    """Sirve el HTML del dashboard.
+
+    Sprint 5.21: Inyecta el token directamente en el HTML como variable JS.
+    Esto elimina la necesidad de leerlo de URL params o localStorage,
+    que fallaba en Safari y causaba que el dashboard no fuera funcional.
+    """
     html = _get_dashboard_html()
+    # Inyectar el token antes del primer <script> tag
+    token_js = f'<script>window.ZOE_SERVER_TOKEN = "{server.auth_token}";</script>'
+    html = html.replace('<script>', token_js + '\n<script>', 1)
     return web.Response(text=html, content_type="text/html")
 
 
