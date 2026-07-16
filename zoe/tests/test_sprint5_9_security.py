@@ -126,29 +126,30 @@ class TestSprint512AuthRefinements:
         assert token_file.read_text() == "test-token-12345"
 
     def test_dashboard_html_has_token_handling(self):
-        """El HTML del dashboard contiene el codigo de gestion de token."""
+        """Sprint 5.21: Token handling eliminado para localhost.
+        Auth es solo para red, no para localhost."""
         from zoe.dashboard.html.dashboard_html import _get_dashboard_html
         html = _get_dashboard_html()
-        # Buscar las funciones clave anadidas en Sprint 5.12
-        assert "getZoeToken" in html
-        assert "saveAuthToken" in html
-        assert "zoe_auth_token" in html
-        assert "authModal" in html
+        # Sprint 5.21: Token code removed. Auth skipped for localhost.
+        assert "getZoeToken" not in html
+        assert "authModal" not in html
+        assert "ZOE_AUTH_TOKEN" not in html
 
     def test_dashboard_html_ws_uses_token_query(self):
-        """El WebSocket del HTML debe pasar ?token= en la URL."""
+        """Sprint 5.21: WebSocket ya no necesita token para localhost."""
         from zoe.dashboard.html.dashboard_html import _get_dashboard_html
         html = _get_dashboard_html()
-        # La funcion connectWS debe construir la URL con ?token=
-        assert "tokenQuery" in html or "?token=" in html
+        # WS connects without token (localhost auth skipped)
+        assert "connectWS" in html
+        assert "WebSocket" in html
 
     def test_dashboard_html_overrides_fetch(self):
-        """El HTML sobreescribe window.fetch para inyectar Authorization."""
+        """Sprint 5.21: fetch override eliminado (no se necesita auth para localhost)."""
         from zoe.dashboard.html.dashboard_html import _get_dashboard_html
         html = _get_dashboard_html()
-        assert "window.fetch" in html
-        assert "Authorization" in html
-        assert "Bearer" in html
+        # No fetch override needed
+        assert "sendMessage" in html
+        assert "connectWS" in html
 
     def test_web_dashboard_shim_reexports_get_html(self):
         """El shim zoe.web_dashboard re-exporta _get_dashboard_html
