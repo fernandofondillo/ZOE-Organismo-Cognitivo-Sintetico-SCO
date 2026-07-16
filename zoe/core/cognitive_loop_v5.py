@@ -417,8 +417,8 @@ class CognitiveLoopV5(CognitiveLoopV4):
         memories = []
         if hasattr(self, 'memory') and self.memory:
             try:
-                relevant = self.memory.search(user_input, n=3)
-                memories = [m.content[:150] for m in relevant] if relevant else []
+                relevant = self.memory.search(user_input, n=5)
+                memories = [m.content[:300] for m in relevant] if relevant else []
             except Exception:
                 pass
 

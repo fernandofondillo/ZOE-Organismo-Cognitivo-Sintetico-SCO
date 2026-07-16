@@ -196,6 +196,15 @@ class Speaker:
         surprise = context.get("surprise", 0.0)
         parts.append(f"Sorpresa actual: {surprise:.3f}")
 
+        # Sprint 5.21 — Incluir memorias relevantes en el prompt
+        # Esto es CRÍTICO: sin esto, ZOE no recuerda conversaciones anteriores.
+        relevant_memories = context.get("relevant_memories", [])
+        if relevant_memories:
+            parts.append("\nMemorias relevantes de conversaciones anteriores:")
+            for mem in relevant_memories:
+                parts.append(f"  - {mem}")
+            parts.append("(USA estas memorias para responder. Si el usuario te dijo su nombre, úsalo.)")
+
         # Pensamientos recientes (para evitar repetición)
         recent_thoughts = context.get("recent_thoughts", [])
         if recent_thoughts:
