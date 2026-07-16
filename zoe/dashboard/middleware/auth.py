@@ -27,6 +27,7 @@ _PUBLIC_PATHS = {
     "/health",        # Kubernetes liveness/readiness
     "/ready",
     "/live",
+    "/favicon.ico",   # Sprint 5.21: evita 401 en consola del navegador
 }
 
 
