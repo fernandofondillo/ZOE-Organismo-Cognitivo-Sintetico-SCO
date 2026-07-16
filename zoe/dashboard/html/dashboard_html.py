@@ -70,7 +70,7 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 .chat-input button:hover { background: #651fff; }
 .chat-input button:disabled { background: #3a3a4a; cursor: not-allowed; }
 
-/* ZOE v2.1.1 — Indicador de pensando */
+/* ZOE v2.1.1 -- Indicador de pensando */
 .thinking-indicator {
   display: none;
   padding: 8px 16px;
@@ -229,7 +229,7 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
   <div class="panel-center">
     <div class="chat-header">Conversacion con ZOE</div>
     <div class="chat-messages" id="chatMessages"></div>
-    <!-- ZOE v2.1.1 — Indicador de pensando -->
+    <!-- ZOE v2.1.1 -- Indicador de pensando -->
     <div class="thinking-indicator" id="thinkingIndicator">
       <span class="thinking-icon">&#129302;</span>
       <span class="thinking-text">ZOE está pensando</span>
@@ -250,112 +250,12 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 
 <input type="file" id="fileInput" style="display:none" onchange="uploadFile(event)">
 
-<!-- ZOE v2.1.2 — Modal de autenticacion (si falta token) -->
-<div id="authModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;">
-  <div style="background:#0d0d14;border:1px solid #7c4dff;border-radius:12px;padding:32px;max-width:480px;color:#e0e0e0;text-align:center;">
-    <div style="font-size:48px;margin-bottom:16px;">&#128274;</div>
-    <h2 style="color:#7c4dff;margin-bottom:12px;font-size:20px;">Autenticacion requerida</h2>
-    <p style="color:#aaa;font-size:14px;margin-bottom:20px;line-height:1.5;">
-      ZOE protege el dashboard con un token. Pegalo abajo para acceder.
-      <br><br>
-      <span style="color:#666;font-size:12px;">El token se muestra en la terminal donde iniciaste ZOE, en una linea como:<br>
-      <code style="background:#1a1a2a;padding:4px 8px;border-radius:4px;color:#7c4dff;">SECURITY: ... Auto-generated token: XXXX</code><br>
-      o en la URL <code>http://localhost:8642/?token=XXXX</code>.</span>
-    </p>
-    <input id="authTokenInput" type="password" placeholder="Pega tu token aqui" style="width:100%;background:#1a1a2a;color:#e0e0e0;border:1px solid #3a3a4a;padding:10px 14px;border-radius:6px;font-size:14px;margin-bottom:12px;box-sizing:border-box;">
-    <button onclick="saveAuthToken()" style="background:#7c4dff;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;width:100%;">Acceder</button>
-    <p style="color:#666;font-size:11px;margin-top:16px;">El token se guarda en localStorage para no volver a pedirlo.</p>
-  </div>
+
 </div>
 
 <script>
-// ============================================================
-// ZOE v2.1.2 -- Gestion de token de autenticacion del Dashboard
-// ============================================================
-// El dashboard protege TODAS las rutas excepto: /, /manifest.json,
-// /health, /ready, /live. El navegador recibe el HTML inicial sin
-// token, pero todas las llamadas fetch y el WebSocket deben enviarlo.
-//
-// Estrategia:
-//   1. Al cargar, buscar token en ?token=XXX (URL) -> guardarlo en localStorage.
-//   2. Si no hay en URL, leer de localStorage.
-//   3. Si no hay en ninguno, mostrar modal pidiendolo.
-//   4. Sobreescribir window.fetch para inyectar Authorization: Bearer XXX.
-//   5. connectWS() anade ?token=XXX a la URL del WebSocket.
-// ============================================================
-
-const ZOE_TOKEN_KEY = 'zoe_auth_token';
-
-function getZoeToken() {
-  // Sprint 5.21: Prioridad 1 — token inyectado por el servidor via <meta> tag.
-  // HTML puro, imposible que rompa JS. 100% fiable en todos los navegadores.
-  var metaToken = document.querySelector('meta[name="zoe-token"]');
-  if (metaToken && metaToken.content && metaToken.content.length > 0) {
-    try { localStorage.setItem(ZOE_TOKEN_KEY, metaToken.content); } catch(e) {}
-    return metaToken.content;
-  }
-  // Prioridad 2 — URL param (bookmark con token)
-  var urlParams = new URLSearchParams(window.location.search);
-  var urlToken = urlParams.get('token');
-  if (urlToken && urlToken.length > 0) {
-    try { localStorage.setItem(ZOE_TOKEN_KEY, urlToken); } catch(e) {}
-    try {
-      var cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    } catch (e) {}
-    return urlToken;
-  }
-  // Prioridad 3 — localStorage (sesion persistida)
-  try { return localStorage.getItem(ZOE_TOKEN_KEY) || ''; } catch(e) { return ''; }
-}
-
-function saveAuthToken() {
-  const input = document.getElementById('authTokenInput');
-  const token = input.value.trim();
-  if (!token) { alert('Pega un token valido.'); return; }
-  localStorage.setItem(ZOE_TOKEN_KEY, token);
-  document.getElementById('authModal').style.display = 'none';
-  location.reload();
-}
-
-const ZOE_AUTH_TOKEN = getZoeToken();
-
-// Sprint 5.21: Con meta tag injection, el modal casi nunca se muestra.
-if (!ZOE_AUTH_TOKEN) {
-  document.addEventListener('DOMContentLoaded', function() {
-    var modal = document.getElementById('authModal');
-    if (modal) modal.style.display = 'flex';
-  });
-}
-
-// Sobreescribir fetch para inyectar Authorization header en TODAS las llamadas
-// que NO sean a rutas publicas (/, /manifest.json, /health, /ready, /live).
-const _originalFetch = window.fetch;
-const _PUBLIC_PATHS_DASH = new Set(['/', '/manifest.json', '/health', '/ready', '/live']);
-window.fetch = function(input, init) {
-  init = init || {};
-  init.headers = init.headers || {};
-  // input puede ser string o Request
-  let path = '';
-  if (typeof input === 'string') {
-    path = new URL(input, window.location.origin).pathname;
-  } else if (input instanceof Request) {
-    path = new URL(input.url, window.location.origin).pathname;
-  }
-  if (!_PUBLIC_PATHS_DASH.has(path) && ZOE_AUTH_TOKEN) {
-    // Si init.headers es Headers, clonarlo; si es objeto plano, anadir
-    if (init.headers instanceof Headers) {
-      if (!init.headers.has('Authorization')) {
-        init.headers.set('Authorization', 'Bearer ' + ZOE_AUTH_TOKEN);
-      }
-    } else {
-      if (!init.headers['Authorization']) {
-        init.headers['Authorization'] = 'Bearer ' + ZOE_AUTH_TOKEN;
-      }
-    }
-  }
-  return _originalFetch.call(this, input, init);
-};
+// ZOE v2.1.2 -- Dashboard JS
+// Sprint 5.21: Auth eliminada para localhost. No se necesita token.
 
 let ws = null;
 let isSleeping = false;
@@ -363,8 +263,8 @@ let isSleeping = false;
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   // Sprint 5.12 -- anadir token al WS via query param
-  const tokenQuery = ZOE_AUTH_TOKEN ? ('?token=' + encodeURIComponent(ZOE_AUTH_TOKEN)) : '';
-  ws = new WebSocket(`${proto}//${location.host}/ws${tokenQuery}`);
+
+  ws = new WebSocket(proto + "//location.host + "/ws");
 
   ws.onopen = () => { console.log('WS connected'); };
   ws.onclose = () => { console.log('WS disconnected, retrying...'); setTimeout(connectWS, 2000); };
@@ -383,7 +283,7 @@ function handleMessage(data) {
         + `<span class="acd-meta">${data.latency_ms.toFixed(0)}ms${data.cache_hit ? ' &#128190;' : ''}</span>`
       : '';
     addMessage('zoe', data.content, data.timestamp, meta);
-    // ZOE v2.1.1 — Ocultar indicador de pensando
+    // ZOE v2.1.1 -- Ocultar indicador de pensando
     hideThinking();
     document.getElementById('sendBtn').disabled = false;
   } else if (data.type === 'state_update') {
@@ -428,14 +328,14 @@ function sendMessage() {
   if (!msg || !ws || ws.readyState !== 1) return;
 
   addMessage('user', msg, Date.now()/1000);
-  // ZOE v2.1.1 — Mostrar indicador de pensando
+  // ZOE v2.1.1 -- Mostrar indicador de pensando
   showThinking();
   ws.send(JSON.stringify({ type: 'chat', message: msg }));
   input.value = '';
   document.getElementById('sendBtn').disabled = true;
 }
 
-// ZOE v2.1.1 — Indicador de pensando
+// ZOE v2.1.1 -- Indicador de pensando
 function showThinking() {
   const indicator = document.getElementById('thinkingIndicator');
   if (indicator) indicator.classList.add('active');

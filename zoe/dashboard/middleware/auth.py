@@ -59,18 +59,23 @@ def create_auth_middleware(auth_token: str):
 
     @web.middleware
     async def auth_middleware(request, handler):
-        """Authentication: token required for all non-public endpoints.
+        """Authentication: token required for non-localhost connections only.
 
-        Sprint 5.13 B7: usa _tokens_match (hmac.compare_digest) en vez de !=.
+        Sprint 5.21: localhost (127.0.0.1, ::1) NO requiere token.
+        Auth es para exposicion de red, NO para despliegues locales en SSD.
+        Esto elimina TODOS los problemas de token/JS para usuarios locales.
         """
         if request.path in _PUBLIC_PATHS:
             return await handler(request)
 
+        # Sprint 5.21: Skip auth for localhost connections
+        peer = request.remote or "unknown"
+        if peer in ("127.0.0.1", "::1", "localhost"):
+            return await handler(request)
+
         auth_header = request.headers.get("Authorization", "")
-        # Also accept query param ?token= for WebSocket
         query_token = request.query.get("token", "")
 
-        # Sprint 5.13 B7: comparacion timing-safe
         header_ok = _tokens_match(auth_header, expected_bearer) if auth_header else False
         query_ok = _tokens_match(query_token, auth_token) if query_token else False
 
