@@ -218,14 +218,14 @@ class TestModelosEnSSD:
         assert "FROM ~/" not in modelfile
 
     def test_modelfile_tiene_parametros_optimizados_8gb(self, tmp_path):
-        """El Modelfile incluye num_ctx, num_predict, num_parallel optimizados para 8GB."""
+        """El Modelfile incluye num_ctx, num_predict optimizados para 8GB."""
         from zoe.core.model_downloader import ModelDownloader, OPTIMIZED_MODELS
         d = ModelDownloader(models_dir=str(tmp_path))
         model = OPTIMIZED_MODELS["qwq-32b-iq2"]
         modelfile = d._generate_modelfile(model, str(tmp_path / "QwQ-32B-IQ2_M.gguf"))
         assert "PARAMETER num_ctx 2048" in modelfile
         assert "PARAMETER num_predict 512" in modelfile
-        assert "PARAMETER num_parallel 1" in modelfile
+        assert "PARAMETER num_parallel 1" not in modelfile  # Sprint 5.21: removed (unsupported)
 
     def test_bootstrap_exporta_OLLAMA_MODELS(self):
         """El bootstrap exporta OLLAMA_MODELS apuntando al SSD."""

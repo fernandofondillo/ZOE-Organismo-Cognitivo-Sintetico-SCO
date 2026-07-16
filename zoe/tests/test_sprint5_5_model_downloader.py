@@ -233,7 +233,7 @@ class TestOllamaRegistration:
         assert "FROM /path/to/model.gguf" in modelfile
         assert "PARAMETER num_ctx 2048" in modelfile
         assert "PARAMETER num_predict 512" in modelfile
-        assert "PARAMETER num_parallel 1" in modelfile
+        assert "PARAMETER num_parallel 1" not in modelfile  # Sprint 5.21: removed (unsupported)
         assert "TEMPLATE" in modelfile
         assert "im_start" in modelfile  # Qwen template
         assert "ZOE" in modelfile

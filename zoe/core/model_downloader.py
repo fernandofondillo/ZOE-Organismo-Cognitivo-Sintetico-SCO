@@ -410,7 +410,12 @@ class ModelDownloader:
             return False
 
     def _generate_modelfile(self, model: OptimizedModel, gguf_path: str) -> str:
-        """Genera el contenido del Modelfile para Ollama."""
+        """Genera el contenido del Modelfile para Ollama.
+
+        Sprint 5.21: Eliminado PARAMETER num_parallel (no soportado en
+        versiones de Ollama anteriores a 0.5.0). Causaba 'Error: unknown
+        parameter num_parallel' en instalaciones fresh de Ollama en macOS.
+        """
         return f"""# Modelfile para {model.display_name}
 # Generado automáticamente por ZOE ModelDownloader
 
@@ -420,7 +425,6 @@ FROM {gguf_path}
 # Parámetros críticos para Mac 8GB RAM
 PARAMETER num_ctx 2048
 PARAMETER num_predict 512
-PARAMETER num_parallel 1
 
 # Plantilla de chat para Qwen 2.5
 TEMPLATE "{{{{ if .System }}}}<|im_start|>system
