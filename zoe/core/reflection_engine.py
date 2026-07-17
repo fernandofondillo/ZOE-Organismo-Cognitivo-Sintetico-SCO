@@ -317,15 +317,34 @@ class ReflectionEngine:
         """Obtiene memorias recientes del tipo especificado.
 
         Usa StorageBackend si está disponible, fallback a LivingMemory.
+
+        Sprint 5.23 F0-2 (BUG-001 fix): ahora convierte ``MemoryEntry``
+        a ``dict`` para mantener el contrato del caller
+        (``_select_salient_memories``), y usa ``get_salient`` cuando
+        esté disponible para priorizar alta saliencia.
         """
         if self._storage is not None:
             try:
-                return await self._storage.search_memory(memory_type, "", limit=limit)
-            except Exception:
-                pass
+                result = await self._storage.search_memory(memory_type, "", limit=limit)
+                if result:
+                    return result
+            except Exception as e:
+                logger.debug("storage.search_memory failed: %s", e)
 
-        if self._memory is not None and hasattr(self._memory, 'get_recent'):
-            return await self._memory.get_recent(memory_type, limit=limit)
+        if self._memory is not None:
+            # Sprint 5.23: prefer get_salient (alta saliencia) sobre get_recent
+            if hasattr(self._memory, 'get_salient'):
+                try:
+                    entries = self._memory.get_salient(memory_type, limit=limit)
+                    return [e.to_dict() if hasattr(e, 'to_dict') else dict(e) for e in entries]
+                except Exception as e:
+                    logger.debug("memory.get_salient failed: %s", e)
+            if hasattr(self._memory, 'get_recent'):
+                try:
+                    entries = self._memory.get_recent(memory_type, limit=limit)
+                    return [e.to_dict() if hasattr(e, 'to_dict') else dict(e) for e in entries]
+                except Exception as e:
+                    logger.debug("memory.get_recent failed: %s", e)
 
         return []
 

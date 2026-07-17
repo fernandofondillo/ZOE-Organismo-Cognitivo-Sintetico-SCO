@@ -174,6 +174,50 @@ class LivingMemory:
     def count(self) -> int:
         return len(self._entries)
 
+    def get_recent(
+        self, memory_type: Optional[str] = None, limit: int = 20
+    ) -> List[MemoryEntry]:
+        """
+        Devuelve las N entries más recientes, opcionalmente filtradas por tipo.
+
+        Sprint 5.23 F0-1 (BUG-001 fix): método requerido por
+        ``ReflectionEngine._get_recent_memories`` para seleccionar
+        memorias de alta saliencia durante SLEEPING. Antes de este
+        fix, ``ReflectionEngine`` retornaba ``[]`` porque
+        ``LivingMemory`` no tenía ``get_recent``.
+
+        Orden: timestamp DESC (más reciente primero).
+        """
+        if memory_type:
+            entries = [
+                e for e in self._entries.values() if e.type == memory_type
+            ]
+        else:
+            entries = list(self._entries.values())
+        entries.sort(key=lambda e: e.timestamp, reverse=True)
+        return entries[:limit]
+
+    def get_salient(
+        self, memory_type: Optional[str] = None, limit: int = 20
+    ) -> List[MemoryEntry]:
+        """
+        Devuelve las N entries más salientes, opcionalmente filtradas por tipo.
+
+        Sprint 5.23 F0-1 (BUG-001 fix): variante de ``get_recent``
+        que ordena por ``salience`` DESC, luego ``timestamp`` DESC.
+        Usada por ``ReflectionEngine._select_salient_memories``.
+        """
+        if memory_type:
+            entries = [
+                e for e in self._entries.values() if e.type == memory_type
+            ]
+        else:
+            entries = list(self._entries.values())
+        entries.sort(
+            key=lambda e: (e.salience, e.timestamp), reverse=True
+        )
+        return entries[:limit]
+
     # ===== OPERACIONES DE MEMORIA VIVA =====
 
     def think(self) -> Dict[str, Any]:

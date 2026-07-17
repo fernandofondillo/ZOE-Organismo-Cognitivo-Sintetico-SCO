@@ -123,6 +123,42 @@ class CognitiveLoopV5(CognitiveLoopV4):
     - Estadísticas por nivel
     """
 
+    # Sprint 5.23 F3-1 (BUG-012 fix) — ACD cloud routing.
+    # Mapas: nivel ACD → { backend_class_name → model_tag }.
+    # Cuando no hay ``model_profile_router`` (backends cloud), se aplican
+    # estos tags automáticamente por nivel cognitivo. Los tags son modelos
+    # estándar de cada proveedor (no IQ2_M locales).
+    #
+    # Lógica:
+    #   L1_FAST       → modelo más barato (haiku/mini/gpt-4o-mini/MiniMax-M3)
+    #   L2_STANDARD   → modelo intermedio (sonnet/gpt-4o/MiniMax-M3)
+    #   L3_DEEP/MAX   → modelo más potente (opus/o1/MiniMax-M3)
+    #
+    # Nota: MiniMax-M3 se deja en todos los niveles porque es el único
+    # modelo disponible en la API de MiniMax (no hay variantes baratas/caras).
+    _CLOUD_MODEL_ASSIGNMENTS: Dict[str, Dict[str, str]] = {
+        "L1_FAST": {
+            "AnthropicPeripheral": "claude-3-5-haiku-20241022",
+            "OpenAICompatiblePeripheral": "gpt-4o-mini",
+            "OpenAIPeripheral": "gpt-4o-mini",
+        },
+        "L2_STANDARD": {
+            "AnthropicPeripheral": "claude-sonnet-4-20250514",
+            "OpenAICompatiblePeripheral": "gpt-4o",
+            "OpenAIPeripheral": "gpt-4o",
+        },
+        "L3_DEEP": {
+            "AnthropicPeripheral": "claude-opus-4-20250514",
+            "OpenAICompatiblePeripheral": "gpt-4o",
+            "OpenAIPeripheral": "gpt-4o",
+        },
+        "L3_MAXIMUM": {
+            "AnthropicPeripheral": "claude-opus-4-20250514",
+            "OpenAICompatiblePeripheral": "o1",
+            "OpenAIPeripheral": "o1",
+        },
+    }
+
     def __init__(
         self,
         *args,
@@ -203,17 +239,20 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 )
                 logger.info("CognitivePrefetchLayer inicializado")
             except Exception as e:
-                logger.debug(f"CPL init failed (non-fatal): {e}")
+                logger.debug(f"CognitivePrefetchLayer init failed (non-fatal): {e}")
                 self._cpl = None
 
-        # Sprint 5.22 — WebSearchActuator (las "manos" de ZOE)
-        self._web_search = None
+        # Sprint 5.23 F0-5 — WebSearchActuator para que ZOE busque en internet
+        # cuando el usuario lo pida. Lazy init: solo se carga si el módulo
+        # está disponible (siempre lo está — usa solo stdlib).
+        self._web_search: Optional[Any] = None
         try:
             from ..peripherals.web_search import WebSearchActuator
-            self._web_search = WebSearchActuator()
-            logger.info("WebSearchActuator inicializado")
+            self._web_search = WebSearchActuator(max_results=5, timeout=15)
+            logger.info("WebSearchActuator inicializado (DuckDuckGo Lite)")
         except Exception as e:
-            logger.debug(f"WebSearch init failed (non-fatal): {e}")
+            logger.debug(f"WebSearchActuator init failed (non-fatal): {e}")
+            self._web_search = None
 
         # System prompt del idioma detectado (para el Speaker)
         self._current_system_prompt: Optional[str] = None
@@ -311,6 +350,41 @@ class CognitiveLoopV5(CognitiveLoopV4):
             except Exception as e:
                 logger.debug(f"ACD router error (non-fatal): {e}")
                 self._router_skips += 1
+        elif level != CognitiveLevel.L0_REFLEX:
+            # Sprint 5.23 F3-1 (BUG-012 fix): ACD cloud routing.
+            # Cuando no hay ``model_profile_router`` (backends cloud como
+            # Anthropic/OpenAI/MiniMax), aplicamos asignaciones por defecto
+            # según el nivel ACD. Esto permite que MiniMax-M3 (L1) y modelos
+            # más potentes (L3) se enruten automáticamente sin tocar código.
+            # Tabla de modelos baratos/carisimos por proveedor cloud.
+            cloud_assignments = self._CLOUD_MODEL_ASSIGNMENTS.get(level.value)
+            if cloud_assignments:
+                speaker = self._find_speaker()
+                if speaker:
+                    llm_attr = getattr(speaker, "llm", None) or getattr(speaker, "llm_peripheral", None)
+                    if llm_attr:
+                        # Detectar backend por tipo
+                        backend_name = type(llm_attr).__name__
+                        target_model = cloud_assignments.get(backend_name)
+                        if target_model:
+                            current_model = getattr(llm_attr, "model", None)
+                            if current_model != target_model:
+                                try:
+                                    llm_attr.model = target_model
+                                    self._router_swaps += 1
+                                    self._last_routed_tag = target_model
+                                    logger.info(
+                                        f"ACD cloud router: {level.value} → "
+                                        f"{backend_name} '{target_model}' "
+                                        f"(was '{current_model}')"
+                                    )
+                                except Exception as e:
+                                    logger.debug(f"ACD cloud swap failed: {e}")
+                                    self._router_skips += 1
+                            else:
+                                self._router_skips += 1
+            else:
+                self._router_skips += 1
 
         # 2. Cache lookup
         cache_hit = False
@@ -322,6 +396,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 self.acd_cache_hits += 1
 
         # 3. Ejecutar pipeline según nivel
+        mentor_intervention_data: Optional[Dict[str, Any]] = None
         if cache_hit:
             response = cached
             trajectory_hash = None  # no se registra mutación si cache hit
@@ -329,9 +404,9 @@ class CognitiveLoopV5(CognitiveLoopV4):
             if level == CognitiveLevel.L0_REFLEX:
                 response, trajectory_hash = await self._process_l0(user_input, classification)
             elif level == CognitiveLevel.L1_FAST:
-                response, trajectory_hash = await self._process_l1(user_input, classification)
+                response, trajectory_hash, mentor_intervention_data = await self._process_l1(user_input, classification)
             elif level == CognitiveLevel.L2_STANDARD:
-                response, trajectory_hash = await self._process_l2(user_input, classification)
+                response, trajectory_hash, mentor_intervention_data = await self._process_l2(user_input, classification)
             elif level == CognitiveLevel.L3_MAXIMUM:
                 # Sprint 5.7: L3_MAXIMUM usa el mismo pipeline que L3_DEEP
                 # pero el router (si está activo) habrá cargado el modelo 72B
@@ -384,6 +459,8 @@ class CognitiveLoopV5(CognitiveLoopV4):
             "confidence": level.default_confidence,
             # Sprint 5.10 C8 — idioma detectado
             "language": detected_language.value if detected_language else None,
+            # Sprint 5.23 F1-8 — mentor intervention visible al usuario
+            "mentor_intervention": mentor_intervention_data,
         }
 
     async def _process_l0(
@@ -415,21 +492,37 @@ class CognitiveLoopV5(CognitiveLoopV4):
 
     async def _process_l1(
         self, user_input: str, classification: ClassificationResult
-    ) -> tuple[str, Optional[str]]:
+    ) -> tuple[str, Optional[str], Optional[Dict[str, Any]]]:
         """
         L1 FAST — Perceiver + Memorialist + Speaker.
 
         Solo 3 sub-agentes, sin Global Workspace ni meta-cog.
         Recupera memoria relevante y responde.
+
+        Sprint 5.23 F1-8: retorna también ``mentor_intervention_data``
+        para que el caller (``process_user_input_acd``) lo incluya en
+        el dict de respuesta y el dashboard pueda mostrarlo al usuario.
         """
         # Buscar memoria relevante
         memories = []
         if hasattr(self, 'memory') and self.memory:
             try:
-                relevant = self.memory.search(user_input, n=5)
-                memories = [m.content[:300] for m in relevant] if relevant else []
+                relevant = self.memory.search(user_input, n=3)
+                memories = [m.content[:150] for m in relevant] if relevant else []
             except Exception:
                 pass
+
+        # Sprint 5.23 F0-5 — WebSearch si el usuario lo pide
+        web_results: List[str] = []
+        if self._web_search is not None:
+            try:
+                if self._web_search.should_use_search(user_input):
+                    results = await self._web_search.search(user_input)
+                    web_results = [
+                        f"{r.title}: {r.url}" for r in results[:3] if r.url
+                    ]
+            except Exception as e:
+                logger.debug(f"WebSearch L1 failed (non-fatal): {e}")
 
         # Buscar Speaker
         speaker = self._find_subagent("speaker")
@@ -438,7 +531,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
             response = f"Recibido. {user_input[:50]}..."
             return response, self._register_acd_mutation(
                 CognitiveLevel.L1_FAST, user_input, response, classification
-            )
+            ), None
 
         # === Cognitive Prefetch Layer (CPL) — Sprint 5 OPT ===
         # Pre-cargar modelo/contexto ANTES de llamar al Speaker
@@ -470,20 +563,9 @@ class CognitiveLoopV5(CognitiveLoopV4):
                         CognitiveLevel.L1_FAST, user_input, response, classification,
                         metadata_extra={"cpl": "pattern_shortcut"} if cpl_result else None
                     )
-                    return response, trajectory_hash
+                    return response, trajectory_hash, None
             except Exception as e:
                 logger.debug(f"CPL L1 prefetch failed (non-fatal): {e}")
-
-        # Sprint 5.22: Web search si la pregunta requiere información externa
-        web_results = []
-        if self._web_search and self._web_search.should_use_search(user_input):
-            try:
-                search_results = await self._web_search.search(user_input)
-                if search_results:
-                    web_results = [f"{r.title}: {r.url}" for r in search_results[:3]]
-                    logger.info(f"L1: Web search returned {len(search_results)} results")
-            except Exception as e:
-                logger.debug(f"Web search failed (non-fatal): {e}")
 
         # Generar respuesta
         try:
@@ -496,7 +578,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 "surprise": 0.2,
                 "acd_level": "L1_FAST",
                 "relevant_memories": memories,
-                "web_search_results": web_results,
+                "web_results": web_results,
             }
             # Inyectar system prompt del idioma si está disponible
             if self._current_system_prompt:
@@ -514,6 +596,9 @@ class CognitiveLoopV5(CognitiveLoopV4):
             response = f"Recibido. Procesando: {user_input[:50]}..."
 
         # === MentorAgent — evaluar pensamiento generado ===
+        # Sprint 5.23 F1-8: capturar intervention para retornarla al caller
+        # y que el dashboard la muestre al usuario.
+        _mentor_intervention_data: Optional[Dict[str, Any]] = None
         if self._mentor is not None:
             try:
                 mentor_intervention = self._mentor.evaluate_thought(response)
@@ -522,6 +607,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
                         f"Mentor L1: {mentor_intervention.get('type', 'unknown')} — "
                         f"{mentor_intervention.get('message', '')[:80]}"
                     )
+                    _mentor_intervention_data = mentor_intervention
                     # Si la intervención es crítica, adjuntar warning al log
                     if mentor_intervention.get("severity") == "critical":
                         logger.warning(f"Mentor CRITICAL L1: pensamiento desviado")
@@ -531,11 +617,11 @@ class CognitiveLoopV5(CognitiveLoopV4):
         trajectory_hash = self._register_acd_mutation(
             CognitiveLevel.L1_FAST, user_input, response, classification
         )
-        return response, trajectory_hash
+        return response, trajectory_hash, _mentor_intervention_data
 
     async def _process_l2(
         self, user_input: str, classification: ClassificationResult
-    ) -> tuple[str, Optional[str]]:
+    ) -> tuple[str, Optional[str], Optional[Dict[str, Any]]]:
         """
         L2 STANDARD — pipeline Fase 0 completo.
 
@@ -557,7 +643,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
             response = f"Procesando tu mensaje: {user_input[:50]}..."
             return response, self._register_acd_mutation(
                 CognitiveLevel.L2_STANDARD, user_input, response, classification
-            )
+            ), None
 
         # === Cognitive Prefetch Layer (CPL) — Sprint 5 OPT ===
         cpl_result = None
@@ -572,6 +658,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 if cpl_result and getattr(cpl_result, "pattern_response", None):
                     response = cpl_result.pattern_response
                     logger.debug(f"L2: CPL pattern shortcut used")
+                    _mi: Optional[Dict[str, Any]] = None
                     if self._mentor is not None:
                         try:
                             mentor_intervention = self._mentor.evaluate_thought(response)
@@ -580,13 +667,14 @@ class CognitiveLoopV5(CognitiveLoopV4):
                                     f"Mentor L2: {mentor_intervention.get('type', 'unknown')} — "
                                     f"{mentor_intervention.get('message', '')[:80]}"
                                 )
+                                _mi = mentor_intervention
                         except Exception as me:
                             logger.debug(f"Mentor L2 evaluation failed: {me}")
                     trajectory_hash = self._register_acd_mutation(
                         CognitiveLevel.L2_STANDARD, user_input, response, classification,
                         metadata_extra={"cpl": "pattern_shortcut"} if cpl_result else None
                     )
-                    return response, trajectory_hash
+                    return response, trajectory_hash, _mi
             except Exception as e:
                 logger.debug(f"CPL L2 prefetch failed (non-fatal): {e}")
 
@@ -632,15 +720,28 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 response = f"Procesando: {user_input[:50]}..."
 
             # Critic evalúa (1 LLM call opcional)
+            # Sprint 5.23 F1-5 (BUG-022 fix): pasar ``used_memory_ids`` en
+            # el context para que ``Critic.evaluate`` pueda comprobar
+            # cuarentena. Antes el context no llevaba este campo y la
+            # comprobación era no-op.
             critic = self._find_subagent("critic")
             if critic and hasattr(critic, "generate_thought"):
                 try:
+                    # IDs de memorias relevantes usadas para responder
+                    used_memory_ids = []
+                    if hasattr(self, 'memory') and self.memory:
+                        try:
+                            relevant = self.memory.search(user_input, n=5)
+                            used_memory_ids = [m.id for m in relevant if hasattr(m, 'id')]
+                        except Exception:
+                            pass
                     critique = await critic.generate_thought({
                         "action": "critique",
                         "recent_observations": [{"source": "user", "content": user_input}],
                         "recent_thoughts": [{"content": response, "surprise": 0.3, "trigger": "respond_to_user"}],
                         "state": self.state.to_dict() if self.state else {},
                         "surprise": 0.3,
+                        "used_memory_ids": used_memory_ids,
                     })
                     # Si la crítica es muy negativa, regenerar
                     if critique and ("inadecuada" in critique.lower() or "incorrect" in critique.lower()):
@@ -653,6 +754,8 @@ class CognitiveLoopV5(CognitiveLoopV4):
             response = f"Procesando tu mensaje. {user_input[:30]}..."
 
         # === MentorAgent — evaluar pensamiento generado ===
+        # Sprint 5.23 F1-8: capturar intervention para retornarla al caller.
+        _mentor_intervention_data_l2: Optional[Dict[str, Any]] = None
         if self._mentor is not None:
             try:
                 mentor_intervention = self._mentor.evaluate_thought(response)
@@ -661,6 +764,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
                         f"Mentor L2: {mentor_intervention.get('type', 'unknown')} — "
                         f"{mentor_intervention.get('message', '')[:80]}"
                     )
+                    _mentor_intervention_data_l2 = mentor_intervention
                     if mentor_intervention.get("severity") == "critical":
                         logger.warning(f"Mentor CRITICAL L2: pensamiento desviado")
             except Exception as me:
@@ -669,7 +773,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
         trajectory_hash = self._register_acd_mutation(
             CognitiveLevel.L2_STANDARD, user_input, response, classification
         )
-        return response, trajectory_hash
+        return response, trajectory_hash, _mentor_intervention_data_l2
 
     async def _process_l3(
         self, user_input: str, classification: ClassificationResult
@@ -856,9 +960,30 @@ class CognitiveLoopV5(CognitiveLoopV4):
         return self._find_subagent("speaker")
 
     def get_router_stats(self) -> Dict[str, Any]:
-        """Sprint 5.7 — estadísticas del ModelProfileRouter."""
+        """Sprint 5.7 — estadísticas del ModelProfileRouter.
+
+        Sprint 5.23 F3-1: ``enabled`` ahora también es True cuando hay
+        ACD cloud routing activo (i.e., cuando hay un Speaker con LLM
+        cloud configurado, aunque ``model_profile_router`` sea None).
+        """
+        # Sprint 5.23: detectar cloud routing
+        cloud_routing_active = False
+        speaker = self._find_speaker() if hasattr(self, "_find_speaker") else None
+        if speaker:
+            llm_attr = getattr(speaker, "llm", None) or getattr(speaker, "llm_peripheral", None)
+            if llm_attr:
+                backend_name = type(llm_attr).__name__
+                if backend_name in (
+                    "AnthropicPeripheral",
+                    "OpenAICompatiblePeripheral",
+                    "OpenAIPeripheral",
+                ):
+                    cloud_routing_active = True
         return {
-            "enabled": self.model_profile_router is not None,
+            "enabled": self.model_profile_router is not None or cloud_routing_active,
+            "mode": "ollama_profile" if self.model_profile_router else (
+                "cloud" if cloud_routing_active else "disabled"
+            ),
             "swaps": self._router_swaps,
             "skips": self._router_skips,
             "last_routed_tag": self._last_routed_tag,

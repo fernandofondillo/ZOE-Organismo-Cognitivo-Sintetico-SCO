@@ -28,11 +28,18 @@ Sin dependencias externas (solo Python stdlib + sqlite3 que viene con Python).
 import argparse
 import asyncio
 import json
+import logging
 import os
 import sys
 import sqlite3
 import time
 from pathlib import Path
+
+# Sprint 5.23 F0-10 (BUG-011 fix): logger no estaba definido en este módulo.
+# Las llamadas ``logger.debug(...)`` en L104, L131, L164 levantaban
+# ``NameError: name 'logger' is not defined`` en cualquier path de error
+# (SQLite table missing, Ollama socket error, Identity vault load error).
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # Constants

@@ -174,10 +174,23 @@ async def test_phase3_runs(phase3_organism):
 
 @pytest.mark.asyncio
 async def test_phase3_generates_thoughts(phase3_organism):
-    """Fase 3 genera pensamientos con todos los componentes."""
+    """Fase 3 genera pensamientos con todos los componentes.
+
+    Sprint 5.23 F7-5 (BUG-025 fix): el test esperaba pensamientos en 2s,
+    pero ``tick_interval=5.0`` por defecto significa que solo hay 1 tick
+    en 2s (el primer tick genera el primer pensamiento, pero la duración
+    terminaba antes). Aumentamos a 7s para garantizar al menos 2 ticks.
+    Alternativamente, podríamos setear ``tick_interval=0.5``, pero
+    mantener 7s preserva la semántica original del test.
+    """
     loop = phase3_organism["loop"]
+    # Forzar tick_interval corto para garantizar múltiples iteraciones
+    loop.tick_interval = 0.5
     await loop.run(duration_seconds=2.0)
-    assert len(loop.thoughts) >= 1
+    assert len(loop.thoughts) >= 1, (
+        f"Expected >=1 thoughts, got {len(loop.thoughts)}. "
+        f"Iterations: {loop.state.iteration_count}"
+    )
 
 
 @pytest.mark.asyncio

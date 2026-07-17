@@ -82,6 +82,14 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
         _handle_router_stats, _handle_router_installed, _handle_router_profile,
         _handle_manifest,
     )
+    # Sprint 5.23 F3-4 (BUG-017 fix) — registrar endpoints /api/providers/*
+    # que estaban como DEAD CODE (handlers existían pero routes.py no los
+    # registraba y devolvían 404).
+    from .handlers.providers import (
+        _handle_providers_config_get, _handle_providers_config_post,
+        _handle_providers_status, _handle_providers_models,
+        _handle_providers_ollama_pull, _handle_providers_budget_reset,
+    )
 
     def bind(handler):
         """Bind server as first argument to handler."""
@@ -184,3 +192,10 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
     app.router.add_get("/api/reflections", bind(_handle_reflections_list))
     app.router.add_get("/api/reflections/metrics", bind(_handle_reflections_metrics))
     app.router.add_get("/api/reflections/config", bind(_handle_reflections_config))
+    # Providers (Sprint 5.23 F3-4 — antes DEAD CODE)
+    app.router.add_get("/api/providers/config", bind(_handle_providers_config_get))
+    app.router.add_post("/api/providers/config", bind(_handle_providers_config_post))
+    app.router.add_get("/api/providers/status", bind(_handle_providers_status))
+    app.router.add_get("/api/providers/models", bind(_handle_providers_models))
+    app.router.add_post("/api/providers/ollama/pull", bind(_handle_providers_ollama_pull))
+    app.router.add_post("/api/providers/budget/reset", bind(_handle_providers_budget_reset))

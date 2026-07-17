@@ -413,6 +413,11 @@ class ZoeChat:
         loop.emotional_motor = next((s for s in all_subagents if s.__class__.__name__ == 'EmotionalMotor'), None)
         loop.ethical_motor = next((s for s in all_subagents if s.__class__.__name__ == 'EthicalMotor'), None)
         loop.scientific_engine = next((s for s in all_subagents if s.__class__.__name__ == 'ScientificEngine'), None)
+        # Sprint 5.23 F0-3 (BUG-023 fix): exponer speaker en el loop para que
+        # CapsuleManager._inject pueda registrar validators y prompts
+        # especializados de cápsulas. Antes estos se silenciaban por
+        # ``hasattr(self.organism, 'speaker') == False``.
+        loop.speaker = next((s for s in all_subagents if s.__class__.__name__ == 'Speaker'), None)
         self.capsule_manager = CapsuleManager(
             organism=loop,
             epistemic_validator=self.epistemic_validator,
@@ -471,6 +476,7 @@ class ZoeChat:
                 memory=memory,
                 mentor=self.mentor,
                 quarantine=self.knowledge_quarantine,
+                storage=storage_backend,
             )
             # Conectar al metabolism — cuando ZOE duerme, se dispara la reflexion
             metabolism.attach_reflection_hook(self.reflection_engine)

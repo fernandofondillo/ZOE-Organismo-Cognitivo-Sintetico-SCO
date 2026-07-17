@@ -245,8 +245,19 @@ class TestModelDownloaderCLI:
     """Sprint 5.7 — ModelDownloader expone los 4 setups preseleccionados."""
 
     def test_setup_presets_tiene_4_setups(self):
+        """Sprint 5.23 F7-4 (BUG-024 fix): el test stale esperaba exactamente
+        4 presets, pero ``SETUP_PRESETS`` ahora tiene 6 (se añadieron
+        ``reflection`` y ``reflection-16gb``). Cambiamos la aserción a
+        ``>= 4`` para que sea robusto a futuras adiciones."""
         from zoe.core.model_downloader import SETUP_PRESETS
-        assert set(SETUP_PRESETS.keys()) == {"minimal", "balanced", "complete", "maximum"}
+        # Los 4 originales siempre deben estar presentes
+        required = {"minimal", "balanced", "complete", "maximum"}
+        assert required.issubset(set(SETUP_PRESETS.keys())), (
+            f"Faltan presets básicos. Tenidos: {set(SETUP_PRESETS.keys())}"
+        )
+        # Sprint 5.7+ añadió reflection y reflection-16gb
+        assert "reflection" in SETUP_PRESETS
+        assert "reflection-16gb" in SETUP_PRESETS
 
     def test_setup_maximum_tiene_4_modelos(self):
         from zoe.core.model_downloader import SETUP_PRESETS

@@ -14,6 +14,7 @@ import asyncio
 import logging
 import os
 import secrets
+import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Set
 
@@ -187,17 +188,40 @@ class DashboardServer:
             await self._broadcast_state()
 
             # Pensamientos nuevos
+            # Sprint 5.23 F0-9 (BUG-009 fix): ``_thoughts_while_idle`` puede
+            # contener mezcla de ``Thought`` dataclass y ``dict`` (mentor
+            # interventions de cli_chat.on_thought L561). Antes este bucle
+            # accedía ``thought.content`` que rompe con dict → AttributeError
+            # silenciada por aiohttp. Ahora filtramos por tipo y usamos
+            # acceso seguro.
             thoughts = self.chat._thoughts_while_idle
             if len(thoughts) > 0:
-                for thought in thoughts:
-                    await self._broadcast_to_all({
-                        "type": "autonomous_thought",
-                        "content": thought.content,
-                        "trigger": thought.trigger,
-                        "surprise": thought.surprise,
-                        "system": thought.metadata.get("system", "system1"),
-                        "timestamp": thought.timestamp,
-                    })
+                # Snapshot para evitar race con on_thought añadiendo nuevos
+                snapshot = list(thoughts)
+                for thought in snapshot:
+                    try:
+                        if isinstance(thought, dict):
+                            # Mentor intervention (dict shape)
+                            await self._broadcast_to_all({
+                                "type": "mentor_intervention",
+                                "content": str(thought.get("intervention", thought.get("content", ""))),
+                                "trigger": thought.get("trigger", "mentor"),
+                                "surprise": 0.0,
+                                "system": "mentor",
+                                "timestamp": thought.get("timestamp", time.time()),
+                            })
+                        elif hasattr(thought, "content"):
+                            # Thought dataclass
+                            await self._broadcast_to_all({
+                                "type": "autonomous_thought",
+                                "content": thought.content,
+                                "trigger": getattr(thought, "trigger", ""),
+                                "surprise": getattr(thought, "surprise", 0.0),
+                                "system": thought.metadata.get("system", "system1") if hasattr(thought, "metadata") else "system1",
+                                "timestamp": getattr(thought, "timestamp", time.time()),
+                            })
+                    except Exception as e:
+                        logger.warning(f"_broadcast_loop thought skipped: {e}")
                 self.chat._thoughts_while_idle.clear()
 
 

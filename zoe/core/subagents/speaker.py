@@ -196,21 +196,21 @@ class Speaker:
         surprise = context.get("surprise", 0.0)
         parts.append(f"Sorpresa actual: {surprise:.3f}")
 
-        # Sprint 5.21 — Incluir memorias relevantes en el prompt
+        # Sprint 5.21+5.23 — Memorias relevantes (recuperadas por similitud)
         relevant_memories = context.get("relevant_memories", [])
         if relevant_memories:
-            parts.append("\nMemorias relevantes de conversaciones anteriores:")
-            for mem in relevant_memories:
-                parts.append(f"  - {mem}")
-            parts.append("(USA estas memorias para responder. Si el usuario te dijo su nombre, úsalo.)")
+            parts.append("Memorias relevantes (recuerda este contexto):")
+            for mem in relevant_memories[:5]:
+                # Cada memoria truncada a 300 chars para no exceder contexto
+                mem_text = str(mem)[:300]
+                parts.append(f"  - {mem_text}")
 
-        # Sprint 5.22 — Incluir resultados de búsqueda web si los hay
-        web_results = context.get("web_search_results", [])
+        # Sprint 5.23 F0-5 — Resultados de búsqueda web
+        web_results = context.get("web_results", [])
         if web_results:
-            parts.append("\nResultados de búsqueda web:")
-            for wr in web_results:
-                parts.append(f"  - {wr}")
-            parts.append("(USA esta información si es relevante para responder.)")
+            parts.append("Resultados de búsqueda web (usa esta información si es relevante):")
+            for wr in web_results[:5]:
+                parts.append(f"  - {str(wr)[:200]}")
 
         # Pensamientos recientes (para evitar repetición)
         recent_thoughts = context.get("recent_thoughts", [])
@@ -226,10 +226,7 @@ class Speaker:
             user_content = decision.get("user_content", "")
             if user_content:
                 parts.append(f"\nMensaje del usuario: {user_content}")
-                parts.append("Responde al usuario. Eres Zoe, no un asistente.")
-                parts.append("Si tienes memorias relevantes sobre el usuario, ÚSALAS.")
-                parts.append("Si el usuario te dijo su nombre, úsalo. Si te dijo datos personales, úsalos.")
-                parts.append("Responde en 1-5 frases. Directo, honesto, con personalidad propia.")
+                parts.append("Responde al usuario.")
 
         parts.append("\nGenera UN pensamiento breve (1-3 frases):")
 

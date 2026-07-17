@@ -108,6 +108,21 @@ class CognitiveLoopV3(CognitiveLoopV05):
         else:
             surprise = await self._evaluate(prediction, observations)
 
+        # Sprint 5.23 F1-10 (BUG-026 fix): ``Forecaster.update`` jamás se
+        # invocaba, así que ``Forecaster._last_prediction`` siempre era None
+        # y ``generate_thought`` siempre devolvía templates "no history".
+        # Ahora sí se le alimenta la predicción y la sorpresa.
+        forecaster = None
+        for agent in self.subagents:
+            if agent.__class__.__name__ == "Forecaster":
+                forecaster = agent
+                break
+        if forecaster is not None and hasattr(forecaster, "update"):
+            try:
+                forecaster.update(prediction, surprise)
+            except Exception as fe:
+                logger.debug(f"Forecaster.update failed (non-fatal): {fe}")
+
         # 4. UPDATE COGNITIVE FIELDS (Fase 0.5)
         self._update_fields(observations, surprise)
 
@@ -242,8 +257,14 @@ class CognitiveLoopV3(CognitiveLoopV05):
         }
 
         # Pedir a cada sub-agente que proponga
+        # Sprint 5.23 F1-11 (BUG-027 fix): ``Critic.generate_thought`` siempre
+        # retorna ``""`` (es un evaluador, no un generador). Invocarlo en
+        # ``_collect_proposals`` desperdicia un ciclo y ensucia el log.
+        # Lo excluimos explícitamente del loop de propuestas.
         for agent in self.subagents:
             try:
+                if agent.__class__.__name__ == "Critic":
+                    continue
                 if hasattr(agent, "generate_thought"):
                     content = await agent.generate_thought(context)
                     if content and len(content) > 5:
@@ -265,7 +286,6 @@ class CognitiveLoopV3(CognitiveLoopV05):
 
                         proposals.append(Proposal(
                             subagent_name=agent.__class__.__name__,
-                            action="think",
                             content=content,
                             relevance=relevance,
                             urgency=urgency,

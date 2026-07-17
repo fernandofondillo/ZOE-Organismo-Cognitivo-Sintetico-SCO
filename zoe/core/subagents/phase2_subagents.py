@@ -419,6 +419,9 @@ class CausalEngine:
 
     def __init__(self):
         self._causal_chains: List[Dict[str, str]] = []
+        # Sprint 5.23 F0-4 (BUG-004 fix): modelos causales pre-validados
+        # inyectados por CapsuleManager desde cápsulas.
+        self._prevalidated_models: List[Dict[str, Any]] = []
 
     def add_causal_link(self, cause: str, effect: str, confidence: float = 0.5) -> None:
         """Registra una relación causal."""
@@ -430,6 +433,31 @@ class CausalEngine:
         })
         if len(self._causal_chains) > 100:
             self._causal_chains = self._causal_chains[-50:]
+
+    def add_prevalidated_model(self, model: Dict[str, Any]) -> None:
+        """
+        Inyecta un modelo causal pre-validado desde una cápsula.
+
+        Sprint 5.23 F0-4 (BUG-004 fix): CapsuleManager._inject
+        esperaba este método vía ``hasattr(self.organism.causal_engine,
+        'add_prevalidated_model')`` pero no existía. Ahora sí.
+        """
+        if not isinstance(model, dict):
+            return
+        self._prevalidated_models.append({
+            "cause": model.get("cause", ""),
+            "effect": model.get("effect", ""),
+            "confidence": model.get("confidence", 0.7),
+            "provenance": model.get("provenance", "capsule"),
+            "timestamp": time.time(),
+        })
+        # Mantener las últimas 100 entradas
+        if len(self._prevalidated_models) > 100:
+            self._prevalidated_models = self._prevalidated_models[-100:]
+        logger.debug(
+            "CausalEngine: prevalidated model added (%d total)",
+            len(self._prevalidated_models),
+        )
 
     async def generate_thought(self, context: Dict[str, Any]) -> str:
         """Genera pensamiento causal."""
@@ -453,6 +481,9 @@ class EmotionalMotor:
 
     def __init__(self):
         self._markers: List[Dict[str, Any]] = []
+        # Sprint 5.23 F0-4 (BUG-004 fix): patrones emocionales
+        # inyectados por CapsuleManager desde cápsulas.
+        self._patterns: List[Dict[str, Any]] = []
 
     def generate_marker(self, marker_type: str, intensity: float, trigger: str) -> Dict[str, Any]:
         """Genera un marcador emocional funcional."""
@@ -466,6 +497,31 @@ class EmotionalMotor:
         if len(self._markers) > 50:
             self._markers = self._markers[-30:]
         return marker
+
+    def add_pattern(self, pattern: Dict[str, Any]) -> None:
+        """
+        Inyecta un patrón emocional desde una cápsula.
+
+        Sprint 5.23 F0-4 (BUG-004 fix): CapsuleManager._inject
+        esperaba este método vía ``hasattr(self.organism.emotional_motor,
+        'add_pattern')`` pero no existía. Ahora sí.
+        """
+        if not isinstance(pattern, dict):
+            return
+        self._patterns.append({
+            "type": pattern.get("type", "general"),
+            "trigger": pattern.get("trigger", ""),
+            "response": pattern.get("response", ""),
+            "intensity": pattern.get("intensity", 0.5),
+            "provenance": pattern.get("provenance", "capsule"),
+            "timestamp": time.time(),
+        })
+        if len(self._patterns) > 100:
+            self._patterns = self._patterns[-100:]
+        logger.debug(
+            "EmotionalMotor: pattern added (%d total)",
+            len(self._patterns),
+        )
 
     async def generate_thought(self, context: Dict[str, Any]) -> str:
         """Genera pensamiento desde el motor emocional."""
@@ -504,6 +560,33 @@ class EthicalMotor:
 
     def __init__(self):
         self._evaluations: List[Dict[str, Any]] = []
+        # Sprint 5.23 F0-4 (BUG-004 fix): directrices éticas
+        # inyectadas por CapsuleManager desde cápsulas.
+        self._guidelines: List[Dict[str, Any]] = []
+
+    def add_guideline(self, guideline: Dict[str, Any]) -> None:
+        """
+        Inyecta una directriz ética desde una cápsula.
+
+        Sprint 5.23 F0-4 (BUG-004 fix): CapsuleManager._inject
+        esperaba este método vía ``hasattr(self.organism.ethical_motor,
+        'add_guideline')`` pero no existía. Ahora sí.
+        """
+        if not isinstance(guideline, dict):
+            return
+        self._guidelines.append({
+            "rule": guideline.get("rule", guideline.get("guideline", "")),
+            "domain": guideline.get("domain", "general"),
+            "priority": guideline.get("priority", 0.5),
+            "provenance": guideline.get("provenance", "capsule"),
+            "timestamp": time.time(),
+        })
+        if len(self._guidelines) > 100:
+            self._guidelines = self._guidelines[-100:]
+        logger.debug(
+            "EthicalMotor: guideline added (%d total)",
+            len(self._guidelines),
+        )
 
     def evaluate_action(self, action: Dict[str, Any]) -> Dict[str, Any]:
         """Evalúa una acción contra los 7 valores."""

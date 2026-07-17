@@ -251,20 +251,37 @@ class ZoePackager:
         return ZoePackageManifest()
 
     def _count_memory_entries(self, db_path: str) -> int:
-        """Cuenta entries en SQLite."""
+        """
+        Cuenta entries en SQLite.
+
+        Sprint 5.23 F0-8 (BUG-010 fix): ``PersistentMemoryStore`` usa una
+        SOLA tabla ``memory_entries`` con columna ``type`` (no 11 tablas
+        separadas). La versión anterior iteraba 11 nombres de tablas
+        inexistentes y siempre retornaba 0.
+        """
         try:
             import sqlite3
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             total = 0
-            for table in ["episodic", "semantic", "procedural", "causal",
-                          "emotional", "corporeal", "social", "prospective",
-                          "counterfactual", "evolutionary", "cultural"]:
-                try:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
-                    total += cursor.fetchone()[0]
-                except sqlite3.Error as e:
-                    logger.debug(f"SQLite table {table} query failed: {e}")
+            # Esquema real: 1 tabla memory_entries con columna type
+            try:
+                cursor.execute("SELECT COUNT(*) FROM memory_entries")
+                row = cursor.fetchone()
+                if row:
+                    total = int(row[0])
+            except sqlite3.Error as e:
+                logger.debug(f"SQLite memory_entries query failed: {e}")
+                # Fallback: intentar esquema legacy (11 tablas separadas)
+                # por si la DB fue creada por una versión vieja.
+                for table in ["episodic", "semantic", "procedural", "causal",
+                              "emotional", "corporeal", "social", "prospective",
+                              "counterfactual", "evolutionary", "cultural"]:
+                    try:
+                        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                        total += cursor.fetchone()[0]
+                    except sqlite3.Error:
+                        pass
             conn.close()
             return total
         except sqlite3.Error as e:

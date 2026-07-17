@@ -671,7 +671,11 @@ class VoiceFirstMode:
             )
 
             # Monitorear interrupción mientras reproduce
-            if self.config.enable_interrupción:
+            # Sprint 5.23 F0-6 (BUG-007 fix): corregido typo ``enable_interrupción``
+            # (con acento) → ``enable_interruption``. El typo causaba AttributeError
+            # silenciada por ``except Exception`` en L694, dejando la feature
+            # de interrumpir a ZOE mientras habla completamente muerta.
+            if self.config.enable_interruption:
                 self._interruption.start_monitoring()
                 # Monitorear en paralelo
                 monitor_task = asyncio.create_task(self._monitor_during_playback())
