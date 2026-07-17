@@ -17,7 +17,7 @@ def _get_dashboard_html() -> str:
 <title>ZOE v2.1.2 -- Synthetic Cognitive Organism</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; overflow: hidden; }
+body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; overflow-y: auto; }
 
 /* Top bar */
 .topbar { display: flex; align-items: center; padding: 8px 16px; background: #12121a; border-bottom: 1px solid #2a2a3a; gap: 16px; }

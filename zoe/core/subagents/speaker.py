@@ -219,7 +219,10 @@ class Speaker:
             user_content = decision.get("user_content", "")
             if user_content:
                 parts.append(f"\nMensaje del usuario: {user_content}")
-                parts.append("Responde al usuario.")
+                parts.append("Responde al usuario. Eres Zoe, no un asistente.")
+                parts.append("Si tienes memorias relevantes sobre el usuario, ÚSALAS.")
+                parts.append("Si el usuario te dijo su nombre, úsalo. Si te dijo datos personales, úsalos.")
+                parts.append("Responde en 1-5 frases. Directo, honesto, con personalidad propia.")
 
         parts.append("\nGenera UN pensamiento breve (1-3 frases):")
 

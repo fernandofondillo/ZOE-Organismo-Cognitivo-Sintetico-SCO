@@ -115,7 +115,7 @@ class ZoeChat:
         from .memory.memory_types import MemoryType
         from .memory.persistent_store import PersistentMemoryStore, PersistentLivingMemory
         from .memory.deep_consolidation import DeepConsolidation
-        from .peripherals.senses import ClockSense, UserInputSense
+        from .peripherals.senses import ClockSense, UserInputSense, FilesystemSense
         from .peripherals.actuators import LanguageActuator, ActuatorManager
         from .peripherals.llm import create_llm_peripheral, MockPeripheral
 
@@ -161,7 +161,9 @@ class ZoeChat:
         # Componentes
         state = InternalState()
         world_model = WorldModel()
-        senses = [ClockSense(), UserInputSense()]
+        # Sprint 5.21: Añadir FilesystemSense para que ZOE explore su entorno
+        _zoe_data_dir = os.path.dirname(self.db_path) if self.db_path else "."
+        senses = [ClockSense(), UserInputSense(), FilesystemSense(watch_dir=_zoe_data_dir, interval=30.0)]
         speaker = Speaker(llm_peripheral=self.llm)
         subagents_f0 = [Perceiver(), Forecaster(world_model), speaker, Critic()]
 
