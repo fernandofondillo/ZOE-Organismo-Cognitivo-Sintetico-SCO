@@ -169,7 +169,7 @@ body { background: #0a0a0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 <body>
 
 <div class="topbar">
-  <span class="logo">&#129655; ZOE v1.0</span>
+  <span class="logo">&#129655; ZOE <span id="zoe-version" style="font-size:12px;color:#6a6a7a;">v2.1.2</span></span>
   <select class="llm-select" id="llmSelect" onchange="switchLLM()">
     <option value="mock">Mock</option>
     <option value="ollama">Ollama (Qwen 2.5 3B)</option>
@@ -959,6 +959,14 @@ async function uploadUseCaseToMarketplace() {
 connectWS();
 // Set initial LLM select
 document.getElementById('llmSelect').value = 'mock';
+// Sprint 5.28: cargar versión dinámica
+fetch('/api/version').then(r=>r.json()).then(d=>{
+  const el = document.getElementById('zoe-version');
+  if (el && d.version) {
+    el.textContent = `v${d.version} · Sprint ${d.sprint}`;
+    el.title = `Commit: ${d.commit} | Backend: ${d.backend} | Model: ${d.model}`;
+  }
+}).catch(()=>{});
 </script>
 
 <!-- Modal Capsulas (Fase 6A) -->

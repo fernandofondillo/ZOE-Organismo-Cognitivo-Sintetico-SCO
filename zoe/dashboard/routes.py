@@ -199,3 +199,6 @@ def register_routes(app: web.Application, server: "DashboardServer") -> None:
     app.router.add_get("/api/providers/models", bind(_handle_providers_models))
     app.router.add_post("/api/providers/ollama/pull", bind(_handle_providers_ollama_pull))
     app.router.add_post("/api/providers/budget/reset", bind(_handle_providers_budget_reset))
+    # Sprint 5.28: endpoint de versión
+    from .handlers.version import _handle_version
+    app.router.add_get("/api/version", bind(_handle_version))

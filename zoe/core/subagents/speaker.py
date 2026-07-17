@@ -136,14 +136,49 @@ class Speaker:
         return dict(self._validators)
 
     async def generate_thought(self, context: Dict[str, Any]) -> str:
-        """Genera pensamiento según el contexto y acción decidida."""
+        """Genera pensamiento según el contexto y acción decidida.
+
+        Sprint 5.28: usa CognitiveStateBuilder para construir el estado
+        cognitivo completo que se pasa al LLM. El system_prompt es ahora
+        BASE_PROMPT (permanente), y el estado dinámico se inyecta en el
+        prompt de usuario.
+        """
         action = context.get("action", "autonomous_thought")
 
-        # Seleccionar prompt del sistema
-        system_prompt = SYSTEM_PROMPTS.get(action, SYSTEM_PROMPTS["autonomous_thought"])
+        # Sprint 5.28: usar BASE_PROMPT permanente + estado cognitivo dinámico
+        try:
+            from ..core.cognitive_state import (
+                BASE_PROMPT,
+                CognitiveStateBuilder,
+                ThoughtTypeSelector,
+            )
+            # Construir estado cognitivo
+            builder = CognitiveStateBuilder(
+                identity_vault=getattr(self, '_identity_vault', None),
+                metabolism=getattr(self, '_metabolism', None),
+                memory=context.get("memory"),
+                trajectory_chain=getattr(self, '_trajectory_chain', None),
+                world_model=getattr(self, '_world_model', None),
+                action_executor=getattr(self, '_action_executor', None),
+            )
+            # Añadir reasoning_mode al contexto
+            context_with_mode = {**context}
+            context_with_mode["reasoning_mode"] = action
+            # Si es autonomous_thought, seleccionar tipo
+            if action == "autonomous_thought":
+                selector = ThoughtTypeSelector()
+                thought_type = context.get("thought_type") or selector.select(context)
+                context_with_mode["thought_type"] = thought_type
 
-        # Construir prompt con contexto
-        prompt = self._build_prompt(context, action)
+            cognitive_state = builder.build(context_with_mode)
+
+            system_prompt = BASE_PROMPT
+            prompt = cognitive_state
+        except Exception as e:
+            logger.debug(f"CognitiveStateBuilder failed, falling back to legacy: {e}")
+            # Fallback al método legacy
+            system_prompt = SYSTEM_PROMPTS.get(action, SYSTEM_PROMPTS["autonomous_thought"])
+            prompt = self._build_prompt(context, action)
 
         if not self.llm:
             # Sin LLM, generar pensamiento simple basado en plantillas

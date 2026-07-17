@@ -190,6 +190,14 @@ class ZoeChat:
             except Exception as _fs_err:
                 print(f"  ⚠️  FilesystemSense no se pudo activar: {_fs_err}")
         speaker = Speaker(llm_peripheral=self.llm)
+        # Sprint 5.28: cablear referencias al CognitiveStateBuilder
+        # para que el Speaker pueda construir el estado cognitivo completo
+        # (identidad, metabolismo, memoria, trayectoria, world model)
+        speaker._identity_vault = None  # se setea después de cargar vault
+        speaker._metabolism = None      # se setea después de crear metabolism
+        speaker._trajectory_chain = None
+        speaker._world_model = world_model
+        speaker._action_executor = None
         subagents_f0 = [Perceiver(), Forecaster(world_model), speaker, Critic()]
 
         laws = CognitiveLaws()
@@ -443,6 +451,14 @@ class ZoeChat:
         loop.emotional_motor = next((s for s in all_subagents if s.__class__.__name__ == 'EmotionalMotor'), None)
         loop.ethical_motor = next((s for s in all_subagents if s.__class__.__name__ == 'EthicalMotor'), None)
         loop.scientific_engine = next((s for s in all_subagents if s.__class__.__name__ == 'ScientificEngine'), None)
+        # Sprint 5.28: cablear CognitiveStateBuilder en Speaker
+        loop.speaker = next((s for s in all_subagents if s.__class__.__name__ == 'Speaker'), None)
+        if loop.speaker:
+            loop.speaker._identity_vault = vault
+            loop.speaker._metabolism = metabolism
+            loop.speaker._trajectory_chain = chain
+            loop.speaker._world_model = world_model
+            loop.speaker._action_executor = getattr(self, '_action_executor', None)
         self.capsule_manager = CapsuleManager(
             organism=loop,
             epistemic_validator=self.epistemic_validator,
@@ -472,6 +488,19 @@ class ZoeChat:
         self.mentor = MentorAgent()
         self.mentor.set_config_path(mentor_config_path)
         self.mentor.load_config()
+
+        # Sprint 5.28: ActionExecutor — detecta intenciones de acción en el
+        # input del usuario y las ejecuta (web_search, memory_save, etc.)
+        from .core.action_executor import ActionExecutor
+        self._action_executor = ActionExecutor(
+            web_search_actuator=getattr(loop, '_web_search', None),
+            memory=memory,
+            filesystem_sense=None,
+        )
+        # Cablear en Speaker para que CognitiveStateBuilder lo vea
+        if loop.speaker:
+            loop.speaker._action_executor = self._action_executor
+        print(f"  ✅ ActionExecutor activo — {len(self._action_executor.list_available_tools())} herramientas")
 
         # Sprint 5.13 B2 — Cablear ReflectionEngine en produccion.
         # Antes: ReflectionEngine solo existia en tests. La afirmacion del README
@@ -613,14 +642,32 @@ class ZoeChat:
         """
         Envía un mensaje y devuelve resultado completo con metadata ACD.
 
+        Sprint 5.28: antes de procesar con ACD, ActionExecutor detecta
+        si hay una intención de acción (investiga, busca, recuerda, etc.)
+        y la ejecuta. Los resultados se inyectan en el contexto del Speaker.
+
         Returns:
             Dict con: response, level, score, cache_hit, latency_ms, ...
         """
         if not self._initialized:
             return {"response": "ZOE no está inicializada.", "level": "NONE"}
 
+        # Sprint 5.28: ejecutar acción si se detecta intención
+        action_result = None
+        if self._action_executor:
+            try:
+                action_result = await self._action_executor.execute(message)
+                if action_result:
+                    logger.info(f"ActionExecutor: {action_result.get('action')} → {action_result.get('status')}")
+            except Exception as e:
+                logger.warning(f"ActionExecutor failed (non-fatal): {e}")
+
         if hasattr(self.loop, 'process_user_input_acd'):
-            return await self.loop.process_user_input_acd(message)
+            result = await self.loop.process_user_input_acd(message)
+            # Sprint 5.28: incluir resultado de acción en la respuesta
+            if action_result:
+                result["action_executed"] = action_result
+            return result
         # Fallback
         response = await self._send_message_legacy(message)
         return {"response": response, "level": "LEGACY"}
