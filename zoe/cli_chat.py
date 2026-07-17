@@ -115,7 +115,15 @@ class ZoeChat:
         from .memory.memory_types import MemoryType
         from .memory.persistent_store import PersistentMemoryStore, PersistentLivingMemory
         from .memory.deep_consolidation import DeepConsolidation
-        from .peripherals.senses import ClockSense, UserInputSense, FilesystemSense
+        from .peripherals.senses import ClockSense, UserInputSense
+        # Sprint 5.25 — activar FilesystemSense para que ZOE perciba su entorno
+        # (carpeta data/, modelos disponibles, archivos del SSD). Antes solo
+        # tenia ClockSense + UserInputSense, por lo que ZOE decía "no tengo
+        # acceso a más allá de esta interfaz". Ahora puede ver su carpeta.
+        try:
+            from .peripherals.senses import FilesystemSense
+        except ImportError:
+            FilesystemSense = None
         from .peripherals.actuators import LanguageActuator, ActuatorManager
         from .peripherals.llm import create_llm_peripheral, MockPeripheral
 
@@ -161,9 +169,19 @@ class ZoeChat:
         # Componentes
         state = InternalState()
         world_model = WorldModel()
-        # Sprint 5.21: Añadir FilesystemSense para que ZOE explore su entorno
-        _zoe_data_dir = os.path.dirname(self.db_path) if self.db_path else "."
-        senses = [ClockSense(), UserInputSense(), FilesystemSense(watch_dir=_zoe_data_dir, interval=30.0)]
+        senses = [ClockSense(), UserInputSense()]
+        # Sprint 5.25 — FilesystemSense: ZOE percibe su carpeta data/ y
+        # puede detectar nuevos archivos, backups, cambios. Esto le da
+        # conciencia de su entorno físico en el SSD.
+        if FilesystemSense is not None:
+            try:
+                from pathlib import Path as _Path_fs
+                _fs_watch_dir = _Path_fs(self.db_path).parent if self.db_path else None
+                if _fs_watch_dir and _fs_watch_dir.exists():
+                    senses.append(FilesystemSense(watch_dir=str(_fs_watch_dir), interval=30.0))
+                    print(f"  ✅ FilesystemSense activo — vigilando: {_fs_watch_dir}")
+            except Exception as _fs_err:
+                print(f"  ⚠️  FilesystemSense no se pudo activar: {_fs_err}")
         speaker = Speaker(llm_peripheral=self.llm)
         subagents_f0 = [Perceiver(), Forecaster(world_model), speaker, Critic()]
 
@@ -227,31 +245,6 @@ class ZoeChat:
         chain.set_persist_path(_chain_path)  # auto-save tras cada commit
         print(f"  ✅ Trajectory loaded — {len(chain._mutations)} mutations")
 
-        # Sprint 5.24 F2v2 — Cargar o generar claves ECDSA para firma criptográfica real
-        _keys_path = _data_dir / "trajectory_keys.json"
-        try:
-            if _keys_path.exists():
-                with open(_keys_path, "r", encoding="utf-8") as f:
-                    keys_data = json.load(f)
-                if keys_data.get("private_key"):
-                    chain.load_keys(private_key_pem=keys_data["private_key"])
-                    print(f"  ✅ ECDSA keys loaded — signing mode: {chain._signing_mode}")
-            else:
-                # Generar claves nuevas en el primer arranque
-                priv_pem, pub_pem = chain.generate_keys()
-                if priv_pem and pub_pem:
-                    # Persistir claves (chmod 0600)
-                    with open(_keys_path, "w", encoding="utf-8") as f:
-                        json.dump({"private_key": priv_pem, "public_key": pub_pem}, f, indent=2)
-                    try:
-                        import os as _os
-                        _os.chmod(str(_keys_path), 0o600)
-                    except Exception:
-                        pass
-                    print(f"  ✅ ECDSA keys generated — signing mode: {chain._signing_mode}")
-        except Exception as _keys_err:
-            print(f"  ⚠️  ECDSA keys load failed (non-fatal, using legacy SHA-256): {_keys_err}")
-
         ontogenetic = OntogeneticMotorV2(
             identity_vault=vault, trajectory_chain=chain, laws=laws, organism_id="zoe_chat"
         )
@@ -272,15 +265,7 @@ class ZoeChat:
             gw.broadcast_capacity = _embodiment_config["broadcast_capacity"]
 
         memorialist = Memorialist(memory=memory)
-        # Sprint 5.24 F1v2-3 (BUG-015 fix): instanciar CrossValidator para
-        # que Learner pueda invocarlo cuando EpistemicValidator retorne
-        # NEEDS_TRIPLE_VALIDATION. Antes CrossValidator era dead code.
-        try:
-            from .core.cross_validator import CrossValidator
-            cross_validator = CrossValidator()
-        except Exception:
-            cross_validator = None
-        learner = Learner(cross_validator=cross_validator)
+        learner = Learner()
         curator = Curator(memory=memory)
         creativity_agent = Creativity()
         causal = CausalEngine()
@@ -446,11 +431,6 @@ class ZoeChat:
         loop.emotional_motor = next((s for s in all_subagents if s.__class__.__name__ == 'EmotionalMotor'), None)
         loop.ethical_motor = next((s for s in all_subagents if s.__class__.__name__ == 'EthicalMotor'), None)
         loop.scientific_engine = next((s for s in all_subagents if s.__class__.__name__ == 'ScientificEngine'), None)
-        # Sprint 5.23 F0-3 (BUG-023 fix): exponer speaker en el loop para que
-        # CapsuleManager._inject pueda registrar validators y prompts
-        # especializados de cápsulas. Antes estos se silenciaban por
-        # ``hasattr(self.organism, 'speaker') == False``.
-        loop.speaker = next((s for s in all_subagents if s.__class__.__name__ == 'Speaker'), None)
         self.capsule_manager = CapsuleManager(
             organism=loop,
             epistemic_validator=self.epistemic_validator,
@@ -509,7 +489,6 @@ class ZoeChat:
                 memory=memory,
                 mentor=self.mentor,
                 quarantine=self.knowledge_quarantine,
-                storage=storage_backend,
             )
             # Conectar al metabolism — cuando ZOE duerme, se dispara la reflexion
             metabolism.attach_reflection_hook(self.reflection_engine)

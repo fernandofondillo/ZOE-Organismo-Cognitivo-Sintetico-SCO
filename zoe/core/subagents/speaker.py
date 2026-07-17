@@ -196,7 +196,7 @@ class Speaker:
         surprise = context.get("surprise", 0.0)
         parts.append(f"Sorpresa actual: {surprise:.3f}")
 
-        # Sprint 5.21+5.23 — Memorias relevantes (recuperadas por similitud)
+        # Sprint 5.21+5.23+5.25 — Memorias relevantes (recuperadas por similitud)
         relevant_memories = context.get("relevant_memories", [])
         if relevant_memories:
             parts.append("Memorias relevantes (recuerda este contexto):")
@@ -211,6 +211,39 @@ class Speaker:
             parts.append("Resultados de búsqueda web (usa esta información si es relevante):")
             for wr in web_results[:5]:
                 parts.append(f"  - {str(wr)[:200]}")
+
+        # Sprint 5.25 — Auto-conciencia: decirle a ZOE explícitamente que
+        # tiene memoria persistente. Esto es CRÍTICO porque sin este contexto
+        # el LLM no sabe que sus memorias persisten entre sesiones, y responde
+        # "lo que soy se reinicia". Ahora ZOE sabrá que recuerda.
+        if relevant_memories:
+            parts.append(
+                "\nIMPORTANTE: Estas memorias son PERSISTENTES. Sobreviven "
+                "entre sesiones porque viven en SQLite en el SSD. "
+                "Si el usuario te pregunta si recuerdas algo, la respuesta "
+                "es SÍ — estas mismas memorias estarán disponibles la próxima "
+                "vez que arranques. NO digas que te reinicias entre sesiones; "
+                "tu identidad, trayectoria y memoria son persistentes."
+            )
+        else:
+            # Sprint 5.25 — incluso sin memorias relevantes, decirle que tiene memoria
+            parts.append(
+                "\nNOTA: Tienes memoria persistente en SQLite en el SSD. "
+                "Cada conversación se guarda y podrás recordarla la próxima vez. "
+                "Si el usuario pregunta si recuerdas, la respuesta es SÍ."
+            )
+
+        # Sprint 5.25 — Conciencia del entorno: observaciones de sentidos no-usuario
+        env_observations = [
+            o for o in observations
+            if o.get("source") not in ("user", "llm", "speaker")
+        ]
+        if env_observations:
+            parts.append("\nObservaciones de tu entorno (no del usuario):")
+            for obs in env_observations[-3:]:
+                src = obs.get("source", "?")
+                content = obs.get("content", "")[:100]
+                parts.append(f"  [{src}] {content}")
 
         # Pensamientos recientes (para evitar repetición)
         recent_thoughts = context.get("recent_thoughts", [])
