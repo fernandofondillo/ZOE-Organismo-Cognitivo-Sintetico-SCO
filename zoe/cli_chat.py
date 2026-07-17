@@ -79,6 +79,13 @@ class ZoeChat:
         self._initialized = False
         self._background_task = None
         self._thoughts_while_idle = []
+        # Sprint 5.27 FIX-05: tareas autoimpuestas — ZOE tiene proyectos
+        # en curso que puede mencionar y avanzar cuando está idle.
+        self._active_projects: list = []
+        # Sprint 5.27 FIX-06: diario de pensamientos significativos
+        # (no ruido de background thoughts).
+        self._journal: list = []
+        self._last_journal_entry = 0.0
 
     async def initialize(self) -> None:
         """Inicializa el organismo ZOE completo."""
@@ -302,7 +309,12 @@ class ZoeChat:
         # crear el loop mas abajo.
         deep_consolidation = DeepConsolidation(memory=memory, scientific_engine=scientific)
 
-        tick_interval = config.get("organism", {}).get("tick_interval", 3.0)
+        # Sprint 5.27 FIX-01: tick_interval de 3s → 30s por defecto.
+        # Antes, el background tick corría cada 3s generando pensamientos
+        # autónomos. Sin estímulo, esto producía 12 "Siento curiosidad"
+        # idénticos en 36s. Con 30s, ZOE piensa 2x por minuto — suficiente
+        # para mantenerse viva sin generar ruido.
+        tick_interval = config.get("organism", {}).get("tick_interval", 30.0)
 
         # Fase 5: ACD + Cache
         depth_classifier = DepthClassifier()
@@ -563,24 +575,13 @@ class ZoeChat:
         async def on_thought(thought):
             self._thoughts_while_idle.append(thought)
 
-            # Sprint 5.10 C6 — Mentor evalúa cada pensamiento autónomo
-            if hasattr(self, 'mentor') and self.mentor:
-                try:
-                    thought_content = getattr(thought, 'content', str(thought))
-                    intervention = self.mentor.evaluate_thought(thought_content)
-                    if intervention:
-                        # El mentor intervino: registrar como pensamiento separado
-                        mentor_msg = intervention.get("message", "")
-                        if mentor_msg:
-                            self._thoughts_while_idle.append({
-                                "content": f"[Mentor] {mentor_msg}",
-                                "trigger": "mentor_intervention",
-                                "severity": intervention.get("severity", "medium"),
-                                "type": intervention.get("type", "unknown"),
-                            })
-                            logger.info(f"Mentor intervention: {intervention.get('type')} ({intervention.get('severity')})")
-                except Exception as e:
-                    logger.debug(f"Mentor evaluation failed: {e}")
+            # Sprint 5.27 FIX-04: Mentor NO evalúa pensamientos autónomos de
+            # background. Antes, el mentor evaluaba cada pensamiento del
+            # background tick, lo que generaba spam de "estás repitiendo
+            # patrones" porque EmotionalMotor repetía templates.
+            # Ahora el mentor SOLO evalúa respuestas al usuario (en
+            # _process_l1/l2/l3), no pensamientos autónomos.
+            # Esto elimina el ruido del mentor en el dashboard.
 
         loop.on_thought_callback = on_thought
 
@@ -874,6 +875,63 @@ class ZoeChat:
 
         except Exception as e:
             return f"Error leyendo archivo: {e}"
+
+    # Sprint 5.27 FIX-05 — Tareas autoimpuestas
+    def add_project(self, name: str, description: str = "") -> str:
+        """Añade un proyecto/tarea autoimpuesta a la lista activa."""
+        project = {
+            "name": name,
+            "description": description,
+            "created_at": time.time(),
+            "status": "active",
+            "progress": 0,
+        }
+        self._active_projects.append(project)
+        # Guardar en memoria semántica
+        if self.memory:
+            self.memory.add(
+                content=f"PROYECTO ACTIVO: {name} — {description}",
+                type="prospective",
+                confidence=0.8,
+                salience=0.9,
+                provenance="self_assigned_project",
+            )
+        return f"Proyecto '{name}' añadido. Total: {len(self._active_projects)} activos."
+
+    def list_projects(self) -> list:
+        """Lista proyectos activos."""
+        return [p for p in self._active_projects if p.get("status") == "active"]
+
+    # Sprint 5.27 FIX-06 — Diario de pensamientos significativos
+    def add_journal_entry(self, content: str, entry_type: str = "reflection") -> None:
+        """Añade una entrada al diario (no ruido de background)."""
+        import time as _time
+        now = _time.time()
+        # Sprint 5.27: no más de 1 entrada por minuto (evitar spam)
+        if now - self._last_journal_entry < 60:
+            return
+        entry = {
+            "content": content[:500],
+            "type": entry_type,  # reflection, insight, learning, question
+            "timestamp": now,
+        }
+        self._journal.append(entry)
+        if len(self._journal) > 100:
+            self._journal = self._journal[-50:]
+        self._last_journal_entry = now
+        # Persistir en memoria counterfactual
+        if self.memory:
+            self.memory.add(
+                content=f"DIARIO ({entry_type}): {content[:200]}",
+                type="counterfactual",
+                confidence=0.7,
+                salience=0.7,
+                provenance="journal_entry",
+            )
+
+    def get_journal(self, limit: int = 10) -> list:
+        """Recupera las últimas N entradas del diario."""
+        return self._journal[-limit:] if self._journal else []
 
     def get_stats(self) -> str:
         """Devuelve estadísticas formateadas."""

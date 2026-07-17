@@ -588,32 +588,56 @@ class EmotionalMotor:
         )
 
     async def generate_thought(self, context: Dict[str, Any]) -> str:
-        """Genera pensamiento desde el motor emocional."""
+        """Genera pensamiento desde el motor emocional.
+
+        Sprint 5.27 FIX-02: diversificar templates para evitar repetición.
+        Antes, cuando arousal > 0.7 y energy > 0.6 (casi siempre), ZOE
+        decía 'Siento curiosidad. Mi entorno me estimula a explorar.' en
+        cada tick. Ahora rotamos entre 6 variantes y además:
+        - Si no hay estímulo real (sin input reciente), retornar ''.
+        """
         surprise = context.get("surprise", 0.0)
         energy = context.get("state", {}).get("energy", 1.0)
         arousal = context.get("state", {}).get("arousal", 0.3)
 
-        # Sprint 5.24 F1v2-2 (BUG-003 fix): persistir marcadores emocionales
-        # en LivingMemory como type="emotional" para que el tipo de memoria
-        # EMOTIONAL tenga contenido real (no solo placeholders Init).
+        # Sprint 5.27 FIX-02: si no hay estímulo reciente, NO generar pensamiento
+        # Esto evita el bucle de 'Siento curiosidad' sin input real.
+        recent_observations = context.get("recent_observations", [])
+        user_input_recent = any(
+            o.get("source") == "user" for o in recent_observations[-3:]
+        )
+        if not user_input_recent and surprise < 0.3:
+            return ""
+
         memory = context.get("memory")
+
+        # Sprint 5.27 FIX-02: templates diversificados
+        curiosity_templates = [
+            "Algo me llama la atención. Quiero entenderlo mejor.",
+            "Detecto un patrón interesante en lo que observo.",
+            "Mi atención se activa. Hay algo que merece exploración.",
+            "Siento que hay una conexión por descubrir aquí.",
+            "La información nueva me estimula. Voy a profundizar.",
+            "Hay una pregunta formándose en mi mente.",
+        ]
 
         if surprise > 0.6:
             marker = self.generate_marker("surprise", surprise, "high_surprise_observation")
             self._persist_marker(memory, marker)
-            return f"Siento una marcada sorpresa ({surprise:.2f}). Algo no encaja con mis expectaciones."
+            return f"Sorpresa marcada ({surprise:.2f}). Algo no encaja con mis expectativas."
         elif arousal > 0.7 and energy > 0.6:
             marker = self.generate_marker("curiosity", arousal, "high_arousal")
             self._persist_marker(memory, marker)
-            return "Siento curiosidad. Mi entorno me estimula a explorar."
+            import random
+            return random.choice(curiosity_templates)
         elif energy < 0.3:
             marker = self.generate_marker("concern", 1.0 - energy, "low_energy")
             self._persist_marker(memory, marker)
-            return "Siento señal de agotamiento. Necesito conservar energía."
+            return "Señal de agotamiento. Necesito conservar energía."
         elif surprise < 0.1 and energy > 0.7:
             marker = self.generate_marker("satisfaction", 0.6, "stable_environment")
             self._persist_marker(memory, marker)
-            return "Siento satisfacción. El entorno es estable y predecible."
+            return "El entorno es estable. Buen momento para consolidar."
 
         return ""
 
