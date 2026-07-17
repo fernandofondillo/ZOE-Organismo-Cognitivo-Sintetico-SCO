@@ -203,8 +203,17 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 )
                 logger.info("CognitivePrefetchLayer inicializado")
             except Exception as e:
-                logger.debug(f"CognitivePrefetchLayer init failed (non-fatal): {e}")
+                logger.debug(f"CPL init failed (non-fatal): {e}")
                 self._cpl = None
+
+        # Sprint 5.22 — WebSearchActuator (las "manos" de ZOE)
+        self._web_search = None
+        try:
+            from ..peripherals.web_search import WebSearchActuator
+            self._web_search = WebSearchActuator()
+            logger.info("WebSearchActuator inicializado")
+        except Exception as e:
+            logger.debug(f"WebSearch init failed (non-fatal): {e}")
 
         # System prompt del idioma detectado (para el Speaker)
         self._current_system_prompt: Optional[str] = None
@@ -465,6 +474,17 @@ class CognitiveLoopV5(CognitiveLoopV4):
             except Exception as e:
                 logger.debug(f"CPL L1 prefetch failed (non-fatal): {e}")
 
+        # Sprint 5.22: Web search si la pregunta requiere información externa
+        web_results = []
+        if self._web_search and self._web_search.should_use_search(user_input):
+            try:
+                search_results = await self._web_search.search(user_input)
+                if search_results:
+                    web_results = [f"{r.title}: {r.url}" for r in search_results[:3]]
+                    logger.info(f"L1: Web search returned {len(search_results)} results")
+            except Exception as e:
+                logger.debug(f"Web search failed (non-fatal): {e}")
+
         # Generar respuesta
         try:
             context = {
@@ -476,6 +496,7 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 "surprise": 0.2,
                 "acd_level": "L1_FAST",
                 "relevant_memories": memories,
+                "web_search_results": web_results,
             }
             # Inyectar system prompt del idioma si está disponible
             if self._current_system_prompt:

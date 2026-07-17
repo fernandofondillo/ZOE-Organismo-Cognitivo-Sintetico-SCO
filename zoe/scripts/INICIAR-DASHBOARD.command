@@ -73,9 +73,27 @@ if [ -d "$ZOE_HOME/models/ollama" ]; then
 fi
 
 # ── Paso 5: Detectar backend ─────────────────────────────────────────────
+# Sprint 5.22: Prioridad de backends:
+#   1. ANTHROPIC_API_KEY en .env → usar Anthropic/MiniMax (cloud, rápido)
+#   2. Ollama con modelos → usar Ollama (local, ACD Router)
+#   3. OPENAI_API_KEY en .env → usar OpenAI
+#   4. PatternSpeaker (offline, sin IA)
+#
+# Sprint 5.22: Si ANTHROPIC_BASE_URL está en .env, usarlo como --base-url
+# Si ANTHROPIC_MODEL está en .env, usarlo como --model
 DASH_BACKEND="pattern"
 DASH_MODEL=""
-if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
+DASH_BASE_URL=""
+
+if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    DASH_BACKEND="anthropic"
+    DASH_MODEL="${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
+    DASH_BASE_URL="${ANTHROPIC_BASE_URL:-}"
+    echo -e "  ${GREEN}OK${NC} Anthropic/MiniMax -- ${DASH_MODEL}"
+    if [ -n "$DASH_BASE_URL" ]; then
+        echo -e "  ${GREEN}OK${NC} Base URL: ${DASH_BASE_URL}"
+    fi
+elif command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
     DASH_BACKEND="ollama"; DASH_MODEL="auto"
     # Asegurar que Ollama está corriendo
     if ! curl -s http://localhost:11434/api/tags &>/dev/null; then
@@ -87,9 +105,6 @@ if command -v ollama &>/dev/null && ollama list 2>/dev/null | grep -q .; then
 elif [ -n "${OPENAI_API_KEY:-}" ]; then
     DASH_BACKEND="openai_compatible"; DASH_MODEL="gpt-4o"
     echo -e "  ${GREEN}OK${NC} OpenAI -- GPT-4o"
-elif [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-    DASH_BACKEND="anthropic"; DASH_MODEL="claude-sonnet-4-20250514"
-    echo -e "  ${GREEN}OK${NC} Anthropic -- Claude Sonnet"
 else
     echo -e "  ${YELLOW}ADVERTENCIA${NC} Sin modelos IA -- PatternSpeaker (offline)"
 fi
@@ -109,6 +124,7 @@ echo ""
 exec python -m zoe.web_dashboard \
     --backend "$DASH_BACKEND" \
     ${DASH_MODEL:+--model "$DASH_MODEL"} \
+    ${DASH_BASE_URL:+--base-url "$DASH_BASE_URL"} \
     --port "$PORT" \
     --host "127.0.0.1" \
     --db-path "${ZOE_DATA:-$ZOE_HOME/data}/dashboard_memory.db"
