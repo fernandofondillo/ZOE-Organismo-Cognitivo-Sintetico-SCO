@@ -248,7 +248,11 @@ async def _handle_feed_upload(server, request) -> Any:
     return web.json_response({
         "status": "stored",
         "filename": filename,
+        # Sprint 5.26 BUG-057: retornar 'chars' (longitud del texto) además
+        # de 'size' (bytes del archivo). El JS del frontend usa 'chars'.
+        "chars": len(text),
         "size": len(content),
+        "text_preview": text[:200] if text else "",
         "entry_id": entry_id,
         "is_image": is_image,
         "image_description": image_description,

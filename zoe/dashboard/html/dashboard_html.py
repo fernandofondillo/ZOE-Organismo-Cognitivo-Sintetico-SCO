@@ -434,7 +434,13 @@ function uploadFile(event) {
   formData.append('file', file);
   fetch('/feed', { method: 'POST', body: formData })
     .then(r => r.json())
-    .then(d => { addMessage('zoe', `&#128218; He leido '${d.filename}' (${d.size} chars). Almacenado en memoria semantica.`, Date.now()/1000); })
+    .then(d => {
+      // Sprint 5.26 BUG-057: usar d.chars (longitud del texto) en vez de
+      // d.size (bytes del archivo). Si chars no está, usar size como fallback.
+      const chars = d.chars !== undefined ? d.chars : (d.size || 0);
+      const preview = d.text_preview ? ` Preview: "${d.text_preview.substring(0,80)}..."` : '';
+      addMessage('zoe', `&#128218; He leído '${d.filename}' (${chars} chars). Almacenado en memoria semántica.${preview}`, Date.now()/1000);
+    })
     .catch(e => addMessage('zoe', `Error: ${e}`, Date.now()/1000));
   event.target.value = '';
 }

@@ -504,13 +504,74 @@ class CognitiveLoopV5(CognitiveLoopV4):
         el dict de respuesta y el dashboard pueda mostrarlo al usuario.
         """
         # Buscar memoria relevante
+        # Sprint 5.26 BUG-054: búsqueda inteligente mejorada.
+        # Antes solo usábamos Jaccard léxico sobre el input del usuario.
+        # Pero "recuerdas como me llamo" no comparte palabras con
+        # "Me llamo Fernando" → 0 resultados. Ahora:
+        # 1. Si el usuario pregunta por su nombre/perfil, buscar entradas
+        #    que contengan "User:" o "me llamo" o "mi nombre".
+        # 2. Búsqueda normal por similitud para el resto.
         memories = []
         if hasattr(self, 'memory') and self.memory:
             try:
-                relevant = self.memory.search(user_input, n=3)
-                memories = [m.content[:150] for m in relevant] if relevant else []
-            except Exception:
-                pass
+                # Sprint 5.26: detectar preguntas sobre identidad del usuario
+                input_lower = user_input.lower()
+                identity_questions = [
+                    "como me llamo", "cómo me llamo", "mi nombre",
+                    "quien soy", "quién soy", "me llamo",
+                    "my name", "who am i",
+                ]
+                is_identity_question = any(q in input_lower for q in identity_questions)
+
+                if is_identity_question:
+                    # Buscar todas las memorias y filtrar las que contienen
+                    # info sobre el usuario
+                    all_entries = self.memory.all_entries()
+                    for entry in all_entries:
+                        content_lower = entry.content.lower()
+                        if any(kw in content_lower for kw in [
+                            "me llamo", "mi nombre es", "soy ",
+                            "user:", "usuario:", "fernando",
+                        ]):
+                            memories.append(entry.content[:200])
+                        if len(memories) >= 5:
+                            break
+
+                # También hacer búsqueda normal por similitud
+                if not memories:
+                    relevant = self.memory.search(user_input, n=5)
+                    memories = [m.content[:200] for m in relevant] if relevant else []
+            except Exception as e:
+                logger.debug(f"Memory search L1 failed: {e}")
+
+        # Sprint 5.26 BUG-055: extraer perfil del usuario del input actual
+        # Si el usuario dice "me llamo X", guardar como memoria especial
+        if hasattr(self, 'memory') and self.memory:
+            try:
+                import re
+                # Patrones: "me llamo X", "mi nombre es X", "soy X"
+                name_patterns = [
+                    r"me llamo ([A-ZÁÉÍÓÚa-záéíóúñÑ]+)",
+                    r"mi nombre es ([A-ZÁÉÍÓÚa-záéíóúñÑ]+)",
+                    r"soy ([A-ZÁÉÍÓÚa-záéíóúñÑ]+)",
+                ]
+                for pattern in name_patterns:
+                    match = re.search(pattern, user_input, re.IGNORECASE)
+                    if match:
+                        user_name = match.group(1).strip()
+                        # Guardar como memoria semántica de tipo "user_profile"
+                        self.memory.add(
+                            content=f"PERFIL DEL USUARIO: El usuario se llama {user_name}.",
+                            type="semantic",
+                            confidence=0.95,
+                            salience=1.0,  # máxima prioridad
+                            provenance="user_profile_extraction",
+                        )
+                        # Añadir a memories para que se incluya en el prompt
+                        memories.insert(0, f"El usuario se llama {user_name}.")
+                        break
+            except Exception as e:
+                logger.debug(f"User profile extraction failed: {e}")
 
         # Sprint 5.23 F0-5 — WebSearch si el usuario lo pide
         web_results: List[str] = []
@@ -569,6 +630,19 @@ class CognitiveLoopV5(CognitiveLoopV4):
 
         # Generar respuesta
         try:
+            # Sprint 5.26 BUG-058: contexto conversacional — incluir últimos
+            # mensajes del usuario para que el LLM tenga contexto y no confunda
+            # temas (ej: "timo" como órgano vs "timo" como engaño).
+            conversation_context = []
+            if hasattr(self, 'memory') and self.memory:
+                try:
+                    # Obtener las últimas 6 memorias episódicas (3 turnos user+zoe)
+                    recent = self.memory.get_recent(memory_type="episodic", limit=6)
+                    for m in reversed(recent):  # más reciente último
+                        conversation_context.append(m.content[:150])
+                except Exception:
+                    pass
+
             context = {
                 "action": "respond_to_user",
                 "decision": {"user_content": user_input},
@@ -579,6 +653,8 @@ class CognitiveLoopV5(CognitiveLoopV4):
                 "acd_level": "L1_FAST",
                 "relevant_memories": memories,
                 "web_results": web_results,
+                # Sprint 5.26 BUG-058: contexto conversacional
+                "conversation_context": conversation_context,
             }
             # Inyectar system prompt del idioma si está disponible
             if self._current_system_prompt:

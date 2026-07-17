@@ -190,14 +190,28 @@ class MentorAgent:
                 break
 
         if not growth_aligned and len(interventions) == 0:
-            interventions.append({
-                "type": "off_track",
-                "severity": "medium",
-                "message": self.config.guidance_messages.get(
-                    "off_track",
-                    "ZOE, este pensamiento no está alineado con tus áreas de crecimiento priorizadas."
-                ),
-            })
+            # Sprint 5.26 BUG-053: NO intervenir en cada respuesta que no
+            # coincide con growth_areas. Eso causaba spam del mentor en
+            # cada mensaje. Ahora solo intervenimos si:
+            # 1. El pensamiento es muy corto (posible respuesta vacía)
+            # 2. O el pensamiento contiene palabras negativas
+            # 3. O ya hemos acumulado 5 pensamientos off-track seguidos
+            # En caso contrario, dejamos que ZOE responda sin intervención.
+            self._off_track_streak = getattr(self, '_off_track_streak', 0) + 1
+            # Solo intervenir si llevamos 5+ respuestas sin alineación
+            if self._off_track_streak >= 5:
+                interventions.append({
+                    "type": "off_track",
+                    "severity": "low",
+                    "message": self.config.guidance_messages.get(
+                        "off_track",
+                        "ZOE, llevamos varios mensajes sin tocar tus áreas de crecimiento. ¿Te interesa explorar alguna?"
+                    ),
+                })
+                self._off_track_streak = 0  # reset
+        else:
+            # Si está alineado o ya hay otra intervención, resetear streak
+            self._off_track_streak = 0
 
         # 3. Verificar repetición
         self._recent_thoughts.append(thought_content[:100])
