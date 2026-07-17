@@ -85,16 +85,21 @@ class Learner:
     filtren en contextos críticos.
     """
 
-    def __init__(self, epistemic_validator=None, quarantine=None):
+    def __init__(self, epistemic_validator=None, quarantine=None, cross_validator=None):
         self._pending_mutations: List[Dict[str, Any]] = []
         # Fase 6A: validador epistémico (opcional, para compatibilidad)
         self._validator = epistemic_validator
         self._quarantine = quarantine
+        # Sprint 5.24 F1v2-3 (BUG-015 fix): CrossValidator opcional para
+        # triple verificación cuando EpistemicValidator lo requiera.
+        self._cross_validator = cross_validator
         # Estadísticas de validación
         self.validation_attempts = 0
         self.validation_accepted = 0
         self.validation_quarantined = 0
         self.validation_rejected = 0
+        # Sprint 5.24 F1v2-3: contador de triple verificaciones
+        self.triple_validations = 0
         # Sprint 5.7.4 — validadores de cápsulas
         self._capsule_validators: Dict[str, Any] = {}
 
@@ -167,7 +172,50 @@ class Learner:
             # Aplicar confianza validada (puede ser menor)
             final_confidence = validation_result.confidence
             quarantine_flag = validation_result.quarantine
-            
+
+            # Sprint 5.24 F1v2-3 (BUG-015 fix): si EpistemicValidator retorna
+            # NEEDS_TRIPLE_VALIDATION, invocar CrossValidator para triple
+            # verificación. El resultado puede promover, rechazar, o mantener
+            # en cuarentena.
+            if (
+                validation_result.status.value == "needs_triple"
+                and self._cross_validator is not None
+            ):
+                self.triple_validations += 1
+                try:
+                    triple_result = self._cross_validator.verify_triple(
+                        claim=content,
+                        source=source,
+                        context=context,
+                    )
+                    if triple_result is not None:
+                        # Si triple_result.verdict == "promoted", aceptar
+                        # Si triple_result.verdict == "rejected", rechazar
+                        # Si triple_result.verdict == "quarantined", mantener
+                        verdict = getattr(triple_result, "verdict", None) or (
+                            triple_result.get("verdict") if isinstance(triple_result, dict) else None
+                        )
+                        if verdict == "promoted":
+                            final_confidence = max(final_confidence, 0.75)
+                            quarantine_flag = False
+                            self.validation_accepted += 1
+                        elif verdict == "rejected":
+                            self.validation_rejected += 1
+                            return {
+                                "type": "knowledge_rejected",
+                                "target": memory_type,
+                                "payload": {"content": content[:100]},
+                                "justification": f"Rejected by CrossValidator (triple): {verdict}",
+                                "provenance": source,
+                                "cost": 0.0,
+                                "confidence": 0.0,
+                                "rejected": True,
+                                "rejection_reason": f"triple_validation_rejected",
+                            }
+                        # else: keep quarantine_flag as is
+                except Exception as e:
+                    logger.debug(f"CrossValidator.verify_triple failed (non-fatal): {e}")
+
             if quarantine_flag:
                 self.validation_quarantined += 1
             else:
@@ -471,6 +519,22 @@ class CausalEngine:
 
         if obs1 and obs2:
             self.add_causal_link(obs1, obs2, confidence=0.4)
+            # Sprint 5.24 F1v2-2 (BUG-003 fix): persistir enlace causal
+            # en LivingMemory como type="causal" para que el tipo de memoria
+            # CAUSAL tenga contenido real (no solo placeholders Init).
+            memory = context.get("memory")
+            if memory is not None and hasattr(memory, "add"):
+                try:
+                    memory.add(
+                        content=f"Causal: '{obs1}' → '{obs2}' (confianza=0.4)",
+                        type="causal",
+                        confidence=0.4,
+                        salience=0.5,
+                        provenance="causal_engine",
+                        metadata={"cause": obs1, "effect": obs2},
+                    )
+                except Exception as e:
+                    logger.debug(f"CausalEngine memory persist failed: {e}")
             return f"Detecto posible relación causal: '{obs1}' podría haber causado '{obs2}'."
 
         return ""
@@ -529,20 +593,47 @@ class EmotionalMotor:
         energy = context.get("state", {}).get("energy", 1.0)
         arousal = context.get("state", {}).get("arousal", 0.3)
 
+        # Sprint 5.24 F1v2-2 (BUG-003 fix): persistir marcadores emocionales
+        # en LivingMemory como type="emotional" para que el tipo de memoria
+        # EMOTIONAL tenga contenido real (no solo placeholders Init).
+        memory = context.get("memory")
+
         if surprise > 0.6:
-            self.generate_marker("surprise", surprise, "high_surprise_observation")
-            return f"Siento una marcada sorpresa ({surprise:.2f}). Algo no encaja con mis expectativas."
+            marker = self.generate_marker("surprise", surprise, "high_surprise_observation")
+            self._persist_marker(memory, marker)
+            return f"Siento una marcada sorpresa ({surprise:.2f}). Algo no encaja con mis expectaciones."
         elif arousal > 0.7 and energy > 0.6:
-            self.generate_marker("curiosity", arousal, "high_arousal")
+            marker = self.generate_marker("curiosity", arousal, "high_arousal")
+            self._persist_marker(memory, marker)
             return "Siento curiosidad. Mi entorno me estimula a explorar."
         elif energy < 0.3:
-            self.generate_marker("concern", 1.0 - energy, "low_energy")
+            marker = self.generate_marker("concern", 1.0 - energy, "low_energy")
+            self._persist_marker(memory, marker)
             return "Siento señal de agotamiento. Necesito conservar energía."
         elif surprise < 0.1 and energy > 0.7:
-            self.generate_marker("satisfaction", 0.6, "stable_environment")
+            marker = self.generate_marker("satisfaction", 0.6, "stable_environment")
+            self._persist_marker(memory, marker)
             return "Siento satisfacción. El entorno es estable y predecible."
 
         return ""
+
+    def _persist_marker(self, memory, marker: Dict[str, Any]) -> None:
+        """Sprint 5.24 F1v2-2: persiste marker emocional en LivingMemory."""
+        if memory is None or not hasattr(memory, "add"):
+            return
+        try:
+            memory.add(
+                content=f"Emoción: {marker.get('type', 'unknown')} "
+                        f"(intensidad={marker.get('intensity', 0):.2f}, "
+                        f"trigger={marker.get('trigger', 'unknown')})",
+                type="emotional",
+                confidence=0.7,
+                salience=marker.get("intensity", 0.5),
+                provenance="emotional_motor",
+                metadata={"marker": marker},
+            )
+        except Exception as e:
+            logger.debug(f"EmotionalMotor._persist_marker failed: {e}")
 
 
 class EthicalMotor:

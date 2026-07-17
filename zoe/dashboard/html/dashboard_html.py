@@ -283,9 +283,28 @@ function handleMessage(data) {
         + `<span class="acd-meta">${data.latency_ms.toFixed(0)}ms${data.cache_hit ? ' &#128190;' : ''}</span>`
       : '';
     addMessage('zoe', data.content, data.timestamp, meta);
+    // Sprint 5.24 F1v2-6 (BUG-013 UI): si hay mentor_intervention,
+    // mostrarla como mensaje separado del tutor.
+    if (data.mentor_intervention) {
+      const mi = data.mentor_intervention;
+      const miType = mi.type || 'guidance';
+      const miSeverity = mi.severity || 'info';
+      const miMsg = mi.message || mi.intervention || '';
+      if (miMsg) {
+        const miMeta = ` <span class="acd-badge acd-mentor" style="background:#fef3c7;color:#92400e;">&#127819; Mentor (${miType})</span>`;
+        addMessage('mentor', miMsg, data.timestamp, miMeta);
+      }
+    }
     // ZOE v2.1.1 -- Ocultar indicador de pensando
     hideThinking();
     document.getElementById('sendBtn').disabled = false;
+  } else if (data.type === 'mentor_intervention') {
+    // Sprint 5.24 F1v2-6: mentor intervention autónoma (de _broadcast_loop)
+    const miMsg = data.content || '';
+    if (miMsg) {
+      const miMeta = ` <span class="acd-badge acd-mentor" style="background:#fef3c7;color:#92400e;">&#127819; Mentor</span>`;
+      addMessage('mentor', miMsg, data.timestamp, miMeta);
+    }
   } else if (data.type === 'state_update') {
     updateState(data);
   } else if (data.type === 'autonomous_thought') {

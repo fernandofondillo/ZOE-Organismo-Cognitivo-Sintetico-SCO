@@ -197,6 +197,16 @@ class PostgreSQLBackend(StorageBackend):
                 )
             """)
 
+            # Sprint 5.24 F3v2-4 (BUG-020 fix): crear extensión pg_trgm ANTES
+            # del índice GIN que la requiere. Antes el orden era inverso:
+            # se creaba el índice `gin_trgm_ops` primero, y luego la
+            # extensión, lo que causaba que el CREATE INDEX fallara si
+            # la extensión no estaba pre-instalada.
+            try:
+                await conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+            except Exception as e:
+                logger.warning(f"pg_trgm extension creation failed: {e}")
+
             # Índices optimizados
             await conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_me_type ON memory_entries(type)
@@ -221,12 +231,6 @@ class PostgreSQLBackend(StorageBackend):
             await conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_traj_ts ON trajectory(mutation_timestamp DESC)
             """)
-
-            # Instalar extensión pg_trgm si no existe (para búsqueda full-text)
-            try:
-                await conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-            except Exception:
-                pass  # Puede que no tengamos permisos
 
         logger.debug("PostgreSQLBackend: all tables and indexes created")
 
@@ -528,7 +532,10 @@ class PostgreSQLBackend(StorageBackend):
 
         # Pool stats
         pool_size = self._pool.get_size()
-        pool_free = self._pool.get_free_size()
+        # Sprint 5.24 F3v2-3 (BUG-019 fix): asyncpg Pool usa get_idle_size
+        # (no get_free_size que no existe). Antes esto crasheaba con
+        # AttributeError cuando se llamaba get_stats().
+        pool_free = self._pool.get_idle_size() if hasattr(self._pool, 'get_idle_size') else 0
 
         return {
             "backend": "postgresql",

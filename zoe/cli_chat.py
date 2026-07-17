@@ -227,6 +227,31 @@ class ZoeChat:
         chain.set_persist_path(_chain_path)  # auto-save tras cada commit
         print(f"  ✅ Trajectory loaded — {len(chain._mutations)} mutations")
 
+        # Sprint 5.24 F2v2 — Cargar o generar claves ECDSA para firma criptográfica real
+        _keys_path = _data_dir / "trajectory_keys.json"
+        try:
+            if _keys_path.exists():
+                with open(_keys_path, "r", encoding="utf-8") as f:
+                    keys_data = json.load(f)
+                if keys_data.get("private_key"):
+                    chain.load_keys(private_key_pem=keys_data["private_key"])
+                    print(f"  ✅ ECDSA keys loaded — signing mode: {chain._signing_mode}")
+            else:
+                # Generar claves nuevas en el primer arranque
+                priv_pem, pub_pem = chain.generate_keys()
+                if priv_pem and pub_pem:
+                    # Persistir claves (chmod 0600)
+                    with open(_keys_path, "w", encoding="utf-8") as f:
+                        json.dump({"private_key": priv_pem, "public_key": pub_pem}, f, indent=2)
+                    try:
+                        import os as _os
+                        _os.chmod(str(_keys_path), 0o600)
+                    except Exception:
+                        pass
+                    print(f"  ✅ ECDSA keys generated — signing mode: {chain._signing_mode}")
+        except Exception as _keys_err:
+            print(f"  ⚠️  ECDSA keys load failed (non-fatal, using legacy SHA-256): {_keys_err}")
+
         ontogenetic = OntogeneticMotorV2(
             identity_vault=vault, trajectory_chain=chain, laws=laws, organism_id="zoe_chat"
         )
@@ -247,7 +272,15 @@ class ZoeChat:
             gw.broadcast_capacity = _embodiment_config["broadcast_capacity"]
 
         memorialist = Memorialist(memory=memory)
-        learner = Learner()
+        # Sprint 5.24 F1v2-3 (BUG-015 fix): instanciar CrossValidator para
+        # que Learner pueda invocarlo cuando EpistemicValidator retorne
+        # NEEDS_TRIPLE_VALIDATION. Antes CrossValidator era dead code.
+        try:
+            from .core.cross_validator import CrossValidator
+            cross_validator = CrossValidator()
+        except Exception:
+            cross_validator = None
+        learner = Learner(cross_validator=cross_validator)
         curator = Curator(memory=memory)
         creativity_agent = Creativity()
         causal = CausalEngine()

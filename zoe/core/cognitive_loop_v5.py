@@ -749,6 +749,36 @@ class CognitiveLoopV5(CognitiveLoopV4):
                         response = speaker._sanitize(response) if hasattr(speaker, "_sanitize") else response
                 except Exception:
                     pass
+
+            # Sprint 5.24 F1v2-1 (BUG-002 fix): invocar ``Learner.propose_learning``
+            # para que el conocimiento nuevo del usuario se valide con
+            # EpistemicValidator y, si procede, se añada a KnowledgeQuarantine.
+            # Antes ``propose_learning`` solo se invocaba desde el background
+            # tick con surprise > 0.5; ahora también desde el chat L2 cuando
+            # el usuario comparte conocimiento factual.
+            learner = getattr(self, "learner", None) or self._find_subagent("learner")
+            if learner and hasattr(learner, "propose_learning"):
+                try:
+                    # Heurística simple: si el input contiene afirmaciones
+                    # factuales (verbos en presente + sustantivos técnicos),
+                    # proponer aprendizaje. Evitamos invocar para saludos
+                    # o preguntas cortas.
+                    if (
+                        len(user_input) > 30
+                        and any(kw in user_input.lower() for kw in [
+                            " es ", " son ", " significa", " porque ", " debido a",
+                            " siempre ", " nunca ", " todos ", " is ", " are ",
+                            " means ", " because ",
+                        ])
+                    ):
+                        learner.propose_learning(
+                            content=user_input[:500],
+                            memory_type="semantic",
+                            confidence=0.6,
+                            source="user:chat",
+                        )
+                except Exception as e:
+                    logger.debug(f"Learner.propose_learning failed (non-fatal): {e}")
         except Exception as e:
             logger.warning(f"L2 pipeline failed: {e}")
             response = f"Procesando tu mensaje. {user_input[:30]}..."

@@ -791,9 +791,19 @@ class ZOESeed:
                     while True:
                         await asyncio.sleep(1)
 
-                loop_async = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop_async)
-                loop_async.run_until_complete(_run_seed())
+                # Sprint 5.24 F3v2-13 (BUG-008 fix): si ya hay un event loop
+                # corriendo (p.ej. invocado desde dashboard async), usar
+                # asyncio.ensure_future en vez de run_until_complete para
+                # evitar RuntimeError "This event loop is already running".
+                try:
+                    current_loop = asyncio.get_running_loop()
+                    # Hay loop corriendo — usar ensure_future
+                    asyncio.ensure_future(_run_seed())
+                except RuntimeError:
+                    # No hay loop corriendo — crear uno nuevo y correr
+                    loop_async = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop_async)
+                    loop_async.run_until_complete(_run_seed())
 
             except asyncio.CancelledError:
                 report.auto_started = True
